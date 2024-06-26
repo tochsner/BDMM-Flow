@@ -1,8 +1,6 @@
 package bdmmflow.flow;
 
 import bdmmprime.parameterization.Parameterization;
-import org.apache.commons.math3.exception.DimensionMismatchException;
-import org.apache.commons.math3.exception.MaxCountExceededException;
 
 
 public class ExtinctionODESystem extends IntervalODESystem {
@@ -31,16 +29,16 @@ public class ExtinctionODESystem extends IntervalODESystem {
     @Override
     public void computeDerivatives(double t, double[] y, double[] yDot) {
         for (int i = 0; i < this.param.getNTypes(); i++) {
-            yDot[i] = this.birthRates[interval][i] * y[i];
-            yDot[i] += this.deathRates[interval][i] * y[i];
-            yDot[i] += this.samplingRates[interval][i] * y[i];
+            yDot[i] = this.birthRates[currentInterval][i] * y[i];
+            yDot[i] += this.deathRates[currentInterval][i] * y[i];
+            yDot[i] += this.samplingRates[currentInterval][i] * y[i];
 
-            yDot[i] -= this.birthRates[interval][i] * y[i] * y[i];
-            yDot[i] -= this.deathRates[interval][i];
+            yDot[i] -= this.birthRates[currentInterval][i] * y[i] * y[i];
+            yDot[i] -= this.deathRates[currentInterval][i];
 
             for (int j = 0; j < this.param.getNTypes(); j++) {
-                yDot[i] += this.crossBirthRates[interval][i][j] * (y[i] - y[i] * y[j]);
-                yDot[i] += this.migrationRates[interval][i][j] * (y[i] - y[j]);
+                yDot[i] += this.crossBirthRates[currentInterval][i][j] * (y[i] - y[i] * y[j]);
+                yDot[i] += this.migrationRates[currentInterval][i][j] * (y[i] - y[j]);
             }
         }
     }

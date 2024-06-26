@@ -2,10 +2,7 @@ package bdmmflow.flow;
 
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
-import org.apache.commons.math3.ode.ContinuousOutputModel;
-import org.apache.commons.math3.ode.nonstiff.DormandPrince54Integrator;
 import org.apache.commons.math3.ode.nonstiff.DormandPrince853Integrator;
-import org.apache.commons.math3.util.Pair;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -112,20 +109,20 @@ public class FlowODESystem extends IntervalODESystem {
             system.addToEntry(
                     i,
                     i,
-                    2 * this.birthRates[interval][i] * extinctProbabilities[i]
+                    2 * this.birthRates[currentInterval][i] * extinctProbabilities[i]
             );
 
             for (int j = 0; j < param.getNTypes(); j++) {
                 system.addToEntry(
                         i,
                         i,
-                        this.crossBirthRates[interval][i][j] * extinctProbabilities[j]
+                        this.crossBirthRates[currentInterval][i][j] * extinctProbabilities[j]
                 );
 
                 system.addToEntry(
                         i,
                         j,
-                        this.crossBirthRates[interval][i][j] * extinctProbabilities[i]
+                        this.crossBirthRates[currentInterval][i][j] * extinctProbabilities[i]
                 );
             }
         }

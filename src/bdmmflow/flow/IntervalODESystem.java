@@ -13,25 +13,26 @@ import java.util.ArrayList;
 public abstract class IntervalODESystem implements FirstOrderDifferentialEquations {
 
     protected Parameterization param;
-    protected int interval;
-
     protected FirstOrderIntegrator integrator;
+    protected int currentInterval;
 
     public IntervalODESystem(Parameterization parameterization, double absoluteTolerance, double relativeTolerance) {
         this.param = parameterization;
+
         double integrationMinStep = this.param.getTotalProcessLength() * 1e-100;
         double integrationMaxStep = this.param.getTotalProcessLength() / 20;
+
         this.integrator = new DormandPrince54Integrator(
                 integrationMinStep, integrationMaxStep, absoluteTolerance, relativeTolerance
         );
     }
 
     public ContinuousOutputModel[] integrateBackwardsOverIntegrals(double[] state) {
-        return this.integrateBackwardsOverIntegrals(state, this.param.getTotalProcessLength() / 10, false);
+        return this.integrateBackwardsOverIntegrals(state, this.param.getTotalProcessLength(), false);
     }
 
     public ContinuousOutputModel[] integrateOverIntegrals(double[] initialState, double maxIntervalSize, boolean alwaysStartAtInitialState) {
-        this.interval = 0;
+        this.currentInterval = 0;
 
         ArrayList<ContinuousOutputModel> outputModels = new ArrayList<>();
 
@@ -74,7 +75,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     }
 
     public ContinuousOutputModel[] integrateBackwardsOverIntegrals(double[] initialState, double maxIntervalSize, boolean alwaysStartAtInitialState) {
-        this.interval = this.param.getTotalIntervalCount() - 1;
+        this.currentInterval = this.param.getTotalIntervalCount() - 1;
 
         ArrayList<ContinuousOutputModel> outputModels = new ArrayList<>();
 
@@ -116,7 +117,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     }
 
     protected void handleIntervalBoundary(double boundaryTime, int oldInterval, int newInterval, double[] state) {
-        this.interval = newInterval;
+        this.currentInterval = newInterval;
     }
 
 }
