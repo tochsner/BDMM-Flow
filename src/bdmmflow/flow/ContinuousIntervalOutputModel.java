@@ -1,4 +1,4 @@
-package bdmmprime.flow;
+package bdmmflow.flow;
 
 import org.apache.commons.math3.exception.OutOfRangeException;
 import org.apache.commons.math3.ode.ContinuousOutputModel;

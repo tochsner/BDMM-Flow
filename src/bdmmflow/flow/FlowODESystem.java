@@ -1,4 +1,4 @@
-package bdmmprime.flow;
+package bdmmflow.flow;
 
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;

@@ -1,4 +1,4 @@
-package bdmmprime.flow;
+package bdmmflow.flow;
 
 import bdmmprime.flow.initialMatrices.InitialMatrices;
 import beast.base.core.Log;

@@ -1,4 +1,4 @@
-package bdmmprime.flow.benchmark;
+package bdmmflow.flow.benchmark;
 
 import bdmmprime.flow.initialMatrices.InitialMatrices;
 import bdmmprime.parameterization.Parameterization;
