@@ -62,6 +62,12 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             1e-100
     );
 
+    public Input<Boolean>useRandomInitialMatrixInput = new Input<>(
+            "useRandomInitialMatrix",
+            "Whether to use a random initial matrix as the initial flow state.",
+            true
+    );
+
     /**
      * DEBUG STIFFNESS
      */
@@ -88,6 +94,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     String integrator;
 
     private Parameterization parameterization;
+
+    private boolean useRandomInitialMatrix;
 
     private double finalSampleOffset;
     private TreeInterface tree;
@@ -122,6 +130,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.absoluteTolerance = this.absoluteToleranceInput.get();
         this.relativeTolerance = this.relativeToleranceInput.get();
         this.numTypes = this.parameterization.getNTypes();
+        this.useRandomInitialMatrix = this.useRandomInitialMatrixInput.get();
 
         this.minNumIntervals = this.minNumIntervalsInput.get();
         this.useIntervals = this.useIntervalsInput.get();
@@ -269,7 +278,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     private Flow calculateFlow(ContinuousIntervalOutputModel extinctionProbabilities) {
         FlowODESystem system = new FlowODESystem(this.parameterization, extinctionProbabilities, this.absoluteTolerance, this.relativeTolerance, this.integrator);
 
-        RealMatrix initialMatrix = Utils.getRandomMatrix(this.numTypes);
+        RealMatrix initialMatrix = this.useRandomInitialMatrix ? Utils.getRandomMatrix(this.numTypes) : MatrixUtils.createRealIdentityMatrix(this.numTypes);
         RealMatrix inverseInitialMatrix = MatrixUtils.inverse(initialMatrix);
 
         double[] initialState = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
