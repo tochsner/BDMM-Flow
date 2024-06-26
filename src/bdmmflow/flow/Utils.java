@@ -1,13 +1,36 @@
 package bdmmflow.flow;
 
-import org.apache.commons.math3.linear.ArrayRealVector;
-import org.apache.commons.math3.linear.BlockRealMatrix;
-import org.apache.commons.math3.linear.RealMatrix;
-import org.apache.commons.math3.linear.RealVector;
+import org.apache.commons.math3.linear.*;
 
 import java.util.Arrays;
+import java.util.Random;
 
 public class Utils {
+
+    private static Random random = new Random();
+
+    private static boolean isSingular(RealMatrix matrix) {
+        if (matrix.getRowDimension() != matrix.getColumnDimension()) return false;
+
+        SingularValueDecomposition svd = new SingularValueDecomposition(matrix);
+        return svd.getRank() != matrix.getColumnDimension();
+    }
+    public static RealMatrix getRandomMatrix(int dimension) {
+        RealMatrix randomMatrix;
+
+        do {
+            randomMatrix = new BlockRealMatrix(dimension, dimension);
+
+            for (int i = 0; i < dimension; i++) {
+                for (int j = 0; j < dimension; j++) {
+                    randomMatrix.setEntry(i, j, random.nextDouble());
+                }
+            }
+        } while (isSingular(randomMatrix));
+
+        return randomMatrix;
+    }
+
     public static RealMatrix toMatrix(double[] array, int n) {
         RealMatrix matrix = new BlockRealMatrix(n, n);
         for (int i = 0; i < n; i++) {

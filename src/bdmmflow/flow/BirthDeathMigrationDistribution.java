@@ -1,6 +1,5 @@
 package bdmmflow.flow;
 
-import bdmmprime.flow.initialMatrices.InitialMatrices;
 import beast.base.core.Log;
 import bdmmprime.parameterization.Parameterization;
 import beast.base.core.Function;
@@ -88,14 +87,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     );
     String integrator;
 
-    public Input<String> initialMatrixTypeInput = new Input<>(
-            "initialMatrixType",
-            "",
-            "RANDOM"
-    );
-    InitialMatrices.MatrixType initialMatrixType;
-
-
     private Parameterization parameterization;
 
     private double finalSampleOffset;
@@ -135,7 +126,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.minNumIntervals = this.minNumIntervalsInput.get();
         this.useIntervals = this.useIntervalsInput.get();
         this.integrator = this.integratorInput.get();
-        this.initialMatrixType = InitialMatrices.MatrixType.valueOf(this.initialMatrixTypeInput.get());
 
         // validate typeLabelInput
 
@@ -163,7 +153,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             );
         }
 
-        // initialize utils needed
+        // initialize utils
 
         this.logScalingFactors = new double[this.tree.getNodeCount()];
         this.initializeIsRhoSampled();
@@ -279,7 +269,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     private Flow calculateFlow(ContinuousIntervalOutputModel extinctionProbabilities) {
         FlowODESystem system = new FlowODESystem(this.parameterization, extinctionProbabilities, this.absoluteTolerance, this.relativeTolerance, this.integrator);
 
-        RealMatrix initialMatrix = InitialMatrices.getMatrix(this.parameterization.getNTypes(), this.initialMatrixType);
+        RealMatrix initialMatrix = Utils.getRandomMatrix(this.numTypes);
         RealMatrix inverseInitialMatrix = MatrixUtils.inverse(initialMatrix);
 
         double[] initialState = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
