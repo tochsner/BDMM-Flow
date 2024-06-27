@@ -1,5 +1,8 @@
-package bdmmflow.flow;
+package bdmmflow.flow.flowSystems;
 
+import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
+import bdmmflow.flow.Utils;
+import bdmmflow.flow.intervals.IntervalODESystem;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 
@@ -7,7 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class FlowODESystem extends IntervalODESystem {
-    private final ContinuousIntervalOutputModel extinctionProbabilities;
+    private final ExtinctionProbabilities extinctionProbabilities;
 
     static class LRUCache<K, V> extends LinkedHashMap<K, V> {
         private final int cacheSize;
@@ -33,7 +36,7 @@ public class FlowODESystem extends IntervalODESystem {
 
     public FlowODESystem(
             Parameterization parameterization,
-            ContinuousIntervalOutputModel extinctionProbabilities,
+            ExtinctionProbabilities extinctionProbabilities,
             double absoluteTolerance,
             double relativeTolerance
     ) {
@@ -84,7 +87,7 @@ public class FlowODESystem extends IntervalODESystem {
     }
 
     protected void addTimeVaryingSystemMatrix(double t, RealMatrix system) {
-        double[] extinctProbabilities = this.extinctionProbabilities.getOutput(t);
+        double[] extinctProbabilities = this.extinctionProbabilities.getProbability(t);
 
         for (int i = 0; i < param.getNTypes(); i++) {
             system.addToEntry(

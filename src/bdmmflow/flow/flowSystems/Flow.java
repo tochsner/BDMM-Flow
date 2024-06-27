@@ -1,5 +1,7 @@
-package bdmmflow.flow;
+package bdmmflow.flow.flowSystems;
 
+import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
+import bdmmflow.flow.Utils;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
@@ -8,7 +10,7 @@ import org.apache.commons.math3.util.Pair;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class Flow extends ContinuousIntervalOutputModel {
+public class Flow extends ExtinctionProbabilities {
 
     class LRUCache<K, V> extends LinkedHashMap<K, V> {
         private final int cacheSize;
@@ -45,7 +47,7 @@ public class Flow extends ContinuousIntervalOutputModel {
     }
 
     protected RealMatrix getFlow(ContinuousOutputModel output, double time) {
-        return Utils.toMatrix(super.getOutput(output, time), this.n);
+        return Utils.toMatrix(super.getProbability(output, time), this.n);
     }
 
     public int getInterval(double time) {

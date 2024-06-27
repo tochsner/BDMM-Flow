@@ -1,4 +1,4 @@
-package bdmmflow.flow;
+package bdmmflow.flow.intervals;
 
 import bdmmflow.flow.intervals.Interval;
 import bdmmflow.flow.intervals.IntervalUtils;

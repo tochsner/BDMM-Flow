@@ -1,6 +1,9 @@
 package bdmmflow.flow;
 
 
+import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
+import bdmmflow.flow.extinctionSystem.ExtinctionProbabilitiesODESystem;
+import bdmmflow.flow.intervals.IntervalODESystem;
 import bdmmprime.distribution.P0GeSystem;
 import bdmmprime.parameterization.*;
 import beast.base.inference.parameter.RealParameter;
@@ -23,12 +26,12 @@ public class ExtinctionODESystemTest {
         double[] initialState = new double[parameterization.getNTypes()];
         Arrays.fill(initialState, 1.0);
 
-        IntervalODESystem extinctionSystem = new ExtinctionODESystem(parameterization, 1e-100, 1e-20);
-        ContinuousIntervalOutputModel extinctionProbabilities = new ContinuousIntervalOutputModel(extinctionSystem.integrateBackwards(
+        IntervalODESystem extinctionSystem = new ExtinctionProbabilitiesODESystem(parameterization, 1e-100, 1e-20);
+        ExtinctionProbabilities extinctionProbabilities = new ExtinctionProbabilities(extinctionSystem.integrateBackwards(
                 initialState.clone()
         ));
         int intervalEndTime = parameterization.getIntervalIndex(endTime);
-        double[] flowIntegral = extinctionProbabilities.getOutput(endTime);
+        double[] flowIntegral = extinctionProbabilities.getProbability(endTime);
 
         // setup extinction ODE in the distribution package
 
@@ -63,7 +66,7 @@ public class ExtinctionODESystemTest {
     ) {
         // setup extinction ODE
 
-        IntervalODESystem extinctionSystem = new ExtinctionODESystem(parameterization, 1e-100, 1e-20);
+        IntervalODESystem extinctionSystem = new ExtinctionProbabilitiesODESystem(parameterization, 1e-100, 1e-20);
 
         // get flow ODE derivatives
 

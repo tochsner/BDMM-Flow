@@ -1,6 +1,10 @@
 package bdmmflow.flow;
 
 
+import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
+import bdmmflow.flow.extinctionSystem.ExtinctionProbabilitiesODESystem;
+import bdmmflow.flow.flowSystems.FlowODESystem;
+import bdmmflow.flow.intervals.IntervalODESystem;
 import bdmmprime.distribution.P0GeSystem;
 import bdmmprime.parameterization.*;
 import beast.base.inference.parameter.RealParameter;
@@ -19,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 public class FlowODESystemIsolatedTest {
 
     static class NormalFlowODESystem extends FlowODESystem {
-        public NormalFlowODESystem(Parameterization parameterization, ContinuousIntervalOutputModel extinctionProbabilities) {
+        public NormalFlowODESystem(Parameterization parameterization, ExtinctionProbabilities extinctionProbabilities) {
             super(parameterization, extinctionProbabilities, 1e-100, 1e-20);
         }
 
@@ -44,17 +48,17 @@ public class FlowODESystemIsolatedTest {
     ) {
         // set up extinction ODE
 
-        IntervalODESystem extinctionSystem = new ExtinctionODESystem(parameterization, 1e-100, 1e-20);
+        IntervalODESystem extinctionSystem = new ExtinctionProbabilitiesODESystem(parameterization, 1e-100, 1e-20);
 
         double[] initialExtinctionState = new double[parameterization.getNTypes()];
         Arrays.fill(initialExtinctionState, 1.0);
 
-        ContinuousIntervalOutputModel extinctionProbabilities = new ContinuousIntervalOutputModel(extinctionSystem.integrateBackwards(
+        ExtinctionProbabilities extinctionProbabilities = new ExtinctionProbabilities(extinctionSystem.integrateBackwards(
                 initialExtinctionState
         ));
 
         int intervalEndTime = parameterization.getIntervalIndex(endTime);
-        double[] endExtinction = extinctionProbabilities.getOutput(endTime).clone();
+        double[] endExtinction = extinctionProbabilities.getProbability(endTime).clone();
 
         // set up integrator
 

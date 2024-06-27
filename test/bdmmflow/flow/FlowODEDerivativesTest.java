@@ -1,6 +1,10 @@
 package bdmmflow.flow;
 
 
+import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
+import bdmmflow.flow.extinctionSystem.ExtinctionProbabilitiesODESystem;
+import bdmmflow.flow.flowSystems.FlowODESystem;
+import bdmmflow.flow.intervals.IntervalODESystem;
 import bdmmprime.distribution.P0GeSystem;
 import bdmmprime.parameterization.*;
 import beast.base.inference.parameter.RealParameter;
@@ -16,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 public class FlowODEDerivativesTest {
 
     static class NormalFlowODESystem extends FlowODESystem {
-        public NormalFlowODESystem(Parameterization parameterization, ContinuousIntervalOutputModel extinctionProbabilities) {
+        public NormalFlowODESystem(Parameterization parameterization, ExtinctionProbabilities extinctionProbabilities) {
             super(parameterization, extinctionProbabilities, 1e-100, 1e-7);
         }
 
@@ -40,12 +44,12 @@ public class FlowODEDerivativesTest {
     ) {
         // setup extinction ODE
 
-        IntervalODESystem extinctionSystem = new ExtinctionODESystem(parameterization, 1e-100, 1e-7);
+        IntervalODESystem extinctionSystem = new ExtinctionProbabilitiesODESystem(parameterization, 1e-100, 1e-7);
 
         double[] initialExtinctionState = new double[parameterization.getNTypes()];
         Arrays.fill(initialExtinctionState, 1.0);
 
-        ContinuousIntervalOutputModel extinctionProbabilities = new ContinuousIntervalOutputModel(extinctionSystem.integrateBackwards(
+        ExtinctionProbabilities extinctionProbabilities = new ExtinctionProbabilities(extinctionSystem.integrateBackwards(
                 initialExtinctionState
         ));
 
@@ -59,7 +63,7 @@ public class FlowODEDerivativesTest {
 
         P0GeSystem oldSystem = new P0GeSystem(parameterization, 1e-100, 1e-20);
 
-        double[] startExtinction = extinctionProbabilities.getOutput(t).clone();
+        double[] startExtinction = extinctionProbabilities.getProbability(t).clone();
         double[] oldInitialState = new double[]{
                 startExtinction[0],
                 startExtinction[1],

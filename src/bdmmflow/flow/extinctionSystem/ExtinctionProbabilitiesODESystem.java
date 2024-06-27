@@ -1,9 +1,12 @@
-package bdmmflow.flow;
+package bdmmflow.flow.extinctionSystem;
 
+import bdmmflow.flow.intervals.IntervalODESystem;
 import bdmmprime.parameterization.Parameterization;
 
-
-public class ExtinctionODESystem extends IntervalODESystem {
+/**
+ * This class represents the ODE system for extinction probabilities.
+ */
+public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
 
     private final double[][] birthRates;
     private final double[][] deathRates;
@@ -11,7 +14,7 @@ public class ExtinctionODESystem extends IntervalODESystem {
     private final double[][][] crossBirthRates;
     private final double[][][] migrationRates;
 
-    public ExtinctionODESystem(Parameterization parameterization, double absoluteTolerance, double relativeTolerance) {
+    public ExtinctionProbabilitiesODESystem(Parameterization parameterization, double absoluteTolerance, double relativeTolerance) {
         super(parameterization, absoluteTolerance, relativeTolerance);
 
         this.birthRates = this.param.getBirthRates();
@@ -29,16 +32,19 @@ public class ExtinctionODESystem extends IntervalODESystem {
     @Override
     public void computeDerivatives(double t, double[] y, double[] yDot) {
         for (int i = 0; i < this.param.getNTypes(); i++) {
-            yDot[i] = this.birthRates[currentParameterizationInterval][i] * y[i];
-            yDot[i] += this.deathRates[currentParameterizationInterval][i] * y[i];
-            yDot[i] += this.samplingRates[currentParameterizationInterval][i] * y[i];
-
-            yDot[i] -= this.birthRates[currentParameterizationInterval][i] * y[i] * y[i];
-            yDot[i] -= this.deathRates[currentParameterizationInterval][i];
+            yDot[i] = (
+                    this.birthRates[currentParameterizationInterval][i] * y[i]
+                            + this.deathRates[currentParameterizationInterval][i] * y[i]
+                            + this.samplingRates[currentParameterizationInterval][i] * y[i]
+                            - this.birthRates[currentParameterizationInterval][i] * y[i] * y[i]
+                            - this.deathRates[currentParameterizationInterval][i]
+            );
 
             for (int j = 0; j < this.param.getNTypes(); j++) {
-                yDot[i] += this.crossBirthRates[currentParameterizationInterval][i][j] * (y[i] - y[i] * y[j]);
-                yDot[i] += this.migrationRates[currentParameterizationInterval][i][j] * (y[i] - y[j]);
+                yDot[i] += (
+                        this.crossBirthRates[currentParameterizationInterval][i][j] * (y[i] - y[i] * y[j])
+                                + this.migrationRates[currentParameterizationInterval][i][j] * (y[i] - y[j])
+                );
             }
         }
     }
