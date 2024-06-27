@@ -247,7 +247,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // integrate
 
-        ContinuousOutputModel[] integrationResults = system.integrateBackwardsOverIntegrals(initialState);
+        ContinuousOutputModel[] integrationResults = system.integrateBackwards(initialState);
 
         return new ContinuousIntervalOutputModel(integrationResults);
     }
@@ -277,7 +277,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         Utils.fillArray(inverseInitialMatrix, inverseInitialState);
 
         return new Flow(
-                system.integrateOverIntegrals(
+                system.integrateForwards(
                         initialState, intervals, this.useIntervals
                 ), this.numTypes, Utils.toMatrix(inverseInitialState, this.parameterization.getNTypes()), this.useIntervals
         );

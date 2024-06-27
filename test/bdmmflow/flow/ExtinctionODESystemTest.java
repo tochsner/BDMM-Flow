@@ -4,9 +4,6 @@ package bdmmflow.flow;
 import bdmmprime.distribution.P0GeSystem;
 import bdmmprime.parameterization.*;
 import beast.base.inference.parameter.RealParameter;
-import org.apache.commons.math3.linear.RealMatrix;
-import org.apache.commons.math3.linear.RealVector;
-import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.FirstOrderIntegrator;
 import org.apache.commons.math3.ode.nonstiff.DormandPrince54Integrator;
 import org.junit.Test;
@@ -27,7 +24,7 @@ public class ExtinctionODESystemTest {
         Arrays.fill(initialState, 1.0);
 
         IntervalODESystem extinctionSystem = new ExtinctionODESystem(parameterization, 1e-100, 1e-20);
-        ContinuousIntervalOutputModel extinctionProbabilities = new ContinuousIntervalOutputModel(extinctionSystem.integrateBackwardsOverIntegrals(
+        ContinuousIntervalOutputModel extinctionProbabilities = new ContinuousIntervalOutputModel(extinctionSystem.integrateBackwards(
                 initialState.clone()
         ));
         int intervalEndTime = parameterization.getIntervalIndex(endTime);

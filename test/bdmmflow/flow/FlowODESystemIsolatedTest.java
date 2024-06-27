@@ -6,7 +6,6 @@ import bdmmprime.parameterization.*;
 import beast.base.inference.parameter.RealParameter;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
-import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;
 import org.apache.commons.math3.ode.FirstOrderIntegrator;
 import org.apache.commons.math3.ode.nonstiff.DormandPrince54Integrator;
@@ -50,7 +49,7 @@ public class FlowODESystemIsolatedTest {
         double[] initialExtinctionState = new double[parameterization.getNTypes()];
         Arrays.fill(initialExtinctionState, 1.0);
 
-        ContinuousIntervalOutputModel extinctionProbabilities = new ContinuousIntervalOutputModel(extinctionSystem.integrateBackwardsOverIntegrals(
+        ContinuousIntervalOutputModel extinctionProbabilities = new ContinuousIntervalOutputModel(extinctionSystem.integrateBackwards(
                 initialExtinctionState
         ));
 
