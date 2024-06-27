@@ -12,20 +12,6 @@ import java.util.Map;
 public class InverseFlowODESystem extends IntervalODESystem {
     private final ExtinctionProbabilities extinctionProbabilities;
 
-    static class LRUCache<K, V> extends LinkedHashMap<K, V> {
-        private final int cacheSize;
-
-        public LRUCache(int cacheSize) {
-            super(20, 0.75F, true);
-            this.cacheSize = cacheSize;
-        }
-
-        protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-            return size() >= cacheSize;
-        }
-    }
-
-    static InverseFlowODESystem.LRUCache<Double, DecompositionSolver> cache = new InverseFlowODESystem.LRUCache<>(20);
     private RealMatrix[] timeInvariantSystemMatrices;
 
     private double[][] birthRates;
@@ -51,7 +37,9 @@ public class InverseFlowODESystem extends IntervalODESystem {
 
         this.timeInvariantSystemMatrices = new RealMatrix[this.param.getTotalIntervalCount()];
 
-        cache.clear();
+        for (int i = 0; i < this.param.getTotalIntervalCount(); i++) {
+            this.timeInvariantSystemMatrices[i] = this.buildTimeInvariantSystemMatrix(i);
+        }
     }
 
     @Override
@@ -59,6 +47,9 @@ public class InverseFlowODESystem extends IntervalODESystem {
         return param.getNTypes() * param.getNTypes();
     }
 
+    /**
+     * Builds the time-invariant part of the system matrix for a given interval. This can be reused.
+     */
     protected RealMatrix buildTimeInvariantSystemMatrix(int interval) {
         RealMatrix system = new BlockRealMatrix(param.getNTypes(), param.getNTypes());
 
@@ -86,6 +77,10 @@ public class InverseFlowODESystem extends IntervalODESystem {
         return system;
     }
 
+    /**
+     * Builds the time-varying part of the system matrix for a given interval. This has to be computed for every
+     * time step.
+     */
     protected void addTimeVaryingSystemMatrix(double t, RealMatrix system) {
         double[] extinctProbabilities = this.extinctionProbabilities.getProbability(t);
 
@@ -112,11 +107,12 @@ public class InverseFlowODESystem extends IntervalODESystem {
         }
     }
 
+    /**
+     * Builds the system matrix for a given time point.
+     */
     protected RealMatrix buildSystemMatrix(double t) {
         int interval = this.param.getIntervalIndex(t);
-
-        if (this.timeInvariantSystemMatrices[interval] == null)
-            this.timeInvariantSystemMatrices[interval] = this.buildTimeInvariantSystemMatrix(interval);
+        this.timeInvariantSystemMatrices[interval] = this.buildTimeInvariantSystemMatrix(interval);
 
         RealMatrix systemMatrix = this.timeInvariantSystemMatrices[interval].copy();
         this.addTimeVaryingSystemMatrix(t, systemMatrix);
@@ -137,26 +133,17 @@ public class InverseFlowODESystem extends IntervalODESystem {
 
     public static double[] integrateUsingFlow(
             double timeStart,
-            int intervalStart,
             double timeEnd,
-            int intervalEnd,
-            double[] initialState,
+            double[] endState,
             InverseFlow flow
     ) {
         int interval = flow.getInterval(timeStart);
 
-        RealMatrix flowMatrixEnd = flow.getFlow(timeEnd, interval, true, false);
-        RealVector likelihoodVectorEnd = new ArrayRealVector(initialState, false);
+        RealMatrix flowMatrixEnd = flow.getFlow(timeEnd, interval);
+        RealVector likelihoodVectorEnd = new ArrayRealVector(endState);
 
-        DecompositionSolver qr;
-
-        if (cache.containsKey(timeStart)) {
-            qr = cache.get(timeStart);
-        } else {
-            RealMatrix flowMatrixStart = flow.getFlow(timeStart, interval, false, true);
-            qr = new QRDecomposition(flowMatrixStart).getSolver();
-            cache.put(timeStart, qr);
-        }
+        RealMatrix flowMatrixStart = flow.getFlow(timeStart, interval);
+        DecompositionSolver qr = new QRDecomposition(flowMatrixStart).getSolver();
 
         RealVector likelihoodVectorStart = qr.solve(flowMatrixEnd.operate(likelihoodVectorEnd));
 
