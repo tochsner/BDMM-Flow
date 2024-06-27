@@ -6,6 +6,9 @@ import bdmmprime.flow.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 
+/**
+ * This class represents the classical flow ODE.
+ */
 public class FlowODESystem extends IntervalODESystem {
     private final ExtinctionProbabilities extinctionProbabilities;
 
@@ -44,6 +47,9 @@ public class FlowODESystem extends IntervalODESystem {
         return param.getNTypes() * param.getNTypes();
     }
 
+    /**
+     * Builds the time-invariant part of the system matrix for a given interval. This can be reused.
+     */
     protected RealMatrix buildTimeInvariantSystemMatrix(int interval) {
         RealMatrix system = new BlockRealMatrix(param.getNTypes(), param.getNTypes());
 
@@ -71,6 +77,10 @@ public class FlowODESystem extends IntervalODESystem {
         return system;
     }
 
+    /**
+     * Builds the time-varying part of the system matrix for a given interval. This has to be computed for every
+     * time step.
+     */
     protected void addTimeVaryingSystemMatrix(double t, RealMatrix system) {
         double[] extinctProbabilities = this.extinctionProbabilities.getProbability(t);
 
@@ -97,6 +107,9 @@ public class FlowODESystem extends IntervalODESystem {
         }
     }
 
+    /**
+     * Builds the system matrix for a given time point.
+     */
     protected RealMatrix buildSystemMatrix(double t) {
         int interval = this.param.getIntervalIndex(t);
         RealMatrix systemMatrix = this.timeInvariantSystemMatrices[interval].copy();
@@ -116,10 +129,19 @@ public class FlowODESystem extends IntervalODESystem {
         Utils.fillArray(yDotMatrix, yDot);
     }
 
+    /**
+     * Allows to integrate over an edge of a tree using the pre-computed flow integral.
+     *
+     * @param timeStart the time of the node closer to the root.
+     * @param timeEnd  the time of the node closer to the leaves.
+     * @param endState the initial state at the node closer to the leaves.
+     * @param flow the pre-computed flow.
+     * @return the integration result at the time of the node closer to the root.
+     */
     public static double[] integrateUsingFlow(
             double timeStart,
             double timeEnd,
-            double[] initialState,
+            double[] endState,
             Flow flow
     ) {
         int intervalStart = flow.getInterval(timeStart);
@@ -127,7 +149,7 @@ public class FlowODESystem extends IntervalODESystem {
         RealMatrix flowMatrixStart = flow.getFlow(timeStart, intervalStart);
         RealMatrix flowMatrixEnd = flow.getFlow(timeEnd, intervalStart);
 
-        RealVector likelihoodVectorEnd = bdmmprime.flow.Utils.toVector(initialState);
+        RealVector likelihoodVectorEnd = bdmmprime.flow.Utils.toVector(endState);
 
         DecompositionSolver linearSolver = new QRDecomposition(flowMatrixEnd).getSolver();
         RealVector solution = linearSolver.solve(likelihoodVectorEnd);

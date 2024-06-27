@@ -155,7 +155,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         if (minNumIntervals < 1) {
             throw new RuntimeException(
-                "Error: minNumIntervals must be at least 1."
+                    "Error: minNumIntervals must be at least 1."
             );
         }
 
@@ -188,6 +188,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     /**
      * Calculates the log tree likelihood.
+     *
      * @param dummyTree a dummyTree that is not considered, a BEAST implementation detail.
      * @return the calculated log tree likelihood for the tree specified in the given parameterization.
      */
@@ -236,6 +237,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     /**
      * Integrates over the extinction probabilities ODE.
+     *
      * @return a wrapper class that allows to query the extinction probabilities at any given time.
      */
     private ExtinctionProbabilities calculateExtinctionProbabilities() {
@@ -261,17 +263,16 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         return new ExtinctionProbabilities(integrationResults);
     }
 
+    /**
+     * Precomputes the flow ODE.
+     *
+     * @param extinctionProbabilities the precomputed extinction probabilities.
+     * @return a wrapper class that allows to query the flow at any given time.
+     */
     private Flow calculateFlow(ExtinctionProbabilities extinctionProbabilities) {
         List<Interval> intervals = IntervalUtils.getIntervals(
                 this.parameterization,
                 this.parameterization.getTotalProcessLength() / this.minNumIntervals
-        );
-
-        FlowODESystem system = new FlowODESystem(
-                this.parameterization,
-                extinctionProbabilities,
-                this.absoluteTolerance,
-                this.relativeTolerance
         );
 
         RealMatrix initialMatrix = this.useRandomInitialMatrix ?
@@ -285,10 +286,23 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         Utils.fillArray(initialMatrix, initialState);
         Utils.fillArray(inverseInitialMatrix, inverseInitialState);
 
+        boolean resetInitialStateAtIntervalBoundaries = 1 < this.minNumIntervals;
+
+        FlowODESystem system = new FlowODESystem(
+                this.parameterization,
+                extinctionProbabilities,
+                this.absoluteTolerance,
+                this.relativeTolerance
+        );
+        ContinuousOutputModel[] integrationResult = system.integrateBackwards(
+                initialState, intervals, resetInitialStateAtIntervalBoundaries
+        );
+
         return new Flow(
-                system.integrateBackwards(
-                        initialState, intervals, this.minNumIntervals > 1
-                ), this.numTypes, Utils.toMatrix(inverseInitialState, this.parameterization.getNTypes()), this.minNumIntervals > 1
+                integrationResult,
+                this.numTypes,
+                Utils.toMatrix(inverseInitialState, this.parameterization.getNTypes()),
+                resetInitialStateAtIntervalBoundaries
         );
     }
 
