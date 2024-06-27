@@ -3,6 +3,8 @@ package bdmmflow.flow.flowSystems;
 import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
 import bdmmflow.flow.Utils;
 import bdmmflow.flow.intervals.IntervalODESystem;
+import bdmmflow.flow.utils.LRUCache;
+import bdmmprime.flow.FlowODESystem;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 
@@ -19,6 +21,8 @@ public class InverseFlowODESystem extends IntervalODESystem {
     private double[][] samplingRates;
     private double[][][] crossBirthRates;
     private double[][][] migrationRates;
+
+    static LRUCache<Double, DecompositionSolver> cache = new LRUCache<>(20);
 
     public InverseFlowODESystem(
             Parameterization parameterization,
@@ -40,6 +44,8 @@ public class InverseFlowODESystem extends IntervalODESystem {
         for (int i = 0; i < this.param.getTotalIntervalCount(); i++) {
             this.timeInvariantSystemMatrices[i] = this.buildTimeInvariantSystemMatrix(i);
         }
+
+        cache.clear();
     }
 
     @Override
@@ -139,11 +145,18 @@ public class InverseFlowODESystem extends IntervalODESystem {
     ) {
         int interval = flow.getInterval(timeStart);
 
+
         RealMatrix flowMatrixEnd = flow.getFlow(timeEnd, interval);
         RealVector likelihoodVectorEnd = new ArrayRealVector(endState);
 
-        RealMatrix flowMatrixStart = flow.getFlow(timeStart, interval);
-        DecompositionSolver qr = new QRDecomposition(flowMatrixStart).getSolver();
+        DecompositionSolver qr;
+        if (cache.containsKey(timeStart)) {
+            qr = cache.get(timeStart);
+        } else {
+            RealMatrix flowMatrixStart = flow.getFlow(timeStart, interval);
+            qr = new QRDecomposition(flowMatrixStart).getSolver();
+            cache.put(timeStart, qr);
+        }
 
         RealVector likelihoodVectorStart = qr.solve(flowMatrixEnd.operate(likelihoodVectorEnd));
 

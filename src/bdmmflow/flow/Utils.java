@@ -15,6 +15,7 @@ public class Utils {
         SingularValueDecomposition svd = new SingularValueDecomposition(matrix);
         return svd.getRank() != matrix.getColumnDimension();
     }
+
     public static RealMatrix getRandomMatrix(int dimension) {
         RealMatrix randomMatrix;
 
@@ -33,8 +34,8 @@ public class Utils {
 
     public static RealMatrix toMatrix(double[] array, int n) {
         RealMatrix matrix = new BlockRealMatrix(n, n);
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
+        for (int j = 0; j < n; j++) {
+            for (int i = 0; i < n; i++) {
                 matrix.setEntry(i, j, array[i + n * j]);
             }
         }
@@ -63,22 +64,6 @@ public class Utils {
         return Utils.rescale(array, 0);
     }
 
-    public static double rescale(RealMatrix array) {
-        return Utils.rescale(array, 0);
-    }
-
-    public static double rescale(RealMatrix array, double previousLogFactor) {
-        double max = array.getNorm();
-
-        for (int i = 0; i < array.getRowDimension(); i++) {
-            for (int j = 0; j < array.getColumnDimension(); j++) {
-                array.setEntry(i, j, array.getEntry(i, j) / max);
-            }
-        }
-
-        return Math.log(max) + previousLogFactor;
-    }
-
     public static double rescale(double[] array, double previousLogFactor) {
         double max = Arrays.stream(array).max().orElse(1.0);
 
@@ -87,20 +72,5 @@ public class Utils {
         }
 
         return Math.log(max) + previousLogFactor;
-    }
-
-    public static void unscale(double[] array, double logFactor) {
-        for (int i = 0; i < array.length; i++) {
-            array[i] /= Math.exp(logFactor);
-        }
-    }
-
-    public static RealMatrix unscale(RealMatrix array, double logFactor) {
-        for (int i = 0; i < array.getRowDimension(); i++) {
-            for (int j = 0; j < array.getColumnDimension(); j++) {
-                array.setEntry(i, j, array.getEntry(i, j) * Math.exp(logFactor));
-            }
-        }
-        return array;
     }
 }

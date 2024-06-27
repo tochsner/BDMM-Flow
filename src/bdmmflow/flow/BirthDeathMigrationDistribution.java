@@ -293,7 +293,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 this.absoluteTolerance,
                 this.relativeTolerance
         );
-        ContinuousOutputModel[] integrationResult = system.integrateBackwards(
+        ContinuousOutputModel[] integrationResult = system.integrateForwards(
                 initialState, intervals, resetInitialStateAtIntervalBoundaries
         );
 
