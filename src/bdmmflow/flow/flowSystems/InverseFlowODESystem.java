@@ -1,23 +1,40 @@
 package bdmmflow.flow.flowSystems;
 
 import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
+import bdmmflow.flow.Utils;
 import bdmmflow.flow.intervals.IntervalODESystem;
-import bdmmprime.flow.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 
-public class FlowODESystem extends IntervalODESystem {
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+public class InverseFlowODESystem extends IntervalODESystem {
     private final ExtinctionProbabilities extinctionProbabilities;
 
-    private final RealMatrix[] timeInvariantSystemMatrices;
+    static class LRUCache<K, V> extends LinkedHashMap<K, V> {
+        private final int cacheSize;
 
-    private final double[][] birthRates;
-    private final double[][] deathRates;
-    private final double[][] samplingRates;
-    private final double[][][] crossBirthRates;
-    private final double[][][] migrationRates;
+        public LRUCache(int cacheSize) {
+            super(20, 0.75F, true);
+            this.cacheSize = cacheSize;
+        }
 
-    public FlowODESystem(
+        protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+            return size() >= cacheSize;
+        }
+    }
+
+    static InverseFlowODESystem.LRUCache<Double, DecompositionSolver> cache = new InverseFlowODESystem.LRUCache<>(20);
+    private RealMatrix[] timeInvariantSystemMatrices;
+
+    private double[][] birthRates;
+    private double[][] deathRates;
+    private double[][] samplingRates;
+    private double[][][] crossBirthRates;
+    private double[][][] migrationRates;
+
+    public InverseFlowODESystem(
             Parameterization parameterization,
             ExtinctionProbabilities extinctionProbabilities,
             double absoluteTolerance,
@@ -34,9 +51,7 @@ public class FlowODESystem extends IntervalODESystem {
 
         this.timeInvariantSystemMatrices = new RealMatrix[this.param.getTotalIntervalCount()];
 
-        for (int i = 0; i < this.param.getTotalIntervalCount(); i++) {
-            this.timeInvariantSystemMatrices[i] = this.buildTimeInvariantSystemMatrix(i);
-        }
+        cache.clear();
     }
 
     @Override
@@ -51,19 +66,19 @@ public class FlowODESystem extends IntervalODESystem {
             system.addToEntry(
                     i,
                     i,
-                    this.deathRates[interval][i] + this.samplingRates[interval][i] + this.birthRates[interval][i]
+                    -this.deathRates[interval][i] - this.samplingRates[interval][i] - this.birthRates[interval][i]
             );
 
             for (int j = 0; j < param.getNTypes(); j++) {
                 system.addToEntry(
                         i,
                         i,
-                        this.migrationRates[interval][i][j] + this.crossBirthRates[interval][i][j]
+                        -this.migrationRates[interval][i][j] - this.crossBirthRates[interval][i][j]
                 );
                 system.addToEntry(
                         i,
                         j,
-                        -this.migrationRates[interval][i][j]
+                        this.migrationRates[interval][i][j]
                 );
             }
         }
@@ -78,20 +93,20 @@ public class FlowODESystem extends IntervalODESystem {
             system.addToEntry(
                     i,
                     i,
-                    -2 * this.birthRates[currentParameterizationInterval][i] * extinctProbabilities[i]
+                    2 * this.birthRates[currentParameterizationInterval][i] * extinctProbabilities[i]
             );
 
             for (int j = 0; j < param.getNTypes(); j++) {
                 system.addToEntry(
                         i,
                         i,
-                        -this.crossBirthRates[currentParameterizationInterval][i][j] * extinctProbabilities[j]
+                        this.crossBirthRates[currentParameterizationInterval][i][j] * extinctProbabilities[j]
                 );
 
                 system.addToEntry(
                         i,
                         j,
-                        -this.crossBirthRates[currentParameterizationInterval][i][j] * extinctProbabilities[i]
+                        this.crossBirthRates[currentParameterizationInterval][i][j] * extinctProbabilities[i]
                 );
             }
         }
@@ -99,6 +114,10 @@ public class FlowODESystem extends IntervalODESystem {
 
     protected RealMatrix buildSystemMatrix(double t) {
         int interval = this.param.getIntervalIndex(t);
+
+        if (this.timeInvariantSystemMatrices[interval] == null)
+            this.timeInvariantSystemMatrices[interval] = this.buildTimeInvariantSystemMatrix(interval);
+
         RealMatrix systemMatrix = this.timeInvariantSystemMatrices[interval].copy();
         this.addTimeVaryingSystemMatrix(t, systemMatrix);
 
@@ -109,30 +128,37 @@ public class FlowODESystem extends IntervalODESystem {
     public void computeDerivatives(double t, double[] y, double[] yDot) {
         int numTypes = this.param.getNTypes();
 
-        RealMatrix yMatrix = bdmmprime.flow.Utils.toMatrix(y, numTypes);
+        RealMatrix yMatrix = Utils.toMatrix(y, numTypes);
         RealMatrix systemMatrix = this.buildSystemMatrix(t);
 
-        RealMatrix yDotMatrix = systemMatrix.multiply(yMatrix);
+        RealMatrix yDotMatrix = yMatrix.multiply(systemMatrix);
         Utils.fillArray(yDotMatrix, yDot);
     }
 
     public static double[] integrateUsingFlow(
             double timeStart,
+            int intervalStart,
             double timeEnd,
+            int intervalEnd,
             double[] initialState,
-            Flow flow
+            InverseFlow flow
     ) {
-        int intervalStart = flow.getInterval(timeStart);
+        int interval = flow.getInterval(timeStart);
 
-        RealMatrix flowMatrixStart = flow.getFlow(timeStart, intervalStart);
-        RealMatrix flowMatrixEnd = flow.getFlow(timeEnd, intervalStart);
+        RealMatrix flowMatrixEnd = flow.getFlow(timeEnd, interval, true, false);
+        RealVector likelihoodVectorEnd = new ArrayRealVector(initialState, false);
 
-        RealVector likelihoodVectorEnd = bdmmprime.flow.Utils.toVector(initialState);
+        DecompositionSolver qr;
 
-        DecompositionSolver linearSolver = new QRDecomposition(flowMatrixEnd).getSolver();
-        RealVector solution = linearSolver.solve(likelihoodVectorEnd);
+        if (cache.containsKey(timeStart)) {
+            qr = cache.get(timeStart);
+        } else {
+            RealMatrix flowMatrixStart = flow.getFlow(timeStart, interval, false, true);
+            qr = new QRDecomposition(flowMatrixStart).getSolver();
+            cache.put(timeStart, qr);
+        }
 
-        RealVector likelihoodVectorStart = flowMatrixStart.operate(solution);
+        RealVector likelihoodVectorStart = qr.solve(flowMatrixEnd.operate(likelihoodVectorEnd));
 
         return likelihoodVectorStart.toArray();
     }

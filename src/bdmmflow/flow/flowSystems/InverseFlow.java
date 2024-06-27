@@ -1,28 +1,49 @@
 package bdmmflow.flow.flowSystems;
 
-import bdmmflow.flow.Utils;
 import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
+import bdmmflow.flow.Utils;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
+import org.apache.commons.math3.util.Pair;
 
-public class Flow extends ExtinctionProbabilities {
+import java.util.LinkedHashMap;
+import java.util.Map;
 
+public class InverseFlow extends ExtinctionProbabilities {
+
+    class LRUCache<K, V> extends LinkedHashMap<K, V> {
+        private final int cacheSize;
+
+        public LRUCache(int cacheSize) {
+            super(20, 0.75F, true);
+            this.cacheSize = cacheSize;
+        }
+
+        protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+            return size() >= cacheSize;
+        }
+    }
+
+    LRUCache<Pair<Double, Integer>, RealMatrix> cache = new LRUCache<>(20);
+
+    RealMatrix[] initialFlows;
     RealMatrix inverseInitialState;
-    boolean wasInitialStateResetAtEachInterval;
+    boolean useIntervals;
 
     int n;
+    double[] logScaleFactors;
 
-    public Flow(ContinuousOutputModel[] flows, int n) {
+    public InverseFlow(ContinuousOutputModel[] flows, int n) {
         this(flows, n, MatrixUtils.createRealIdentityMatrix(n), false);
     }
 
-    public Flow(ContinuousOutputModel[] flows, int n, RealMatrix inverseInitialState, boolean wasInitialStateResetAtEachInterval) {
+    public InverseFlow(ContinuousOutputModel[] flows, int n, RealMatrix inverseInitialState, boolean useIntervals) {
         super(flows);
 
         this.n = n;
         this.inverseInitialState = inverseInitialState;
-        this.wasInitialStateResetAtEachInterval = wasInitialStateResetAtEachInterval;
+        this.useIntervals = useIntervals;
     }
 
     protected RealMatrix getFlow(ContinuousOutputModel output, double time) {
@@ -43,8 +64,13 @@ public class Flow extends ExtinctionProbabilities {
         throw new IllegalArgumentException("The provided time is out of bounds for the stored flows.");
     }
 
-    public RealMatrix getFlow(double time, int startingAtInterval) {
-        RealMatrix accumulatedFlow = null;
+    public RealMatrix getFlow(double time, int startingAtInterval, boolean checkCache, boolean storeInCache) {
+        Pair<Double, Integer> key = new Pair<>(time, startingAtInterval);
+
+        if (checkCache && this.cache.containsKey(key))
+            return this.cache.get(key);
+
+        RealMatrix flow = MatrixUtils.createRealIdentityMatrix(this.n);
 
         for (int i = startingAtInterval; i < this.outputModels.length; i++) {
             ContinuousOutputModel model = this.outputModels[i];
@@ -52,16 +78,15 @@ public class Flow extends ExtinctionProbabilities {
             if (
                     model.getInitialTime() <= time && time <= model.getFinalTime() || model.getFinalTime() <= time && time <= model.getInitialTime()
             ) {
-                if (accumulatedFlow == null) {
-                    return this.getFlow(this.outputModels[i], time);
-                } else {
-                    return this.getFlow(this.outputModels[i], time).multiply(accumulatedFlow);
-                }
+                RealMatrix result = i > startingAtInterval ? flow.multiply(this.getFlow(this.outputModels[i], time)) : this.getFlow(this.outputModels[i], time);
+                if (storeInCache) this.cache.put(key, result);
+
+                return result;
             }
 
-            if (this.wasInitialStateResetAtEachInterval) {
+            if (this.useIntervals) {
                 RealMatrix flowEnd = this.getFlow(this.outputModels[i], this.outputModels[i].getFinalTime());
-                accumulatedFlow = this.inverseInitialState.multiply(flowEnd.multiply(accumulatedFlow));
+                flow = flow.multiply(flowEnd).multiply(this.inverseInitialState);
             }
         }
 

@@ -3,7 +3,7 @@ package bdmmflow.flow;
 
 import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
 import bdmmflow.flow.extinctionSystem.ExtinctionProbabilitiesODESystem;
-import bdmmflow.flow.flowSystems.FlowODESystem;
+import bdmmflow.flow.flowSystems.InverseFlowODESystem;
 import bdmmflow.flow.intervals.IntervalODESystem;
 import bdmmprime.distribution.P0GeSystem;
 import bdmmprime.parameterization.*;
@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 public class FlowODESystemIsolatedTest {
 
-    static class NormalFlowODESystem extends FlowODESystem {
+    static class NormalFlowODESystem extends InverseFlowODESystem {
         public NormalFlowODESystem(Parameterization parameterization, ExtinctionProbabilities extinctionProbabilities) {
             super(parameterization, extinctionProbabilities, 1e-100, 1e-20);
         }

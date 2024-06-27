@@ -3,11 +3,11 @@ package bdmmflow.flow;
 import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
 import bdmmflow.flow.extinctionSystem.ExtinctionProbabilitiesODESystem;
 import bdmmflow.flow.flowSystems.Flow;
+import bdmmflow.flow.flowSystems.Flow;
 import bdmmflow.flow.flowSystems.FlowODESystem;
 import bdmmflow.flow.intervals.Interval;
 import bdmmflow.flow.intervals.IntervalODESystem;
 import bdmmflow.flow.intervals.IntervalUtils;
-import beast.base.core.Log;
 import bdmmprime.parameterization.Parameterization;
 import beast.base.core.Function;
 import beast.base.core.Input;
@@ -20,7 +20,6 @@ import beast.base.inference.parameter.RealParameter;
 import org.apache.commons.math.special.Gamma;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
-import org.apache.commons.math3.linear.SingularMatrixException;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 import java.util.List;
@@ -78,30 +77,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             false
     );
 
-    /**
-     * DEBUG STIFFNESS
-     */
-
-    public Input<Boolean> useIntervalsInput = new Input<>(
-            "useIntervals",
-            "",
-            true
-    );
-    boolean useIntervals;
-
     public Input<Integer> minNumIntervalsInput = new Input<>(
             "minNumIntervals",
             "",
             1
     );
-    int minNumIntervals;
-
-    public Input<String> integratorInput = new Input<>(
-            "integrator",
-            "",
-            "DormandPrince54Integrator"
-    );
-    String integrator;
 
     private Parameterization parameterization;
 
@@ -119,6 +99,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     double absoluteTolerance;
     double relativeTolerance;
+
+    int minNumIntervals;
 
     int numTypes;
 
@@ -141,10 +123,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.relativeTolerance = this.relativeToleranceInput.get();
         this.numTypes = this.parameterization.getNTypes();
         this.useRandomInitialMatrix = this.useRandomInitialMatrixInput.get();
-
         this.minNumIntervals = this.minNumIntervalsInput.get();
-        this.useIntervals = this.useIntervalsInput.get();
-        this.integrator = this.integratorInput.get();
 
         // validate typeLabelInput
 
@@ -169,6 +148,14 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         if (!bdmmprime.util.Utils.equalWithPrecision(freqSum, 1.0)) {
             throw new RuntimeException(
                     "Error: equilibrium frequencies must add up to 1 but currently add to %f.".formatted(freqSum)
+            );
+        }
+
+        // validate minNumIntervals
+
+        if (minNumIntervals < 1) {
+            throw new RuntimeException(
+                "Error: minNumIntervals must be at least 1."
             );
         }
 
@@ -299,9 +286,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         Utils.fillArray(inverseInitialMatrix, inverseInitialState);
 
         return new Flow(
-                system.integrateForwards(
-                        initialState, intervals, this.useIntervals
-                ), this.numTypes, Utils.toMatrix(inverseInitialState, this.parameterization.getNTypes()), this.useIntervals
+                system.integrateBackwards(
+                        initialState, intervals, this.minNumIntervals > 1
+                ), this.numTypes, Utils.toMatrix(inverseInitialState, this.parameterization.getNTypes()), this.minNumIntervals > 1
         );
     }
 
@@ -357,18 +344,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             likelihoodEdgeEnd = calculateInternalEdgeLikelihood(root, timeEdgeEnd, flow, extinctionProbabilities);
         }
 
-        int intervalEdgeStart = this.parameterization.getIntervalIndex(timeEdgeStart);
-        int intervalEdgeEnd = this.parameterization.getIntervalIndex(timeEdgeEnd);
-
-        if (intervalEdgeStart < this.parameterization.getTotalIntervalCount() - 1 && timeEdgeStart == this.parameterization.getIntervalEndTimes()[intervalEdgeStart]) {
-            intervalEdgeStart++;
-        }
-
         return FlowODESystem.integrateUsingFlow(
                 timeEdgeStart,
-                intervalEdgeStart,
                 timeEdgeEnd,
-                intervalEdgeEnd,
                 likelihoodEdgeEnd,
                 flow
         );

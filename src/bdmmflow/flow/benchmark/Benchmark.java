@@ -1,18 +1,16 @@
 package bdmmflow.flow.benchmark;
 
-import bdmmprime.flow.BirthDeathMigrationDistribution;
+import bdmmflow.flow.BirthDeathMigrationDistribution;
 import bdmmprime.flow.initialMatrices.InitialMatrices;
 import bdmmprime.parameterization.*;
 import bdmmprime.trajectories.simulation.SimulatedTree;
 import beast.base.evolution.tree.Tree;
 import beast.base.inference.parameter.RealParameter;
-import beast.base.util.Randomizer;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 
 public class Benchmark {
 
@@ -86,10 +84,8 @@ public class Benchmark {
                 "tree", tree,
                 "frequencies", frequencies,
                 "typeLabel", "type",
-                "useIntervals", useIntervals,
                 "minNumIntervals", minNumIntervals,
-                "integrator", integrator,
-                "initialMatrixType", initialType.toString(),
+                "useRandomInitialMatrix", initialType == InitialMatrices.MatrixType.RANDOM,
                 "relTolerance", tolerance
         );
         density.initAndValidate();
