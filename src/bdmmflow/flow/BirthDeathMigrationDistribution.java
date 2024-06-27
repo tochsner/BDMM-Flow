@@ -1,5 +1,7 @@
 package bdmmflow.flow;
 
+import bdmmflow.flow.intervals.Interval;
+import bdmmflow.flow.intervals.IntervalUtils;
 import beast.base.core.Log;
 import bdmmprime.parameterization.Parameterization;
 import beast.base.core.Function;
@@ -14,6 +16,9 @@ import org.apache.commons.math.special.Gamma;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.SingularMatrixException;
+import org.apache.commons.math3.ode.ContinuousOutputModel;
+
+import java.util.List;
 
 public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
@@ -62,10 +67,10 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             1e-100
     );
 
-    public Input<Boolean>useRandomInitialMatrixInput = new Input<>(
+    public Input<Boolean> useRandomInitialMatrixInput = new Input<>(
             "useRandomInitialMatrix",
             "Whether to use a random initial matrix as the initial flow state.",
-            true
+            false
     );
 
     /**
@@ -82,7 +87,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Integer> minNumIntervalsInput = new Input<>(
             "minNumIntervals",
             "",
-            10
+            1
     );
     int minNumIntervals;
 
@@ -188,6 +193,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     @Override
     public double calculateTreeLogLikelihood(TreeInterface dummyTree) {
         ContinuousIntervalOutputModel extinctionProbabilities = this.calculateExtinctionProbabilities();
+
         Flow flow = this.calculateFlow(extinctionProbabilities);
 
         Node root = this.tree.getRoot();
@@ -227,6 +233,56 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         return logTreeLikelihood;
     }
 
+    private ContinuousIntervalOutputModel calculateExtinctionProbabilities() {
+        IntervalODESystem system = new ExtinctionODESystem(this.parameterization, this.absoluteTolerance, this.relativeTolerance);
+
+        // create the initial state
+
+        int endInterval = this.parameterization.getIntervalIndex(this.parameterization.getTotalProcessLength());
+
+        double[] initialState = new double[this.parameterization.getNTypes()];
+        for (int i = 0; i < this.parameterization.getNTypes(); i++) {
+            initialState[i] = 1 - this.parameterization.getRhoValues()[endInterval][i];
+        }
+
+        // integrate
+
+        ContinuousOutputModel[] integrationResults = system.integrateBackwardsOverIntegrals(initialState);
+
+        return new ContinuousIntervalOutputModel(integrationResults);
+    }
+
+    private Flow calculateFlow(ContinuousIntervalOutputModel extinctionProbabilities) {
+        List<Interval> intervals = IntervalUtils.getIntervals(
+                this.parameterization,
+                this.parameterization.getTotalProcessLength() / this.minNumIntervals
+        );
+
+        FlowODESystem system = new FlowODESystem(
+                this.parameterization,
+                extinctionProbabilities,
+                this.absoluteTolerance,
+                this.relativeTolerance
+        );
+
+        RealMatrix initialMatrix = this.useRandomInitialMatrix ?
+                Utils.getRandomMatrix(this.numTypes) :
+                MatrixUtils.createRealIdentityMatrix(this.numTypes);
+        RealMatrix inverseInitialMatrix = MatrixUtils.inverse(initialMatrix);
+
+        double[] initialState = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+        double[] inverseInitialState = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+
+        Utils.fillArray(initialMatrix, initialState);
+        Utils.fillArray(inverseInitialMatrix, inverseInitialState);
+
+        return new Flow(
+                system.integrateOverIntegrals(
+                        initialState, intervals, this.useIntervals
+                ), this.numTypes, Utils.toMatrix(inverseInitialState, this.parameterization.getNTypes()), this.useIntervals
+        );
+    }
+
     private double calculateConditionDensity(ContinuousIntervalOutputModel extinctionProbabilities) {
         // see Tanja Stadler, How Can We Improve Accuracy of Macroevolutionary Rate Estimates?,
         // Systematic Biology, Volume 62, Issue 2, March 2013, Pages 321–329,
@@ -260,38 +316,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         }
 
         return conditionDensity;
-    }
-
-    private ContinuousIntervalOutputModel calculateExtinctionProbabilities() {
-        IntervalODESystem system = new ExtinctionODESystem(this.parameterization, this.absoluteTolerance, this.relativeTolerance);
-
-        int endInterval = this.parameterization.getIntervalIndex(this.parameterization.getTotalProcessLength());
-
-        double[] initialState = new double[this.parameterization.getNTypes()];
-        for (int i = 0; i < this.parameterization.getNTypes(); i++) {
-            initialState[i] = 1 - this.parameterization.getRhoValues()[endInterval][i];
-        }
-
-        return new ContinuousIntervalOutputModel(system.integrateBackwardsOverIntegrals(initialState));
-    }
-
-    private Flow calculateFlow(ContinuousIntervalOutputModel extinctionProbabilities) {
-        FlowODESystem system = new FlowODESystem(this.parameterization, extinctionProbabilities, this.absoluteTolerance, this.relativeTolerance, this.integrator);
-
-        RealMatrix initialMatrix = this.useRandomInitialMatrix ? Utils.getRandomMatrix(this.numTypes) : MatrixUtils.createRealIdentityMatrix(this.numTypes);
-        RealMatrix inverseInitialMatrix = MatrixUtils.inverse(initialMatrix);
-
-        double[] initialState = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-        double[] inverseInitialState = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-
-        Utils.fillArray(initialMatrix, initialState);
-        Utils.fillArray(inverseInitialMatrix, inverseInitialState);
-
-        return new Flow(
-                system.integrateOverIntegrals(
-                        initialState, this.useIntervals ? this.parameterization.getTotalProcessLength() / this.minNumIntervals : this.parameterization.getTotalProcessLength(), this.useIntervals
-                ), this.numTypes, Utils.toMatrix(inverseInitialState, this.parameterization.getNTypes()), this.useIntervals
-        );
     }
 
     private double[] calculateSubTreeLikelihood(

@@ -1,5 +1,6 @@
 package bdmmflow.flow;
 
+import bdmmflow.flow.intervals.Interval;
 import bdmmprime.parameterization.Parameterization;
 import bdmmprime.util.Utils;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
@@ -8,6 +9,8 @@ import org.apache.commons.math3.ode.FirstOrderIntegrator;
 import org.apache.commons.math3.ode.nonstiff.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 
 public abstract class IntervalODESystem implements FirstOrderDifferentialEquations {
@@ -31,47 +34,36 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
         return this.integrateBackwardsOverIntegrals(state, this.param.getTotalProcessLength(), false);
     }
 
-    public ContinuousOutputModel[] integrateOverIntegrals(double[] initialState, double maxIntervalSize, boolean alwaysStartAtInitialState) {
+    public ContinuousOutputModel[] integrateOverIntegrals(double[] initialState, List<Interval> intervals, boolean alwaysStartAtInitialState) {
         this.currentInterval = 0;
 
-        ArrayList<ContinuousOutputModel> outputModels = new ArrayList<>();
+        ContinuousOutputModel[] outputModels = new ContinuousOutputModel[intervals.size()];
 
-        int currentInterval = 0;
         double[] state = initialState.clone();
 
-        double startTime = 0;
-        while (true) {
-            double intervalEndTime = this.param.getIntervalEndTimes()[currentInterval];
+        for (Interval interval : intervals) {
+            if (this.currentInterval != interval.parameterizationInterval()) {
+                assert this.currentInterval + 1 == interval.parameterizationInterval();
 
-            double timeUntilNextInterval = intervalEndTime - startTime;
-            boolean useIntervalEnd = timeUntilNextInterval < maxIntervalSize || Utils.equalWithPrecision(maxIntervalSize, timeUntilNextInterval);
-            double endTime = useIntervalEnd ? intervalEndTime : startTime + maxIntervalSize;
+                this.handleIntervalBoundary(interval.start(), this.currentInterval, this.currentInterval + 1, state);
+            }
 
             ContinuousOutputModel intervalResult = new ContinuousOutputModel();
 
-            if (alwaysStartAtInitialState)
+            if (alwaysStartAtInitialState) {
                 state = initialState.clone();
-
-            integrator.addStepHandler(intervalResult);
-            integrator.integrate(this, startTime, state, endTime, state);
-
-            integrator.clearStepHandlers();
-
-            if (useIntervalEnd && currentInterval != this.param.getTotalIntervalCount() - 1) {
-                this.handleIntervalBoundary(startTime, currentInterval, currentInterval + 1, state);
             }
 
-            outputModels.add(intervalResult);
+            assert interval.parameterizationInterval() == this.currentInterval;
 
-            if (useIntervalEnd)
-                currentInterval++;
+            integrator.addStepHandler(intervalResult);
+            integrator.integrate(this, interval.start(), state, interval.end(), state);
+            integrator.clearStepHandlers();
 
-            startTime = endTime;
-
-            if (endTime >= this.param.getTotalProcessLength()) break;
+            outputModels[interval.interval()] = intervalResult;
         }
 
-        return outputModels.toArray(new ContinuousOutputModel[0]);
+        return outputModels;
     }
 
     public ContinuousOutputModel[] integrateBackwardsOverIntegrals(double[] initialState, double maxIntervalSize, boolean alwaysStartAtInitialState) {

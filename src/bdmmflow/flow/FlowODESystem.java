@@ -48,24 +48,6 @@ public class FlowODESystem extends IntervalODESystem {
         this.migrationRates = this.param.getMigRates();
 
         this.timeInvariantSystemMatrices = new RealMatrix[this.param.getTotalIntervalCount()];
-    }
-
-    public FlowODESystem(
-            Parameterization parameterization,
-            ContinuousIntervalOutputModel extinctionProbabilities,
-            double absoluteTolerance,
-            double relativeTolerance,
-            String integrator
-    ) {
-        this(parameterization, extinctionProbabilities, absoluteTolerance, relativeTolerance);
-
-        if (integrator.equals("DormandPrince853Integrator")) {
-            double integrationMinStep = this.param.getTotalProcessLength() * 1e-100;
-            double integrationMaxStep = this.param.getTotalProcessLength() / 20;
-            this.integrator = new DormandPrince853Integrator(
-                    integrationMinStep, integrationMaxStep, absoluteTolerance, relativeTolerance
-            );
-        }
 
         cache.clear();
     }
