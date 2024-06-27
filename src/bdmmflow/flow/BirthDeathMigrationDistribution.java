@@ -178,6 +178,10 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.initializeIsRhoSampled();
     }
 
+    /**
+     * Initializes the isRhoSampled array. The array contains a boolean for every node indicating
+     * whether it was rho-sampled or not.
+     */
     private void initializeIsRhoSampled() {
         this.isRhoSampled = new boolean[this.tree.getLeafNodeCount()];
 
@@ -195,26 +199,29 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         }
     }
 
+    /**
+     * Calculates the log tree likelihood.
+     * @param dummyTree a dummyTree that is not considered, a BEAST implementation detail.
+     * @return the calculated log tree likelihood for the tree specified in the given parameterization.
+     */
     @Override
     public double calculateTreeLogLikelihood(TreeInterface dummyTree) {
-        ExtinctionProbabilities extinctionProbabilities = this.calculateExtinctionProbabilities();
+        // integrate over the extinction probabilities ODE and the flow ODE
 
+        ExtinctionProbabilities extinctionProbabilities = this.calculateExtinctionProbabilities();
         Flow flow = this.calculateFlow(extinctionProbabilities);
+
+        // recursively traverse the tree to calculate the root likelihood per state
 
         Node root = this.tree.getRoot();
         double[] rootLikelihoodPerState;
-        try {
-            rootLikelihoodPerState = this.calculateSubTreeLikelihood(
-                    root,
-                    0,
-                    this.parameterization.getNodeTime(root, this.finalSampleOffset),
-                    flow,
-                    extinctionProbabilities
-            );
-        } catch (SingularMatrixException exception) {
-            Log.warning("Singular matrix was found during tree likelihood calculation.");
-            return Float.NEGATIVE_INFINITY;
-        }
+        rootLikelihoodPerState = this.calculateSubTreeLikelihood(
+                root,
+                0,
+                this.parameterization.getNodeTime(root, this.finalSampleOffset),
+                flow,
+                extinctionProbabilities
+        );
 
         // get tree likelihood by a weighted average of the root likelihood per state
 
@@ -228,6 +235,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         double conditionDensity = this.calculateConditionDensity(extinctionProbabilities);
         treeLikelihood /= conditionDensity;
 
+        // turn the likelihood into log likelihood and correct for scaling
+
         double logTreeLikelihood = Math.log(treeLikelihood) + this.logScalingFactors[root.getNr()];
 
         // convert from oriented to labeled tree likelihood
@@ -238,12 +247,20 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         return logTreeLikelihood;
     }
 
+    /**
+     * Integrates over the extinction probabilities ODE.
+     * @return a wrapper class that allows to query the extinction probabilities at any given time.
+     */
     private ExtinctionProbabilities calculateExtinctionProbabilities() {
-        IntervalODESystem system = new ExtinctionProbabilitiesODESystem(this.parameterization, this.absoluteTolerance, this.relativeTolerance);
+        IntervalODESystem system = new ExtinctionProbabilitiesODESystem(
+                this.parameterization,
+                this.absoluteTolerance,
+                this.relativeTolerance
+        );
 
         // create the initial state
 
-        int endInterval = this.parameterization.getIntervalIndex(this.parameterization.getTotalProcessLength());
+        int endInterval = this.parameterization.getTotalIntervalCount() - 1;
 
         double[] initialState = new double[this.parameterization.getNTypes()];
         for (int i = 0; i < this.parameterization.getNTypes(); i++) {
