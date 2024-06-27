@@ -29,23 +29,23 @@ public class ExtinctionODESystem extends IntervalODESystem {
     @Override
     public void computeDerivatives(double t, double[] y, double[] yDot) {
         for (int i = 0; i < this.param.getNTypes(); i++) {
-            yDot[i] = this.birthRates[currentInterval][i] * y[i];
-            yDot[i] += this.deathRates[currentInterval][i] * y[i];
-            yDot[i] += this.samplingRates[currentInterval][i] * y[i];
+            yDot[i] = this.birthRates[currentParameterizationInterval][i] * y[i];
+            yDot[i] += this.deathRates[currentParameterizationInterval][i] * y[i];
+            yDot[i] += this.samplingRates[currentParameterizationInterval][i] * y[i];
 
-            yDot[i] -= this.birthRates[currentInterval][i] * y[i] * y[i];
-            yDot[i] -= this.deathRates[currentInterval][i];
+            yDot[i] -= this.birthRates[currentParameterizationInterval][i] * y[i] * y[i];
+            yDot[i] -= this.deathRates[currentParameterizationInterval][i];
 
             for (int j = 0; j < this.param.getNTypes(); j++) {
-                yDot[i] += this.crossBirthRates[currentInterval][i][j] * (y[i] - y[i] * y[j]);
-                yDot[i] += this.migrationRates[currentInterval][i][j] * (y[i] - y[j]);
+                yDot[i] += this.crossBirthRates[currentParameterizationInterval][i][j] * (y[i] - y[i] * y[j]);
+                yDot[i] += this.migrationRates[currentParameterizationInterval][i][j] * (y[i] - y[j]);
             }
         }
     }
 
     @Override
-    protected void handleIntervalBoundary(double boundaryTime, int oldInterval, int newInterval, double[] state) {
-        super.handleIntervalBoundary(boundaryTime, oldInterval, newInterval, state);
+    protected void handleParameterizationIntervalBoundary(double boundaryTime, int oldInterval, int newInterval, double[] state) {
+        super.handleParameterizationIntervalBoundary(boundaryTime, oldInterval, newInterval, state);
 
         // include rho sampling effects
 
