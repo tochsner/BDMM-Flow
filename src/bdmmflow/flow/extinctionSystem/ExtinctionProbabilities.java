@@ -24,12 +24,12 @@ public class ExtinctionProbabilities {
      * @return the extinction probability at the given time.
      */
     public double[] getProbability(double time) {
-        if (time < this.outputModels[0].getInitialTime()) {
+        if (time > this.outputModels[0].getInitialTime()) {
             return this.getProbability(this.outputModels[0], time);
         }
 
         for (ContinuousOutputModel model : this.outputModels) {
-            if (model.getInitialTime() <= time && time <= model.getFinalTime()) {
+            if (model.getInitialTime() >= time && time >= model.getFinalTime()) {
                 return this.getProbability(model, time);
             }
         }

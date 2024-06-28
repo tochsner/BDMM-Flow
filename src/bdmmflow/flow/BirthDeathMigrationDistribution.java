@@ -9,6 +9,7 @@ import bdmmflow.flow.intervals.IntervalUtils;
 import bdmmflow.flow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import beast.base.core.Function;
+import beast.base.core.Log;
 import beast.base.core.Input;
 import beast.base.evolution.speciation.SpeciesTreeDistribution;
 import beast.base.evolution.tree.Node;
@@ -19,6 +20,7 @@ import beast.base.inference.parameter.RealParameter;
 import org.apache.commons.math.special.Gamma;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.SingularMatrixException;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 import java.util.List;
@@ -70,10 +72,16 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             1e-100
     );
 
+    public Input<Boolean> parallelizeInput = new Input<>(
+            "parallelize",
+            "",
+            false
+    );
+
     public Input<Boolean> useRandomInitialMatrixInput = new Input<>(
             "useRandomInitialMatrix",
             "Whether to use a random initial matrix as the initial flow state.",
-            false
+            true
     );
 
     public Input<Integer> minNumIntervalsInput = new Input<>(
@@ -85,7 +93,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Boolean> useInverseFlowInput = new Input<>(
             "useInverseFlow",
             "",
-            false
+            true
     );
 
 
@@ -105,6 +113,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     double absoluteTolerance;
     double relativeTolerance;
+    boolean parallelize;
 
     int minNumIntervals;
     boolean useInverseFlow;
@@ -128,6 +137,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.conditionOnSurvival = this.conditionOnSurvivalInput.get();
         this.absoluteTolerance = this.absoluteToleranceInput.get();
         this.relativeTolerance = this.relativeToleranceInput.get();
+        this.parallelize = this.parallelizeInput.get();
         this.numTypes = this.parameterization.getNTypes();
         this.useRandomInitialMatrix = this.useRandomInitialMatrixInput.get();
         this.minNumIntervals = this.minNumIntervalsInput.get();
@@ -211,13 +221,19 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         Node root = this.tree.getRoot();
         double[] rootLikelihoodPerState;
-        rootLikelihoodPerState = this.calculateSubTreeLikelihood(
-                root,
-                0,
-                this.parameterization.getNodeTime(root, this.finalSampleOffset),
-                flow,
-                extinctionProbabilities
-        );
+
+        try {
+            rootLikelihoodPerState = this.calculateSubTreeLikelihood(
+                    root,
+                    0,
+                    this.parameterization.getNodeTime(root, this.finalSampleOffset),
+                    flow,
+                    extinctionProbabilities
+            );
+        } catch (SingularMatrixException exception) {
+            Log.warning("A singular matrix was detected. This is due to numerical instability. Increase minNumIntervals to mitigate this issue.");
+            return Double.NEGATIVE_INFINITY;
+        }
 
         // get tree likelihood by a weighted average of the root likelihood per state
 
@@ -249,6 +265,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      * @return a wrapper class that allows to query the extinction probabilities at any given time.
      */
     private ExtinctionProbabilities calculateExtinctionProbabilities() {
+        List<Interval> intervals = IntervalUtils.getIntervals(
+                this.parameterization,
+                this.parameterization.getTotalProcessLength() / this.minNumIntervals
+        );
+
         IntervalODESystem system = new ExtinctionProbabilitiesODESystem(
                 this.parameterization,
                 this.absoluteTolerance,
@@ -288,14 +309,25 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 MatrixUtils.createRealIdentityMatrix(this.numTypes);
         RealMatrix inverseInitialMatrix = MatrixUtils.inverse(initialMatrix);
 
-        boolean resetInitialStateAtIntervalBoundaries = 1 < this.minNumIntervals;
+        boolean resetInitialStateAtIntervalBoundaries = false; // 1 < this.minNumIntervals;
 
-        IFlowODESystem system = new FlowODESystem(
-                this.parameterization,
-                extinctionProbabilities,
-                this.absoluteTolerance,
-                this.relativeTolerance
-        );
+        IFlowODESystem system;
+
+        if (this.useInverseFlow) {
+            system = new InverseFlowODESystem(
+                    this.parameterization,
+                    extinctionProbabilities,
+                    this.absoluteTolerance,
+                    this.relativeTolerance
+            );
+        } else {
+            system = new FlowODESystem(
+                    this.parameterization,
+                    extinctionProbabilities,
+                    this.absoluteTolerance,
+                    this.relativeTolerance
+            );
+        }
 
         return system.calculateFlowIntegral(
                 intervals,

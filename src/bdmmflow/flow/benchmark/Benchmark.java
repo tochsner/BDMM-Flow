@@ -84,6 +84,7 @@ public class Benchmark {
                 "tree", tree,
                 "frequencies", frequencies,
                 "typeLabel", "type",
+                "parallelize", false,
                 "minNumIntervals", minNumIntervals,
                 "useRandomInitialMatrix", initialType == InitialMatrices.MatrixType.RANDOM,
                 "relTolerance", tolerance
@@ -104,7 +105,7 @@ public class Benchmark {
                 "tree", tree,
                 "frequencies", frequencies,
                 "typeLabel", "type",
-                "parallelize", false,
+                "parallelize", true,
                 "relTolerance", tolerance
         );
         density.initAndValidate();

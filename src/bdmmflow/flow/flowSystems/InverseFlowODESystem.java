@@ -22,7 +22,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
     final double[][][] crossBirthRates;
     final double[][][] migrationRates;
 
-    static LRUCache<Double, DecompositionSolver> cache = new LRUCache<>(32);
+    static LRUCache<Double, DecompositionSolver> cache = new LRUCache<>(16);
 
     public InverseFlowODESystem(
             Parameterization parameterization,

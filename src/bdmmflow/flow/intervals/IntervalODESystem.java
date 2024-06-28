@@ -77,6 +77,10 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
         double[] state = initialState.clone();
 
         for (Interval interval : intervals) {
+            if (alwaysStartAtInitialState) {
+                state = initialState.clone();
+            }
+
             if (this.currentParameterizationInterval != interval.parameterizationInterval()) {
                 assert this.currentParameterizationInterval + 1 == interval.parameterizationInterval();
 
@@ -89,10 +93,6 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
             }
 
             ContinuousOutputModel intervalResult = new ContinuousOutputModel();
-
-            if (alwaysStartAtInitialState) {
-                state = initialState.clone();
-            }
 
             integrator.addStepHandler(intervalResult);
             integrator.integrate(this, interval.start(), state, interval.end(), state);
@@ -163,7 +163,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
             integrator.integrate(this, interval.end(), state, interval.start(), state);
             integrator.clearStepHandlers();
 
-            outputModels[interval.interval()] = intervalResult;
+            outputModels[intervals.size() - interval.interval() - 1] = intervalResult;
         }
 
         return outputModels;
