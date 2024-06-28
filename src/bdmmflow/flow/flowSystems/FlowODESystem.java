@@ -1,24 +1,28 @@
 package bdmmflow.flow.flowSystems;
 
 import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
+import bdmmflow.flow.intervals.Interval;
 import bdmmflow.flow.intervals.IntervalODESystem;
 import bdmmprime.flow.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
+import org.apache.commons.math3.ode.ContinuousOutputModel;
+
+import java.util.List;
 
 /**
  * This class represents the classical flow ODE.
  */
-public class FlowODESystem extends IntervalODESystem {
-    private final ExtinctionProbabilities extinctionProbabilities;
+public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
+    final ExtinctionProbabilities extinctionProbabilities;
 
-    private final RealMatrix[] timeInvariantSystemMatrices;
+    final RealMatrix[] timeInvariantSystemMatrices;
 
-    private final double[][] birthRates;
-    private final double[][] deathRates;
-    private final double[][] samplingRates;
-    private final double[][][] crossBirthRates;
-    private final double[][][] migrationRates;
+    final double[][] birthRates;
+    final double[][] deathRates;
+    final double[][] samplingRates;
+    final double[][][] crossBirthRates;
+    final double[][][] migrationRates;
 
     public FlowODESystem(
             Parameterization parameterization,
@@ -50,7 +54,7 @@ public class FlowODESystem extends IntervalODESystem {
     /**
      * Builds the time-invariant part of the system matrix for a given interval. This can be reused.
      */
-    protected RealMatrix buildTimeInvariantSystemMatrix(int interval) {
+    RealMatrix buildTimeInvariantSystemMatrix(int interval) {
         RealMatrix system = new BlockRealMatrix(param.getNTypes(), param.getNTypes());
 
         for (int i = 0; i < param.getNTypes(); i++) {
@@ -81,7 +85,7 @@ public class FlowODESystem extends IntervalODESystem {
      * Builds the time-varying part of the system matrix for a given interval. This has to be computed for every
      * time step.
      */
-    protected void addTimeVaryingSystemMatrix(double t, RealMatrix system) {
+    void addTimeVaryingSystemMatrix(double t, RealMatrix system) {
         double[] extinctProbabilities = this.extinctionProbabilities.getProbability(t);
 
         for (int i = 0; i < param.getNTypes(); i++) {
@@ -110,7 +114,7 @@ public class FlowODESystem extends IntervalODESystem {
     /**
      * Builds the system matrix for a given time point.
      */
-    protected RealMatrix buildSystemMatrix(double t) {
+    RealMatrix buildSystemMatrix(double t) {
         int interval = this.param.getIntervalIndex(t);
         RealMatrix systemMatrix = this.timeInvariantSystemMatrices[interval].copy();
         this.addTimeVaryingSystemMatrix(t, systemMatrix);
@@ -129,36 +133,6 @@ public class FlowODESystem extends IntervalODESystem {
         Utils.fillArray(yDotMatrix, yDot);
     }
 
-    /**
-     * Allows to integrate over an edge of a tree using the pre-computed flow integral.
-     *
-     * @param timeStart the time of the node closer to the root.
-     * @param timeEnd  the time of the node closer to the leaves.
-     * @param endState the initial state at the node closer to the leaves.
-     * @param flow the pre-computed flow.
-     * @return the integration result at the time of the node closer to the root.
-     */
-    public static double[] integrateUsingFlow(
-            double timeStart,
-            double timeEnd,
-            double[] endState,
-            Flow flow
-    ) {
-        int intervalStart = flow.getInterval(timeStart);
-
-        RealMatrix flowMatrixStart = flow.getFlow(timeStart, intervalStart);
-        RealMatrix flowMatrixEnd = flow.getFlow(timeEnd, intervalStart);
-
-        RealVector likelihoodVectorEnd = bdmmprime.flow.Utils.toVector(endState);
-
-        DecompositionSolver linearSolver = new QRDecomposition(flowMatrixEnd).getSolver();
-        RealVector solution = linearSolver.solve(likelihoodVectorEnd);
-
-        RealVector likelihoodVectorStart = flowMatrixStart.operate(solution);
-
-        return likelihoodVectorStart.toArray();
-    }
-
     @Override
     protected void handleParameterizationIntervalBoundary(double boundaryTime, int oldInterval, int newInterval, double[] state) {
         super.handleParameterizationIntervalBoundary(boundaryTime, oldInterval, newInterval, state);
@@ -170,5 +144,34 @@ public class FlowODESystem extends IntervalODESystem {
                 state[i * this.param.getNTypes() + j] *= (1 - this.param.getRhoValues()[newInterval][i]);
             }
         }
+    }
+
+    /**
+     * Calculates the flow integral using the given intervals.
+     * @param intervals the intervals to use when integrating over the flow.
+     * @return the calculated flow.
+     */
+    @Override
+    public IFlow calculateFlowIntegral(
+            List<Interval> intervals,
+            RealMatrix initialState,
+            RealMatrix inverseInitialState,
+            boolean resetInitialStateAtIntervalsBoundaries
+    ) {
+        double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
+        Utils.fillArray(initialState, initialStateArray);
+
+        ContinuousOutputModel[] rawOutputs = this.integrateBackwards(
+                initialStateArray,
+                intervals,
+                resetInitialStateAtIntervalsBoundaries
+        );
+
+        return new Flow(
+                rawOutputs,
+                this.param.getNTypes(),
+                inverseInitialState,
+                resetInitialStateAtIntervalsBoundaries
+        );
     }
 }

@@ -1,4 +1,4 @@
-package bdmmflow.flow;
+package bdmmflow.flow.utils;
 
 import org.apache.commons.math3.linear.*;
 
@@ -7,7 +7,7 @@ import java.util.Random;
 
 public class Utils {
 
-    private static Random random = new Random();
+    private static final Random random = new Random();
 
     private static boolean isSingular(RealMatrix matrix) {
         if (matrix.getRowDimension() != matrix.getColumnDimension()) return false;

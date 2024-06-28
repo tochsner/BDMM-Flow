@@ -3,10 +3,10 @@ package bdmmflow.flow;
 import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
 import bdmmflow.flow.extinctionSystem.ExtinctionProbabilitiesODESystem;
 import bdmmflow.flow.flowSystems.*;
-import bdmmflow.flow.flowSystems.Flow;
 import bdmmflow.flow.intervals.Interval;
 import bdmmflow.flow.intervals.IntervalODESystem;
 import bdmmflow.flow.intervals.IntervalUtils;
+import bdmmflow.flow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import beast.base.core.Function;
 import beast.base.core.Input;
@@ -82,6 +82,13 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             1
     );
 
+    public Input<Boolean> useInverseFlowInput = new Input<>(
+            "useInverseFlow",
+            "",
+            false
+    );
+
+
     private Parameterization parameterization;
 
     private boolean useRandomInitialMatrix;
@@ -100,6 +107,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     double relativeTolerance;
 
     int minNumIntervals;
+    boolean useInverseFlow;
 
     int numTypes;
 
@@ -123,6 +131,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.numTypes = this.parameterization.getNTypes();
         this.useRandomInitialMatrix = this.useRandomInitialMatrixInput.get();
         this.minNumIntervals = this.minNumIntervalsInput.get();
+        this.useInverseFlow = this.useInverseFlowInput.get();
 
         // validate typeLabelInput
 
@@ -196,7 +205,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         // integrate over the extinction probabilities ODE and the flow ODE
 
         ExtinctionProbabilities extinctionProbabilities = this.calculateExtinctionProbabilities();
-        InverseFlow flow = this.calculateFlow(extinctionProbabilities);
+        IFlow flow = this.calculateFlow(extinctionProbabilities);
 
         // recursively traverse the tree to calculate the root likelihood per state
 
@@ -268,7 +277,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      * @param extinctionProbabilities the precomputed extinction probabilities.
      * @return a wrapper class that allows to query the flow at any given time.
      */
-    private InverseFlow calculateFlow(ExtinctionProbabilities extinctionProbabilities) {
+    private IFlow calculateFlow(ExtinctionProbabilities extinctionProbabilities) {
         List<Interval> intervals = IntervalUtils.getIntervals(
                 this.parameterization,
                 this.parameterization.getTotalProcessLength() / this.minNumIntervals
@@ -279,28 +288,19 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 MatrixUtils.createRealIdentityMatrix(this.numTypes);
         RealMatrix inverseInitialMatrix = MatrixUtils.inverse(initialMatrix);
 
-        double[] initialState = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-        double[] inverseInitialState = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-
-        Utils.fillArray(initialMatrix, initialState);
-        Utils.fillArray(inverseInitialMatrix, inverseInitialState);
-
         boolean resetInitialStateAtIntervalBoundaries = 1 < this.minNumIntervals;
 
-        InverseFlowODESystem system = new InverseFlowODESystem(
+        IFlowODESystem system = new FlowODESystem(
                 this.parameterization,
                 extinctionProbabilities,
                 this.absoluteTolerance,
                 this.relativeTolerance
         );
-        ContinuousOutputModel[] integrationResult = system.integrateForwards(
-                initialState, intervals, resetInitialStateAtIntervalBoundaries
-        );
 
-        return new InverseFlow(
-                integrationResult,
-                this.numTypes,
-                Utils.toMatrix(inverseInitialState, this.parameterization.getNTypes()),
+        return system.calculateFlowIntegral(
+                intervals,
+                initialMatrix,
+                inverseInitialMatrix,
                 resetInitialStateAtIntervalBoundaries
         );
     }
@@ -344,7 +344,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             Node root,
             double timeEdgeStart,
             double timeEdgeEnd,
-            InverseFlow flow,
+            IFlow flow,
             ExtinctionProbabilities extinctionProbabilities
     ) {
         double[] likelihoodEdgeEnd;
@@ -357,11 +357,10 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             likelihoodEdgeEnd = calculateInternalEdgeLikelihood(root, timeEdgeEnd, flow, extinctionProbabilities);
         }
 
-        return InverseFlowODESystem.integrateUsingFlow(
+        return flow.integrateUsingFlow(
                 timeEdgeStart,
                 timeEdgeEnd,
-                likelihoodEdgeEnd,
-                flow
+                likelihoodEdgeEnd
         );
     }
 
@@ -395,7 +394,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     private double[] calculateDirectAncestorWithChildLikelihood(
             Node root,
             double timeEdgeEnd,
-            InverseFlow flow,
+            IFlow flow,
             ExtinctionProbabilities extinctionProbabilities
     ) {
         int intervalEdgeEnd = this.parameterization.getIntervalIndex(timeEdgeEnd);
@@ -434,7 +433,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     private double[] calculateInternalEdgeLikelihood(
             Node root,
             double timeEdgeEnd,
-            InverseFlow flow,
+            IFlow flow,
             ExtinctionProbabilities extinctionProbabilities
     ) {
         int intervalEdgeEnd = this.parameterization.getIntervalIndex(timeEdgeEnd);
