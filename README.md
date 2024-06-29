@@ -3,7 +3,7 @@
 BDMM-Flow is a [BEAST 2](http://www.beast2.org/) package for
 performing phylodynamic inference under multi-type birth-death models.
 
-The package is heavily inspired by and designed to be a drop-in-replacement of the [BDMM-Prime](https://github.com/tgvaughan/BDMM-Prime). BDMM-Flow implements the same model, but uses a flow-based representation of BDMM likelihood. This representation is faster for large trees and was introduced in the following paper:
+The package is heavily inspired by and designed to be a drop-in-replacement of the [BDMM-Prime](https://github.com/tgvaughan/BDMM-Prime) package. BDMM-Flow implements the same model, but uses a flow-based representation of the model likelihood. This representation is faster for large trees and was introduced in the following paper:
 
 * Stilianos Louca, Matthew W Pennell, A General and Efficient Algorithm for the Likelihood of Diversification and Discrete-Trait Evolutionary Models, Systematic Biology, Volume 69, Issue 3, May 2020, Pages 545–556, [doi.org/10.1093/sysbio/syz055](https://doi.org/10.1093/sysbio/syz055)
 
@@ -16,7 +16,8 @@ BEAST package repository and installing the package that appears (see [this arti
 
 ## 🔧 Building from Source
 
-To build BDMM-Prime from source you'll need the following to be installed:
+To build BDMM-Flow from source, you need to install the following dependencies:
+
 - OpenJDK version 17 or greater
 - the Apache Ant build system
 
