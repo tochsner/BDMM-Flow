@@ -7,8 +7,12 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.util.Pair;
 
 /**
- * This class is a lightweight wrapper of the result of the Flow ODE integration. It allows to easily query the
- * flow at every point in time.
+ * This class is a lightweight wrapper of the result of the Inverse Flow ODE integration. It allows to easily query the
+ * inverse flow at every point in time and to use the inverse flow to efficiently integrate over a time span.
+ * <p>
+ * Compared to the normal Flow, the representation used in this class avoids the QR decomposition for the leaf
+ * flows when traversing a tree and integrating over the edges.
+ * <p>
  * It supports intervals and also reset of the initial state at each interval start.
  */
 public class InverseFlow implements IFlow {

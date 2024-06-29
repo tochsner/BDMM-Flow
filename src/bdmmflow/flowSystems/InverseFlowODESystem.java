@@ -12,6 +12,9 @@ import java.util.List;
 
 import static bdmmflow.utils.Utils.*;
 
+/**
+ * This class represents the ODE that has the inverse flow as a solution.
+ */
 public class InverseFlowODESystem extends IntervalODESystem implements IFlowODESystem {
     final ExtinctionProbabilities extinctionProbabilities;
 

@@ -8,7 +8,7 @@ import org.apache.commons.math3.util.Pair;
 
 /**
  * This class is a lightweight wrapper of the result of the Flow ODE integration. It allows to easily query the
- * flow at every point in time.
+ * flow at every point in time and to use the flow to efficiently integrate over a time span.
  * It supports intervals and also reset of the initial state at each interval start.
  */
 public class Flow implements IFlow {
