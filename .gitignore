@@ -29,3 +29,11 @@ bin/
 ### Mac OS ###
 .DS_Store
 /src/bdmmprime/
+
+# Ant build script
+/build
+/build-lib
+/dist
+/deps
+/build-beast
+/beast-source/
