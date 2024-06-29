@@ -3,6 +3,10 @@ package bdmmflow.utils;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * This class is a LRU cache that can be used to memoize values. It only stores
+ * cacheSize number of items and discards the oldest values in the cache.
+ */
 public class LRUCache<K, V> extends LinkedHashMap<K, V> {
     private final int cacheSize;
 
@@ -11,7 +15,7 @@ public class LRUCache<K, V> extends LinkedHashMap<K, V> {
         this.cacheSize = cacheSize;
     }
 
-//    protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-//        return size() >= cacheSize;
-//    }
+    protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+        return size() >= cacheSize;
+    }
 }

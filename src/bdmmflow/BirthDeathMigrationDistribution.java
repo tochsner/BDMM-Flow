@@ -8,9 +8,7 @@ import bdmmflow.intervals.IntervalODESystem;
 import bdmmflow.intervals.IntervalUtils;
 import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
-import beast.base.core.Function;
-import beast.base.core.Log;
-import beast.base.core.Input;
+import beast.base.core.*;
 import beast.base.evolution.speciation.SpeciesTreeDistribution;
 import beast.base.evolution.tree.Node;
 import beast.base.evolution.tree.TraitSet;
@@ -25,6 +23,15 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 import java.util.List;
 
+@Citation(value = "Kuehnert D, Stadler T, Vaughan TG, Drummond AJ. (2016). " +
+        "A General and Efficient Algorithm for the Likelihood of Diversification and Discrete-Trait Evolutionary Models, \n" +
+        "Systematic Biology, Volume 69, Issue 3, May 2020, Pages 545–556."
+        , DOI = "10.1093/sysbio/syz055", year = 2020, firstAuthorSurname = "Louca")
+
+@Description("This model implements a multi-deme version of the BirthDeathSkylineModel \" +\n" +
+        "        \"with discrete locations and migration events among demes. \" +\n" +
+        "        \"This implementation uses the Flow representation of the probability  \" +\n" +
+        "        \"ODE for better performance.")
 public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     public Input<Parameterization> parameterizationInput = new Input<>(
@@ -244,7 +251,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // consider different ways to condition the tree
 
-        double conditionDensity = this.calculateConditionDensity(extinctionProbabilities);
+        double conditionDensity = this.calculateConditionDensityFactor(extinctionProbabilities);
         treeLikelihood /= conditionDensity;
 
         // turn the likelihood into log likelihood and correct for scaling
@@ -332,10 +339,17 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         );
     }
 
-    private double calculateConditionDensity(ExtinctionProbabilities extinctionProbabilities) {
-        // see Tanja Stadler, How Can We Improve Accuracy of Macroevolutionary Rate Estimates?,
-        // Systematic Biology, Volume 62, Issue 2, March 2013, Pages 321–329,
-        // https://doi.org/10.1093/sysbio/sys073
+    /**
+     * Calculates the probability density factor due to the way the tree is conditioned.
+     * <p>
+     * See Tanja Stadler, How Can We Improve Accuracy of Macroevolutionary Rate Estimates?,
+     * Systematic Biology, Volume 62, Issue 2, March 2013, Pages 321–329,
+     * https://doi.org/10.1093/sysbio/sys073
+     *
+     * @param extinctionProbabilities the calculated extinction probabilities integral.
+     * @return the factor due to tree conditioning.
+     */
+    private double calculateConditionDensityFactor(ExtinctionProbabilities extinctionProbabilities) {
         double conditionDensity = 0.0;
 
         if (this.conditionOnRoot) {
@@ -367,6 +381,10 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         return conditionDensity;
     }
 
+    /**
+     * Calculates the per-type likelihood of the subtree of the given node including the edge leading to the
+     * node.
+     */
     private double[] calculateSubTreeLikelihood(
             Node root,
             double timeEdgeStart,
@@ -384,14 +402,16 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             likelihoodEdgeEnd = calculateInternalEdgeLikelihood(root, timeEdgeEnd, flow, extinctionProbabilities);
         }
 
-        double[] a = flow.integrateUsingFlow(
+        return flow.integrateUsingFlow(
                 timeEdgeStart,
                 timeEdgeEnd,
                 likelihoodEdgeEnd
         );
-        return a;
     }
 
+    /**
+     * Calculates the likelihood of a single leaf node including the edge leading to it.
+     */
     private double[] calculateLeafLikelihood(
             Node root,
             double timeEdgeEnd,
@@ -419,6 +439,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         return likelihoodEdgeEnd;
     }
 
+    /**
+     * Calculates the likelihood of a node that has a direct ancestor as a child; including the edge leading to it.
+     */
     private double[] calculateDirectAncestorWithChildLikelihood(
             Node root,
             double timeEdgeEnd,
@@ -440,9 +463,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 extinctionProbabilities
         );
 
-        int nodeType = this.getNodeType(directAncestor);
-
         double[] likelihoodEdgeEnd = new double[this.parameterization.getNTypes()];
+
+        int nodeType = this.getNodeType(directAncestor);
 
         if (isRhoSampled[directAncestor.getNr()]) {
             likelihoodEdgeEnd[nodeType] = this.parameterization.getRhoValues()[intervalEdgeEnd][nodeType];
@@ -458,6 +481,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         return likelihoodEdgeEnd;
     }
 
+    /**
+     * Calculates the likelihood of the subtree of the given internal node including the edge leading to it.
+     */
     private double[] calculateInternalEdgeLikelihood(
             Node root,
             double timeEdgeEnd,
@@ -511,6 +537,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         return likelihoodEdgeEnd;
     }
 
+    /**
+     * Returns the type of the given node.
+     * @param node the node to return the type of.
+     * @return the type of the node.
+     */
     private int getNodeType(Node node) {
         if (parameterization.getNTypes() == 1) {
             return 0;
