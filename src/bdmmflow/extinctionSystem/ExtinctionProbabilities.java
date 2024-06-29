@@ -7,13 +7,13 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
  * to conveniently query the extinction probability at a given time.
  */
 public class ExtinctionProbabilities {
-    protected ContinuousOutputModel[] outputModels;
+    ContinuousOutputModel[] outputModels;
 
     public ExtinctionProbabilities(ContinuousOutputModel[] outputModels) {
         this.outputModels = outputModels;
     }
 
-    protected double[] getProbability(ContinuousOutputModel output, double time) {
+    double[] getProbability(ContinuousOutputModel output, double time) {
         output.setInterpolatedTime(time);
         return output.getInterpolatedState();
     }

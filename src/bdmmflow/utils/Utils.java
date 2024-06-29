@@ -10,7 +10,7 @@ public class Utils {
     private static final Random random = new Random();
 
     /**
-     * Returns whether or not the marix is singular.
+     * Returns whether the matrix is singular.
      * @param matrix the matrix to check.
      * @return if the matrix is singular.
      */
