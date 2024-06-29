@@ -90,7 +90,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Integer> minNumIntervalsInput = new Input<>(
             "minNumIntervals",
             "The number of intervals the time span is broken up into. Increase this when running into numerical stability issues.",
-            1
+            4
     );
 
     public Input<Boolean> useInverseFlowInput = new Input<>(
