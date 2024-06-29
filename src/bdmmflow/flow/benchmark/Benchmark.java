@@ -1,7 +1,6 @@
 package bdmmflow.flow.benchmark;
 
 import bdmmflow.flow.BirthDeathMigrationDistribution;
-import bdmmprime.flow.initialMatrices.InitialMatrices;
 import bdmmprime.parameterization.*;
 import bdmmprime.trajectories.simulation.SimulatedTree;
 import beast.base.evolution.tree.Tree;
@@ -33,15 +32,14 @@ public class Benchmark {
                 Tree tree = simulateTree(parameterization, frequencies);
 
                 boolean useIntervals = false;
-                InitialMatrices.MatrixType initialType = InitialMatrices.MatrixType.RANDOM;
                 int minNumIntervals = 1;
                 String integrator = "DormandPrince54Integrator";
                 double threshold = Math.pow(10, -7.35);
 
-                BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useIntervals, minNumIntervals, integrator, initialType, threshold);
+                BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useIntervals, minNumIntervals, integrator, true, threshold);
                 BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, frequencies, threshold);
 
-                BenchmarkResult result = new BenchmarkResult(parameterization, tree, flowRun, bdmmRun, useIntervals, minNumIntervals, integrator, initialType, threshold);
+                BenchmarkResult result = new BenchmarkResult(parameterization, tree, flowRun, bdmmRun, useIntervals, minNumIntervals, integrator, true, threshold);
                 results.add(result);
             } catch (RuntimeException ignored) {
                 System.out.println(ignored);
@@ -75,7 +73,7 @@ public class Benchmark {
             boolean useIntervals,
             int minNumIntervals,
             String integrator,
-            InitialMatrices.MatrixType initialType,
+            boolean useRandomInitialMatrix,
             double tolerance
     ) {
         BirthDeathMigrationDistribution density = new BirthDeathMigrationDistribution();
@@ -86,7 +84,7 @@ public class Benchmark {
                 "typeLabel", "type",
                 "parallelize", false,
                 "minNumIntervals", minNumIntervals,
-                "useRandomInitialMatrix", initialType == InitialMatrices.MatrixType.RANDOM,
+                "useRandomInitialMatrix", useRandomInitialMatrix,
                 "relTolerance", tolerance
         );
         density.initAndValidate();

@@ -1,6 +1,5 @@
 package bdmmflow.flow.benchmark;
 
-import bdmmprime.flow.initialMatrices.InitialMatrices;
 import bdmmprime.parameterization.Parameterization;
 import beast.base.evolution.tree.Tree;
 
@@ -16,7 +15,7 @@ public class BenchmarkResult {
     String integrator;
     BenchmarkRun flowRun;
     BenchmarkRun bdmmRun;
-    InitialMatrices.MatrixType initialType;
+    boolean useRandomInitialMatrix;
     double tolerance;
 
     public BenchmarkResult(
@@ -27,7 +26,7 @@ public class BenchmarkResult {
             boolean useIntervals,
             int minNumIntervals,
             String integrator,
-            InitialMatrices.MatrixType initialType,
+            boolean useRandomInitialMatrix,
             double tolerance
     ) {
         this.parameterization = parameterization;
@@ -37,7 +36,7 @@ public class BenchmarkResult {
         this.useIntervals = useIntervals;
         this.minNumIntervals = minNumIntervals;
         this.integrator = integrator;
-        this.initialType = initialType;
+        this.useRandomInitialMatrix = useRandomInitialMatrix;
         this.tolerance = tolerance;
     }
 
@@ -60,7 +59,7 @@ public class BenchmarkResult {
         joiner.add(Boolean.toString(this.useIntervals));
         joiner.add(Integer.toString(this.minNumIntervals));
         joiner.add(this.integrator);
-        joiner.add(this.initialType.toString());
+        joiner.add(Boolean.toString(this.useRandomInitialMatrix));
         joiner.add(Double.toString(this.tolerance));
 
         return joiner.toString();

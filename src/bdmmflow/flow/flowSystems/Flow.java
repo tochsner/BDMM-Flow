@@ -54,7 +54,7 @@ public class Flow implements IFlow {
         RealMatrix flowMatrixStart = this.cache.computeIfAbsent(startKey, k -> this.getFlow(timeStart, intervalEnd));
         RealMatrix flowMatrixEnd = this.cache.computeIfAbsent(endKey, k -> this.getFlow(timeEnd, intervalEnd));
 
-        RealVector likelihoodVectorEnd = bdmmprime.flow.Utils.toVector(endState);
+        RealVector likelihoodVectorEnd = Utils.toVector(endState);
 
         DecompositionSolver linearSolver = new QRDecomposition(flowMatrixEnd).getSolver();
         RealVector solution = linearSolver.solve(likelihoodVectorEnd);

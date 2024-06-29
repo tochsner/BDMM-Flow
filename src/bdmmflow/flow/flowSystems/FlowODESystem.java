@@ -3,7 +3,7 @@ package bdmmflow.flow.flowSystems;
 import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
 import bdmmflow.flow.intervals.Interval;
 import bdmmflow.flow.intervals.IntervalODESystem;
-import bdmmprime.flow.Utils;
+import bdmmflow.flow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
@@ -126,7 +126,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     public void computeDerivatives(double t, double[] y, double[] yDot) {
         int numTypes = this.param.getNTypes();
 
-        RealMatrix yMatrix = bdmmprime.flow.Utils.toMatrix(y, numTypes);
+        RealMatrix yMatrix = Utils.toMatrix(y, numTypes);
         RealMatrix systemMatrix = this.buildSystemMatrix(t);
 
         RealMatrix yDotMatrix = systemMatrix.multiply(yMatrix);

@@ -2,7 +2,6 @@ package bdmmflow.flow.flowSystems;
 
 import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
 import bdmmflow.flow.intervals.Interval;
-import bdmmflow.flow.utils.Utils;
 import bdmmflow.flow.intervals.IntervalODESystem;
 import bdmmflow.flow.utils.LRUCache;
 import bdmmprime.parameterization.Parameterization;
@@ -10,6 +9,8 @@ import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 import java.util.List;
+
+import static bdmmflow.flow.utils.Utils.*;
 
 public class InverseFlowODESystem extends IntervalODESystem implements IFlowODESystem {
     final ExtinctionProbabilities extinctionProbabilities;
@@ -130,11 +131,11 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
     public void computeDerivatives(double t, double[] y, double[] yDot) {
         int numTypes = this.param.getNTypes();
 
-        RealMatrix yMatrix = Utils.toMatrix(y, numTypes);
+        RealMatrix yMatrix = toMatrix(y, numTypes);
         RealMatrix systemMatrix = this.buildSystemMatrix(t);
 
         RealMatrix yDotMatrix = yMatrix.multiply(systemMatrix);
-        Utils.fillArray(yDotMatrix, yDot);
+        fillArray(yDotMatrix, yDot);
     }
 
     @Override
@@ -163,7 +164,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
             boolean resetInitialStateAtIntervalsBoundaries
     ) {
         double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
-        bdmmprime.flow.Utils.fillArray(initialState, initialStateArray);
+        fillArray(initialState, initialStateArray);
 
         ContinuousOutputModel[] rawOutputs = this.integrateForwards(
                 initialStateArray,
