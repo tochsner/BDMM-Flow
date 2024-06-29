@@ -9,7 +9,7 @@ public class Utils {
 
     private static final Random random = new Random();
 
-    private static boolean isSingular(RealMatrix matrix) {
+    public static boolean isSingular(RealMatrix matrix) {
         if (matrix.getRowDimension() != matrix.getColumnDimension()) return false;
 
         SingularValueDecomposition svd = new SingularValueDecomposition(matrix);

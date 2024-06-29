@@ -29,11 +29,6 @@ public class InverseFlow implements IFlow {
         this.wasInitialStateResetAtEachInterval = useIntervals;
     }
 
-    RealMatrix getFlow(ContinuousOutputModel output, double time) {
-        output.setInterpolatedTime(time);
-        return Utils.toMatrix(output.getInterpolatedState(), this.n);
-    }
-
     @Override
     public double[] integrateUsingFlow(double timeStart, double timeEnd, double[] endState) {
         int interval = this.getInterval(timeStart);
@@ -47,10 +42,10 @@ public class InverseFlow implements IFlow {
 
         Pair<Double, Integer> startKey = new Pair<>(timeStart, interval);
         DecompositionSolver qr = this.decompositionCache.computeIfAbsent(
-            startKey,
-            k -> new QRDecomposition(
-                    this.flowCache.computeIfAbsent(startKey, k_ -> this.getFlow(timeStart, interval))
-            ).getSolver()
+                startKey,
+                k -> new QRDecomposition(
+                        this.flowCache.computeIfAbsent(startKey, k_ -> this.getFlow(timeStart, interval))
+                ).getSolver()
         );
 
         RealVector likelihoodVectorStart = qr.solve(flowMatrixEnd.operate(likelihoodVectorEnd));
@@ -71,14 +66,16 @@ public class InverseFlow implements IFlow {
      * @return the flow at the given time.
      */
     public RealMatrix getFlow(double time, int startingAtInterval) {
+        if (time < this.outputModels[startingAtInterval].getInitialTime()) {
+            return this.getFlow(this.outputModels[startingAtInterval], time);
+        }
+
         RealMatrix accumulatedFlow = null;
 
         for (int i = startingAtInterval; i < this.outputModels.length; i++) {
             ContinuousOutputModel model = this.outputModels[i];
 
-            if (
-                    model.getInitialTime() <= time && time <= model.getFinalTime() || model.getFinalTime() <= time && time <= model.getInitialTime()
-            ) {
+            if (model.getInitialTime() <= time && time <= model.getFinalTime()) {
                 RealMatrix result;
 
                 if (accumulatedFlow == null) {
@@ -100,7 +97,12 @@ public class InverseFlow implements IFlow {
             }
         }
 
-        throw new IllegalArgumentException("The provided time is out of bounds for the stored flows.");
+        return this.getFlow(this.outputModels[this.outputModels.length - 1], time);
+    }
+
+    RealMatrix getFlow(ContinuousOutputModel output, double time) {
+        output.setInterpolatedTime(time);
+        return Utils.toMatrix(output.getInterpolatedState(), this.n);
     }
 
     /**
@@ -110,16 +112,18 @@ public class InverseFlow implements IFlow {
      * @return the interval.
      */
     public int getInterval(double time) {
+        if (time < this.outputModels[0].getInitialTime()) {
+            return 0;
+        }
+
         for (int i = 0; i < this.outputModels.length; i++) {
             ContinuousOutputModel model = this.outputModels[i];
 
-            if (
-                    model.getInitialTime() <= time && time <= model.getFinalTime() || model.getFinalTime() <= time && time <= model.getInitialTime()
-            ) {
+            if (model.getInitialTime() <= time && time <= model.getFinalTime()) {
                 return i;
             }
         }
 
-        throw new IllegalArgumentException("The provided time is out of bounds for the stored flows.");
+        return this.outputModels.length - 1;
     }
 }

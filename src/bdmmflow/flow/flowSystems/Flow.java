@@ -31,17 +31,12 @@ public class Flow implements IFlow {
         this.wasInitialStateResetAtEachInterval = wasInitialStateResetAtEachInterval;
     }
 
-    RealMatrix getFlow(ContinuousOutputModel output, double time) {
-        output.setInterpolatedTime(time);
-        return Utils.toMatrix(output.getInterpolatedState(), this.n);
-    }
-
     /**
      * Allows to integrate over an edge of a tree using the pre-computed flow.
      *
      * @param timeStart the time of the node closer to the root.
-     * @param timeEnd  the time of the node closer to the leaves.
-     * @param endState the initial state at the node closer to the leaves.
+     * @param timeEnd   the time of the node closer to the leaves.
+     * @param endState  the initial state at the node closer to the leaves.
      * @return the integration result at the time of the node closer to the root.
      */
     @Override
@@ -70,20 +65,23 @@ public class Flow implements IFlow {
      * This method supports when the flow integration was restarted using the same initial state
      * at the beginning of every interval. In this case, the flow is calculated by accumulatively
      * multiplying the end flows of the intervals between startingAtInterval and time.
-     * @param time the time for which to query the flow from.
+     *
+     * @param time               the time for which to query the flow from.
      * @param startingAtInterval where to start the accumulation of the flow if initial state resetting
      *                           was used.
      * @return the flow at the given time.
      */
     public RealMatrix getFlow(double time, int startingAtInterval) {
+        if (this.outputModels[startingAtInterval].getInitialTime() < time) {
+            return this.getFlow(this.outputModels[startingAtInterval], time);
+        }
+
         RealMatrix accumulatedFlow = null;
 
         for (int i = startingAtInterval; i < this.outputModels.length; i++) {
             ContinuousOutputModel model = this.outputModels[i];
 
-            if (
-                    model.getInitialTime() <= time && time <= model.getFinalTime() || model.getFinalTime() <= time && time <= model.getInitialTime()
-            ) {
+            if (model.getFinalTime() <= time && time <= model.getInitialTime()) {
                 if (accumulatedFlow == null) {
                     return this.getFlow(this.outputModels[i], time);
                 } else {
@@ -101,25 +99,33 @@ public class Flow implements IFlow {
             }
         }
 
-        throw new IllegalArgumentException("The provided time is out of bounds for the stored flows.");
+        return this.getFlow(this.outputModels[this.outputModels.length - 1], time);
+    }
+
+    RealMatrix getFlow(ContinuousOutputModel output, double time) {
+        output.setInterpolatedTime(time);
+        return Utils.toMatrix(output.getInterpolatedState(), this.n);
     }
 
     /**
      * Returns the interval corresponding to the given time.
+     *
      * @param time the time to get the interval for.
      * @return the interval.
      */
     public int getInterval(double time) {
+        if (this.outputModels[0].getInitialTime() < time) {
+            return 0;
+        }
+
         for (int i = 0; i < this.outputModels.length; i++) {
             ContinuousOutputModel model = this.outputModels[i];
 
-            if (
-                    model.getInitialTime() <= time && time <= model.getFinalTime() || model.getFinalTime() <= time && time <= model.getInitialTime()
-            ) {
+            if (model.getFinalTime() <= time && time <= model.getInitialTime()) {
                 return i;
             }
         }
 
-        throw new IllegalArgumentException("The provided time is out of bounds for the stored flows.");
+        return this.outputModels.length - 1;
     }
 }
