@@ -1,11 +1,11 @@
 //package bdmmflow.flow;
 //
 //
-//import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
-//import bdmmflow.flow.extinctionSystem.ExtinctionProbabilitiesODESystem;
-//import bdmmflow.flow.flowSystems.InverseFlowODESystem;
-//import bdmmflow.flow.intervals.IntervalODESystem;
-//import bdmmflow.flow.utils.Utils;
+//import bdmmflow.extinctionSystem.ExtinctionProbabilities;
+//import bdmmflow.extinctionSystem.ExtinctionProbabilitiesODESystem;
+//import bdmmflow.flowSystems.InverseFlowODESystem;
+//import bdmmflow.intervals.IntervalODESystem;
+//import bdmmflow.utils.Utils;
 //import bdmmprime.distribution.P0GeSystem;
 //import bdmmprime.parameterization.*;
 //import beast.base.inference.parameter.RealParameter;

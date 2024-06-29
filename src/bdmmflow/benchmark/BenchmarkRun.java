@@ -1,4 +1,4 @@
-package bdmmflow.flow.benchmark;
+package bdmmflow.benchmark;
 
 public class BenchmarkRun {
     long duration;

@@ -1,7 +1,7 @@
-package bdmmflow.flow.intervals;
+package bdmmflow.intervals;
 
-import bdmmflow.flow.intervals.Interval;
-import bdmmflow.flow.intervals.IntervalUtils;
+import bdmmflow.intervals.Interval;
+import bdmmflow.intervals.IntervalUtils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;

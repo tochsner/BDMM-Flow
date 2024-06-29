@@ -25,10 +25,10 @@
 #            </substModel>
 #        </siteModel>
 #    </distribution>
-#    <distribution id="treePrior" maxIntervalSize="10.0" spec="bdmmflow.BirthDeathMigrationDistribution" tree="@tree" useRandomInitialMatrix="false">
+#    <distribution id="treePrior" minNumIntervals="5" spec="bdmmflow.BirthDeathMigrationDistribution" tree="@tree">
 #        <parameterization id="EpiParameterization" spec="bdmmprime.parameterization.EpiParameterization">
 #            <R0 id="SkylineVectorParameter" spec="bdmmprime.parameterization.SkylineVectorParameter">
-#                <changeTimes id="Function$Constant" spec="beast.base.core.Function$Constant" value="88.11 88.61 89.11 89.61 90.11 90.61 91.11 91.61 92.11 92.61 93.11 93.61 94.11 94.61 95.11 95.61 96.11 96.61 97.11 97.61 98.11 98.61 99.11 99.61"/>
+#                <changeTimes id="Function$Constant" spec="beast.base.core.Function$Constant" value="8.11 8.61 9.11 9.61 10.11 10.61 11.11 11.61 12.11 12.61 13.11 13.61 14.11 14.61 15.11 15.61 16.11 16.61 17.11 17.61 18.11 18.61 19.11 19.61"/>
 #                <parameter dimension="75" id="R0" lower="0.0" name="skylineValues" spec="beast.base.inference.parameter.RealParameter" upper="Infinity">1.2</parameter>
 #            </R0>
 #            <becomeUninfectiousRate id="SkylineVectorParameter1" spec="bdmmprime.parameterization.SkylineVectorParameter">
@@ -143,4 +143,4 @@
 #</input>
 #
 Sample	posterior	treeLikelihood	treePrior	mutationRate	rateAC	rateGT	rateAT	rateCG	rateCT	freqParameter.1	freqParameter.2	freqParameter.3	freqParameter.4	gammaShape	tree.height	treeLength	removalProbability.1	removalProbability.2	removalProbability.3	treeOrigin	samplingProportion.1	samplingProportion.2	samplingProportion.3	samplingProportion.4	samplingProportion.5	samplingProportion.6	migrationRateFactor	migrationRelativeMatrix.1	migrationRelativeMatrix.2	migrationRelativeMatrix.3	migrationRelativeMatrix.4	migrationRelativeMatrix.5	migrationRelativeMatrix.6	becomeUninfectiousRate.1	becomeUninfectiousRate.2	becomeUninfectiousRate.3	R0.1	R0.2	R0.3	R0.4	R0.5	R0.6	R0.7	R0.8	R0.9	R0.10	R0.11	R0.12	R0.13	R0.14	R0.15	R0.16	R0.17	R0.18	R0.19	R0.20	R0.21	R0.22	R0.23	R0.24	R0.25	R0.26	R0.27	R0.28	R0.29	R0.30	R0.31	R0.32	R0.33	R0.34	R0.35	R0.36	R0.37	R0.38	R0.39	R0.40	R0.41	R0.42	R0.43	R0.44	R0.45	R0.46	R0.47	R0.48	R0.49	R0.50	R0.51	R0.52	R0.53	R0.54	R0.55	R0.56	R0.57	R0.58	R0.59	R0.60	R0.61	R0.62	R0.63	R0.64	R0.65	R0.66	R0.67	R0.68	R0.69	R0.70	R0.71	R0.72	R0.73	R0.74	R0.75	geo-frequencies.1	geo-frequencies.2	geo-frequencies.3
-0	-111661.9093337342	-92550.8865377007	-19016.30241659144	0.003	1.0	1.0	1.0	1.0	1.0	0.25	0.25	0.25	0.25	1.0	5.739731769728772	794.4093556719989	0.9	0.9	0.9	20.0	0.0	0.0	0.0	1.0E-4	1.0E-4	1.0E-4	1.0	1.0	1.0	1.0	1.0	1.0	1.0	100.0	100.0	100.0	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	0.334	0.333	0.333
+0	-112923.26907102847	-94646.39235265357	-18182.15633893284	0.003	1.0	1.0	1.0	1.0	1.0	0.25	0.25	0.25	0.25	1.0	5.7397311957556525	760.3539038393867	0.9	0.9	0.9	20.0	0.0	0.0	0.0	1.0E-4	1.0E-4	1.0E-4	1.0	1.0	1.0	1.0	1.0	1.0	1.0	100.0	100.0	100.0	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	1.2	0.334	0.333	0.333

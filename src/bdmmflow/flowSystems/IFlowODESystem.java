@@ -1,6 +1,6 @@
-package bdmmflow.flow.flowSystems;
+package bdmmflow.flowSystems;
 
-import bdmmflow.flow.intervals.Interval;
+import bdmmflow.intervals.Interval;
 import org.apache.commons.math3.linear.RealMatrix;
 
 import java.util.List;

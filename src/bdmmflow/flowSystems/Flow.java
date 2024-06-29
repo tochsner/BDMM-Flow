@@ -1,7 +1,7 @@
-package bdmmflow.flow.flowSystems;
+package bdmmflow.flowSystems;
 
-import bdmmflow.flow.utils.LRUCache;
-import bdmmflow.flow.utils.Utils;
+import bdmmflow.utils.LRUCache;
+import bdmmflow.utils.Utils;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.util.Pair;

@@ -1,7 +1,7 @@
-package bdmmflow.flow.flowSystems;
+package bdmmflow.flowSystems;
 
-import bdmmflow.flow.utils.LRUCache;
-import bdmmflow.flow.utils.Utils;
+import bdmmflow.utils.LRUCache;
+import bdmmflow.utils.Utils;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.util.Pair;
@@ -76,15 +76,11 @@ public class InverseFlow implements IFlow {
             ContinuousOutputModel model = this.outputModels[i];
 
             if (model.getInitialTime() <= time && time <= model.getFinalTime()) {
-                RealMatrix result;
-
                 if (accumulatedFlow == null) {
-                    result = this.getFlow(this.outputModels[i], time);
+                    return this.getFlow(this.outputModels[i], time);
                 } else {
-                    result = accumulatedFlow.multiply(this.getFlow(this.outputModels[i], time));
+                    return accumulatedFlow.multiply(this.getFlow(this.outputModels[i], time));
                 }
-
-                return result;
             }
 
             if (this.wasInitialStateResetAtEachInterval) {

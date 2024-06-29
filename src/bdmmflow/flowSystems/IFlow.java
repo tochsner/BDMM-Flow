@@ -1,4 +1,4 @@
-package bdmmflow.flow.flowSystems;
+package bdmmflow.flowSystems;
 
 import org.apache.commons.math3.linear.RealMatrix;
 

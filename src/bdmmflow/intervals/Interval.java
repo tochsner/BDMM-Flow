@@ -1,4 +1,4 @@
-package bdmmflow.flow.intervals;
+package bdmmflow.intervals;
 
 /**
  * This record stores an interval.

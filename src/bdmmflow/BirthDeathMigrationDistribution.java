@@ -1,12 +1,12 @@
-package bdmmflow.flow;
+package bdmmflow;
 
-import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
-import bdmmflow.flow.extinctionSystem.ExtinctionProbabilitiesODESystem;
-import bdmmflow.flow.flowSystems.*;
-import bdmmflow.flow.intervals.Interval;
-import bdmmflow.flow.intervals.IntervalODESystem;
-import bdmmflow.flow.intervals.IntervalUtils;
-import bdmmflow.flow.utils.Utils;
+import bdmmflow.extinctionSystem.ExtinctionProbabilities;
+import bdmmflow.extinctionSystem.ExtinctionProbabilitiesODESystem;
+import bdmmflow.flowSystems.*;
+import bdmmflow.intervals.Interval;
+import bdmmflow.intervals.IntervalODESystem;
+import bdmmflow.intervals.IntervalUtils;
+import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import beast.base.core.Function;
 import beast.base.core.Log;
@@ -72,12 +72,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             1e-100
     );
 
-    public Input<Boolean> parallelizeInput = new Input<>(
-            "parallelize",
-            "",
-            false
-    );
-
     public Input<Boolean> useRandomInitialMatrixInput = new Input<>(
             "useRandomInitialMatrix",
             "Whether to use a random initial matrix as the initial flow state.",
@@ -86,14 +80,20 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     public Input<Integer> minNumIntervalsInput = new Input<>(
             "minNumIntervals",
-            "",
-            5
+            "The number of intervals the time span is broken up into. Increase this when running into numerical stability issues.",
+            1
     );
 
     public Input<Boolean> useInverseFlowInput = new Input<>(
             "useInverseFlow",
-            "",
-            false
+            "Whether to use the inverse flow algorithm. It is faster, but can lead to higher numerical instability.",
+            true
+    );
+
+    public Input<Integer> seedInput = new Input<>(
+            "seed",
+            "The random seed used in the analysis.",
+            3215
     );
 
 
@@ -113,10 +113,10 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     double absoluteTolerance;
     double relativeTolerance;
-    boolean parallelize;
 
     int minNumIntervals;
     boolean useInverseFlow;
+    int seed;
 
     int numTypes;
 
@@ -137,9 +137,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.conditionOnSurvival = this.conditionOnSurvivalInput.get();
         this.absoluteTolerance = this.absoluteToleranceInput.get();
         this.relativeTolerance = this.relativeToleranceInput.get();
-        this.parallelize = this.parallelizeInput.get();
         this.numTypes = this.parameterization.getNTypes();
         this.useRandomInitialMatrix = this.useRandomInitialMatrixInput.get();
+        this.seed = this.seedInput.get();
         this.minNumIntervals = this.minNumIntervalsInput.get();
         this.useInverseFlow = this.useInverseFlowInput.get();
 
@@ -300,7 +300,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         );
 
         RealMatrix initialMatrix = this.useRandomInitialMatrix ?
-                Utils.getRandomMatrix(this.numTypes) :
+                Utils.getRandomMatrix(this.numTypes, this.seed) :
                 MatrixUtils.createRealIdentityMatrix(this.numTypes);
         RealMatrix inverseInitialMatrix = MatrixUtils.inverse(initialMatrix);
 

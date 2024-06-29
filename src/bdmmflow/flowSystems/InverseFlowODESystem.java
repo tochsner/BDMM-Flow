@@ -1,16 +1,16 @@
-package bdmmflow.flow.flowSystems;
+package bdmmflow.flowSystems;
 
-import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
-import bdmmflow.flow.intervals.Interval;
-import bdmmflow.flow.intervals.IntervalODESystem;
-import bdmmflow.flow.utils.LRUCache;
+import bdmmflow.extinctionSystem.ExtinctionProbabilities;
+import bdmmflow.intervals.Interval;
+import bdmmflow.intervals.IntervalODESystem;
+import bdmmflow.utils.LRUCache;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 import java.util.List;
 
-import static bdmmflow.flow.utils.Utils.*;
+import static bdmmflow.utils.Utils.*;
 
 public class InverseFlowODESystem extends IntervalODESystem implements IFlowODESystem {
     final ExtinctionProbabilities extinctionProbabilities;

@@ -1,4 +1,4 @@
-package bdmmflow.flow.benchmark;
+package bdmmflow.benchmark;
 
 import bdmmprime.parameterization.*;
 import beast.base.inference.parameter.RealParameter;

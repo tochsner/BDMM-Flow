@@ -1,6 +1,6 @@
-package bdmmflow.flow.benchmark;
+package bdmmflow.benchmark;
 
-import bdmmflow.flow.BirthDeathMigrationDistribution;
+import bdmmflow.BirthDeathMigrationDistribution;
 import bdmmprime.parameterization.*;
 import bdmmprime.trajectories.simulation.SimulatedTree;
 import beast.base.evolution.tree.Tree;

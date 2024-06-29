@@ -24,7 +24,7 @@ public class BirthDeathMigrationLikelihoodTest {
      * @param density BDMM-prime probability density object
      * @return conversion factor
      */
-    private double labeledTreeConversionFactor(bdmmflow.flow.BirthDeathMigrationDistribution density) {
+    private double labeledTreeConversionFactor(bdmmflow.BirthDeathMigrationDistribution density) {
         Tree tree = (Tree) density.treeInput.get();
         boolean SAmodel = density.parameterizationInput.get().getRemovalProbs()[0][0] != 1.0;
         double factor = -Gamma.logGamma(tree.getLeafNodeCount() + 1);
@@ -73,7 +73,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         new RealParameter("1.0"), 2));
 
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
 
         density.initByName(
                 "parameterization", parameterization,
@@ -132,7 +132,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         new RealParameter("1.0 1.0")));
 
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
 
         density.initByName(
                 "parameterization", parameterization,
@@ -182,7 +182,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         new RealParameter("1.0"),
                         new RealParameter("0.3 0.7")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName(
                 "parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
@@ -197,7 +197,7 @@ public class BirthDeathMigrationLikelihoodTest {
         assertEquals(-21.25413884159791 + labeledTreeConversionFactor(density),
                 logL, 1e-5);
 
-        bdmmflow.flow.BirthDeathMigrationDistribution densityExact = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution densityExact = new bdmmflow.BirthDeathMigrationDistribution();
         densityExact.initByName(
                 "parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
@@ -242,7 +242,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("0.5")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName(
                 "parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
@@ -253,7 +253,7 @@ public class BirthDeathMigrationLikelihoodTest {
 
         double logLnumerical = density.calculateLogP();
 
-        bdmmflow.flow.BirthDeathMigrationDistribution densityExact = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution densityExact = new bdmmflow.BirthDeathMigrationDistribution();
         densityExact.initByName(
                 "parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
@@ -304,7 +304,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         new RealParameter("1.0"),
                         new RealParameter("0.3 0.4 0.7 0.6")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName(
                 "parameterization", parameterization,
                 "frequencies", new RealParameter("0.5 0.5"),
@@ -346,7 +346,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("1.0")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
                 "tree", tree,
@@ -384,7 +384,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("1.0")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
                 "tree", tree,
@@ -426,7 +426,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("1.0"), 2));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("0.5 0.5"),
                 "tree", tree,
@@ -530,7 +530,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("1.0"), 2));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("0.5 0.5"),
                 "tree", tree,
@@ -577,7 +577,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("1.0"), 2));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("0.5 0.5"),
                 "tree", tree,
@@ -624,7 +624,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("1.0"), 2));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("1.0 0.0"),
                 "tree", tree,
@@ -667,7 +667,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("1.0"), 3));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter((1.0/3.0) + " " + (1.0/3.0) + " " + (1.0/3.0)),
                 "tree", tree,
@@ -701,7 +701,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("0.9")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName(
                 "parameterization", parameterization,
                 "tree", new TreeParser(newick, false, false, true,0),
@@ -740,7 +740,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("1.0")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
                 "conditionOnSurvival", true,
@@ -791,7 +791,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("1.0"), 2));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("0.5 0.5"),
                 "conditionOnSurvival", true,
@@ -836,7 +836,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("1.0"), 2));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("0.5 0.5"),
                 "conditionOnSurvival", true,
@@ -875,7 +875,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("0.9")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
                 "conditionOnSurvival", true,
@@ -909,7 +909,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("0.9")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName(
                 "parameterization", parameterization,
                 "conditionOnSurvival", true,
@@ -950,7 +950,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("0.9")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
                 "conditionOnSurvival", true,
@@ -1012,7 +1012,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         null,
                         new RealParameter("0.3 0.4")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName(
                 "parameterization", parameterization,
                 "tree", new TreeParser(newick1, false, false, true,0),
@@ -1069,7 +1069,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         new RealParameter("5.5"),
                         new RealParameter("0.01")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName(
                 "parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
@@ -1143,7 +1143,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         originParam));
 
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName(
                 "parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
@@ -1209,7 +1209,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         new RealParameter("0.0 0.05 0.01")));
 
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName(
                 "parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
@@ -1271,7 +1271,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         new RealParameter("1.0"),
                         originParam));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
                 "conditionOnSurvival", true,
@@ -1316,7 +1316,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         new RealParameter("2.0"),
                         new RealParameter("0.01")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
                 "conditionOnSurvival", false,
@@ -1360,7 +1360,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         new RealParameter("1.0 2.0"),
                         new RealParameter("0.05 0.01")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
                 "conditionOnSurvival", false,
@@ -1403,7 +1403,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         new RealParameter("1.0 " + tree.getRoot().getHeight()),
                         new RealParameter("0.05 0.01")));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
                 "conditionOnSurvival", false,
@@ -1449,7 +1449,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         new RealParameter("0.01 0.015"),
                         tree));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("0.6 0.4"),
                 "conditionOnSurvival", false,
@@ -1497,7 +1497,7 @@ public class BirthDeathMigrationLikelihoodTest {
                         new RealParameter("0.05 0.3"),
                         origin));
 
-        bdmmflow.flow.BirthDeathMigrationDistribution density = new bdmmflow.flow.BirthDeathMigrationDistribution();
+        bdmmflow.BirthDeathMigrationDistribution density = new bdmmflow.BirthDeathMigrationDistribution();
         density.initByName("parameterization", parameterization,
                 "frequencies", new RealParameter("1.0"),
                 "conditionOnSurvival", true,

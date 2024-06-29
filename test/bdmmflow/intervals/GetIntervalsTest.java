@@ -1,7 +1,7 @@
 package bdmmflow.intervals;
 
-import bdmmflow.flow.intervals.Interval;
-import bdmmflow.flow.intervals.IntervalUtils;
+import bdmmflow.intervals.Interval;
+import bdmmflow.intervals.IntervalUtils;
 import bdmmprime.parameterization.*;
 import beast.base.inference.parameter.RealParameter;
 import org.junit.Test;

@@ -1,4 +1,4 @@
-package bdmmflow.flow.intervals;
+package bdmmflow.intervals;
 
 import bdmmprime.parameterization.Parameterization;
 import bdmmprime.util.Utils;

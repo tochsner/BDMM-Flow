@@ -1,4 +1,4 @@
-package bdmmflow.flow.benchmark;
+package bdmmflow.benchmark;
 
 import bdmmprime.parameterization.Parameterization;
 import beast.base.evolution.tree.Tree;

@@ -4,7 +4,7 @@
     <depends on="BDMM-Prime" atleast="1.0.1"/>
   
     <service type="beast.base.core.BEASTInterface">
-        <provider classname="bdmmflow.flow.BirthDeathMigrationDistribution"/>
+        <provider classname="bdmmflow.BirthDeathMigrationDistribution"/>
 
         <provider classname="bdmmprime.mapping.AbstractTypeTreeStatsLogger"/>
         <provider classname="bdmmprime.mapping.TypeMappedTree"/>

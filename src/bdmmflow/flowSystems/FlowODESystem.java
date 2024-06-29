@@ -1,9 +1,9 @@
-package bdmmflow.flow.flowSystems;
+package bdmmflow.flowSystems;
 
-import bdmmflow.flow.extinctionSystem.ExtinctionProbabilities;
-import bdmmflow.flow.intervals.Interval;
-import bdmmflow.flow.intervals.IntervalODESystem;
-import bdmmflow.flow.utils.Utils;
+import bdmmflow.extinctionSystem.ExtinctionProbabilities;
+import bdmmflow.intervals.Interval;
+import bdmmflow.intervals.IntervalODESystem;
+import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;

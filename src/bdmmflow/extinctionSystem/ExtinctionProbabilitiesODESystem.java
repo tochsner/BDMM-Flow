@@ -1,6 +1,6 @@
-package bdmmflow.flow.extinctionSystem;
+package bdmmflow.extinctionSystem;
 
-import bdmmflow.flow.intervals.IntervalODESystem;
+import bdmmflow.intervals.IntervalODESystem;
 import bdmmprime.parameterization.Parameterization;
 
 /**

@@ -1,4 +1,4 @@
-package bdmmflow.flow.utils;
+package bdmmflow.utils;
 
 import org.apache.commons.math3.linear.*;
 
@@ -16,11 +16,13 @@ public class Utils {
         return svd.getRank() != matrix.getColumnDimension();
     }
 
-    public static RealMatrix getRandomMatrix(int dimension) {
+    public static RealMatrix getRandomMatrix(int dimension, int seed) {
         RealMatrix randomMatrix;
 
         do {
             randomMatrix = new BlockRealMatrix(dimension, dimension);
+
+            random.setSeed(seed);
 
             for (int i = 0; i < dimension; i++) {
                 for (int j = 0; j < dimension; j++) {
