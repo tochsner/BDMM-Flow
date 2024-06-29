@@ -31,7 +31,9 @@ import java.util.List;
 @Description("This model implements a multi-deme version of the BirthDeathSkylineModel \" +\n" +
         "        \"with discrete locations and migration events among demes. \" +\n" +
         "        \"This implementation uses the Flow representation of the probability  \" +\n" +
-        "        \"ODE for better performance.")
+        "        \"ODE for better performance. \" +\n" +
+        "        \"It can be used as a drop-in replacement of the BDMM-Prime package."
+)
 public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     public Input<Parameterization> parameterizationInput = new Input<>(

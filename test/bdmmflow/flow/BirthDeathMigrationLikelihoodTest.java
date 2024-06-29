@@ -9,6 +9,9 @@ import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
 
+/**
+ * These tests were taken from the <a href="https://github.com/tgvaughan/BDMM-Prime">BDMM-Prime package.</a>
+ */
 public class BirthDeathMigrationLikelihoodTest {
 
     double runtime;
