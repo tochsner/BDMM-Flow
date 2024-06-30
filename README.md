@@ -6,12 +6,12 @@ performing phylodynamic inference under multi-type birth-death models.
 The package is heavily inspired by and designed to be a drop-in-replacement of the [BDMM-Prime](https://github.com/tgvaughan/BDMM-Prime) package. BDMM-Flow implements the same model, but uses a flow-based representation of the model likelihood. This representation is faster for large trees and was introduced in the following paper:
 
 * Stilianos Louca, Matthew W Pennell, A General and Efficient Algorithm for the Likelihood of Diversification and Discrete-Trait Evolutionary Models, Systematic Biology, Volume 69, Issue 3, May 2020, Pages 545–556, [doi.org/10.1093/sysbio/syz055](https://doi.org/10.1093/sysbio/syz055)
-
+§
 This package adds additional modifications to the algorithm in order to further improve the performance.
 
 ## 🌴 Using the Package
 
-In order to try out BDMM-Flow, add https://tgvaughan.github.io/BDMM-Prime/package.xml as a third party
+In order to try out BDMM-Flow, add https://raw.githubusercontent.com/tochsner/BDMM-Flow/main/version.xml as a third party
 BEAST package repository and installing the package that appears (see [this article](https://www.beast2.org/managing-packages/) for more information).
 
 ## 🔧 Building from Source
@@ -38,8 +38,4 @@ The flow algorithm was developed by Louca and Pennell in this paper:
 
 ## 📄 License
 
-BDMM-Flow is free software.  It is distributed under the terms of version 3
-of the GNU General Public License.  A copy of this license should
-be found in the file COPYING located in the root directory of this repository.
-If this file is absent for some reason, it can also be retrieved from
-https://www.gnu.org/licenses.
+BDMM-Flow is free software.  It is distributed under the terms of version 3 of the GNU General Public License.  A copy of this license should be found in the file COPYING located in the root directory of this repository. If this file is absent for some reason, it can also be retrieved from https://www.gnu.org/licenses.

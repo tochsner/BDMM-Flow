@@ -82,7 +82,6 @@ public class Benchmark {
                 "tree", tree,
                 "frequencies", frequencies,
                 "typeLabel", "type",
-                "parallelize", false,
                 "minNumIntervals", minNumIntervals,
                 "useRandomInitialMatrix", useRandomInitialMatrix,
                 "relTolerance", tolerance
@@ -103,7 +102,7 @@ public class Benchmark {
                 "tree", tree,
                 "frequencies", frequencies,
                 "typeLabel", "type",
-                "parallelize", true,
+                "parallelize", false,
                 "relTolerance", tolerance
         );
         density.initAndValidate();
