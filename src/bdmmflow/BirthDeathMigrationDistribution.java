@@ -85,13 +85,13 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Boolean> useRandomInitialMatrixInput = new Input<>(
             "useRandomInitialMatrix",
             "Whether to use a random initial matrix as the initial flow state.",
-            false
+            true
     );
 
     public Input<Integer> minNumIntervalsInput = new Input<>(
             "minNumIntervals",
             "The number of intervals the time span is broken up into. Increase this when running into numerical stability issues.",
-            2
+            10
     );
 
     public Input<Boolean> useInverseFlowInput = new Input<>(
