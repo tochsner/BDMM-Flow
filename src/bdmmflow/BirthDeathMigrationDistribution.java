@@ -73,7 +73,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> relativeToleranceInput = new Input<>(
             "relTolerance",
             "Relative tolerance for numerical integration.",
-            1e-10
+            1e-11
     );
 
     public Input<Double> absoluteToleranceInput = new Input<>(
@@ -91,7 +91,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Integer> minNumIntervalsInput = new Input<>(
             "minNumIntervals",
             "The number of intervals the time span is broken up into. Increase this when running into numerical stability issues.",
-            1
+            2
     );
 
     public Input<Boolean> useInverseFlowInput = new Input<>(
