@@ -21,6 +21,7 @@ import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.SingularMatrixException;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Citation(value = "Kuehnert D, Stadler T, Vaughan TG, Drummond AJ. (2016). " +
@@ -72,7 +73,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> relativeToleranceInput = new Input<>(
             "relTolerance",
             "Relative tolerance for numerical integration.",
-            1e-7
+            1e-10
     );
 
     public Input<Double> absoluteToleranceInput = new Input<>(
@@ -84,19 +85,19 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Boolean> useRandomInitialMatrixInput = new Input<>(
             "useRandomInitialMatrix",
             "Whether to use a random initial matrix as the initial flow state.",
-            true
+            false
     );
 
     public Input<Integer> minNumIntervalsInput = new Input<>(
             "minNumIntervals",
             "The number of intervals the time span is broken up into. Increase this when running into numerical stability issues.",
-            4
+            1
     );
 
     public Input<Boolean> useInverseFlowInput = new Input<>(
             "useInverseFlow",
             "Whether to use the inverse flow algorithm. It is faster, but can lead to higher numerical instability.",
-            true
+            false
     );
 
     public Input<Integer> seedInput = new Input<>(
@@ -404,11 +405,21 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             likelihoodEdgeEnd = calculateInternalEdgeLikelihood(root, timeEdgeEnd, flow, extinctionProbabilities);
         }
 
-        return flow.integrateUsingFlow(
+        System.out.println("------");
+        System.out.println(timeEdgeStart + " " + timeEdgeEnd);
+        System.out.println(Arrays.toString(extinctionProbabilities.getProbability(timeEdgeEnd)));
+        System.out.println(Arrays.toString(likelihoodEdgeEnd));
+
+        double[] les = flow.integrateUsingFlow(
                 timeEdgeStart,
                 timeEdgeEnd,
                 likelihoodEdgeEnd
         );
+
+        System.out.println(Arrays.toString(extinctionProbabilities.getProbability(timeEdgeStart)));
+        System.out.println(Arrays.toString(les));
+
+        return les;
     }
 
     /**

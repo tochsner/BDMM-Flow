@@ -29,7 +29,7 @@ public class ExtinctionProbabilities {
         }
 
         for (ContinuousOutputModel model : this.outputModels) {
-            if (model.getInitialTime() >= time && time >= model.getFinalTime()) {
+            if (model.getInitialTime() >= time && time > model.getFinalTime()) {
                 return this.getProbability(model, time);
             }
         }

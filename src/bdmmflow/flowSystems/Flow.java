@@ -81,7 +81,7 @@ public class Flow implements IFlow {
         for (int i = startingAtInterval; i < this.outputModels.length; i++) {
             ContinuousOutputModel model = this.outputModels[i];
 
-            if (model.getFinalTime() <= time && time <= model.getInitialTime()) {
+            if (model.getFinalTime() < time && time <= model.getInitialTime()) {
                 if (accumulatedFlow == null) {
                     return this.getFlow(this.outputModels[i], time);
                 } else {

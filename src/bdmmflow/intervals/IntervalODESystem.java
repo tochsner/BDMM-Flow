@@ -139,6 +139,13 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
         double[] state = initialState.clone();
 
+        this.handleParameterizationIntervalBoundary(
+                this.param.getTotalProcessLength(),
+                this.currentParameterizationInterval + 1,
+                this.currentParameterizationInterval,
+                state
+        );
+
         for (int i = intervals.size() - 1; i >= 0; i--) {
             Interval interval = intervals.get(i);
 

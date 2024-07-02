@@ -140,6 +140,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
         // include rho sampling effects
 
+        if (oldInterval == this.param.getTotalIntervalCount()) return;
+
         for (int i = 0; i < this.param.getNTypes(); i++) {
             for (int j = 0; j < this.param.getNTypes(); j++) {
                 state[i * this.param.getNTypes() + j] *= (1 - this.param.getRhoValues()[newInterval][i]);
