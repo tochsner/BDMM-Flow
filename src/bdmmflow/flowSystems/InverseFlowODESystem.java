@@ -149,7 +149,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
         for (int i = 0; i < this.param.getNTypes(); i++) {
             for (int j = 0; j < this.param.getNTypes(); j++) {
-                state[i * this.param.getNTypes() + j] *= (1 - this.param.getRhoValues()[newInterval][i]);
+                state[i * this.param.getNTypes() + j] *= (1 - this.param.getRhoValues()[oldInterval][i]);
             }
         }
     }

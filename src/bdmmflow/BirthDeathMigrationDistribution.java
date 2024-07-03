@@ -73,7 +73,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> relativeToleranceInput = new Input<>(
             "relTolerance",
             "Relative tolerance for numerical integration.",
-            1e-10
+            1e-7
     );
 
     public Input<Double> absoluteToleranceInput = new Input<>(
@@ -91,7 +91,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Integer> minNumIntervalsInput = new Input<>(
             "minNumIntervals",
             "The number of intervals the time span is broken up into. Increase this when running into numerical stability issues.",
-            1
+            4
     );
 
     public Input<Boolean> useInverseFlowInput = new Input<>(
@@ -405,19 +405,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             likelihoodEdgeEnd = calculateInternalEdgeLikelihood(root, timeEdgeEnd, flow, extinctionProbabilities);
         }
 
-        System.out.println("------");
-        System.out.println(timeEdgeStart + " " + timeEdgeEnd);
-        System.out.println(Arrays.toString(extinctionProbabilities.getProbability(timeEdgeEnd)));
-        System.out.println(Arrays.toString(likelihoodEdgeEnd));
-
         double[] les = flow.integrateUsingFlow(
                 timeEdgeStart,
                 timeEdgeEnd,
                 likelihoodEdgeEnd
         );
-
-        System.out.println(Arrays.toString(extinctionProbabilities.getProbability(timeEdgeStart)));
-        System.out.println(Arrays.toString(les));
 
         return les;
     }

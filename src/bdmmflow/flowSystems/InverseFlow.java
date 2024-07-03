@@ -97,7 +97,11 @@ public class InverseFlow implements IFlow {
             }
         }
 
-        return this.getFlow(this.outputModels[this.outputModels.length - 1], time);
+        if (accumulatedFlow == null) {
+            return this.getFlow(this.outputModels[this.outputModels.length - 1], time);
+        } else {
+            return accumulatedFlow;
+        }
     }
 
     RealMatrix getFlow(ContinuousOutputModel output, double time) {
@@ -119,7 +123,7 @@ public class InverseFlow implements IFlow {
         for (int i = 0; i < this.outputModels.length; i++) {
             ContinuousOutputModel model = this.outputModels[i];
 
-            if (model.getInitialTime() <= time && time <= model.getFinalTime()) {
+            if (model.getInitialTime() <= time && time < model.getFinalTime()) {
                 return i;
             }
         }

@@ -96,9 +96,9 @@ public class Utils {
         double max = Arrays.stream(array).max().orElse(1.0);
 
         for (int i = 0; i < array.length; i++) {
-            array[i] /= max;
+            // array[i] /= max;
         }
 
-        return Math.log(max) + previousLogFactor;
+        return 0; // Math.log(max) + previousLogFactor;
     }
 }
