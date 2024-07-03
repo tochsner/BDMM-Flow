@@ -405,13 +405,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             likelihoodEdgeEnd = calculateInternalEdgeLikelihood(root, timeEdgeEnd, flow, extinctionProbabilities);
         }
 
-        double[] les = flow.integrateUsingFlow(
+        return flow.integrateUsingFlow(
                 timeEdgeStart,
                 timeEdgeEnd,
                 likelihoodEdgeEnd
         );
-
-        return les;
     }
 
     /**
