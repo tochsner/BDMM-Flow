@@ -11,6 +11,7 @@ public class Utils {
 
     /**
      * Returns whether the matrix is singular.
+     *
      * @param matrix the matrix to check.
      * @return if the matrix is singular.
      */
@@ -75,6 +76,7 @@ public class Utils {
 
     /**
      * Scales the given array in-place such that the maximum value is 1.
+     *
      * @param array the array to scale.
      * @return the log of the scaling factor applied.
      */
@@ -85,7 +87,8 @@ public class Utils {
     /**
      * Scales the given array in-place such that the maximum value is 1. Assumes that
      * the array has already been scaled by the given previousLogFactor.
-     * @param array the array to scale.
+     *
+     * @param array             the array to scale.
      * @param previousLogFactor the log of the previous scaling factor.
      * @return the log of the overall scaling factor applied.
      */
@@ -93,7 +96,7 @@ public class Utils {
         double max = Arrays.stream(array).max().orElse(1.0);
 
         for (int i = 0; i < array.length; i++) {
-             array[i] /= max;
+            array[i] /= max;
         }
 
         return Math.log(max) + previousLogFactor;
