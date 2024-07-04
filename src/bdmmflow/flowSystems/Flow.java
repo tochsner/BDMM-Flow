@@ -19,6 +19,7 @@ public class Flow implements IFlow {
     int n;
 
     LRUCache<Pair<Double, Integer>, RealMatrix> cache = new LRUCache<>(16);
+    RealMatrix[][] accumulatedFlowCache;
 
     public Flow(ContinuousOutputModel[] flows, int n) {
         this(flows, n, MatrixUtils.createRealIdentityMatrix(n), false);
@@ -29,6 +30,7 @@ public class Flow implements IFlow {
         this.n = n;
         this.inverseInitialState = inverseInitialState;
         this.wasInitialStateResetAtEachInterval = wasInitialStateResetAtEachInterval;
+        this.accumulatedFlowCache = new RealMatrix[outputModels.length][outputModels.length];
     }
 
     /**
@@ -72,38 +74,26 @@ public class Flow implements IFlow {
      * @return the flow at the given time.
      */
     public RealMatrix getFlow(double time, int startingAtInterval) {
-        if (this.outputModels[startingAtInterval].getInitialTime() < time) {
-            return this.getFlow(this.outputModels[startingAtInterval], time);
-        }
+        int timeInterval = this.getInterval(time);
 
-        RealMatrix accumulatedFlow = null;
+        if (!this.wasInitialStateResetAtEachInterval || startingAtInterval == timeInterval)
+            return this.getFlow(this.outputModels[timeInterval], time);
 
-        for (int i = startingAtInterval; i < this.outputModels.length; i++) {
-            ContinuousOutputModel model = this.outputModels[i];
+        if (this.accumulatedFlowCache[startingAtInterval][timeInterval] == null) {
+            RealMatrix accumulatedFlow = MatrixUtils.createRealIdentityMatrix(this.n);
 
-            if (model.getFinalTime() <= time && time <= model.getInitialTime()) {
-                if (accumulatedFlow == null) {
-                    return this.getFlow(this.outputModels[i], time);
-                } else {
-                    return this.getFlow(this.outputModels[i], time).multiply(accumulatedFlow);
-                }
-            }
-
-            if (this.wasInitialStateResetAtEachInterval) {
-                if (accumulatedFlow == null) {
-                    accumulatedFlow = MatrixUtils.createRealIdentityMatrix(this.n);
-                }
-
+            for (int i = startingAtInterval; i < timeInterval; i++) {
                 RealMatrix flowEnd = this.getFlow(this.outputModels[i], this.outputModels[i].getFinalTime());
                 accumulatedFlow = this.inverseInitialState.multiply(flowEnd.multiply(accumulatedFlow));
             }
+
+            this.accumulatedFlowCache[startingAtInterval][timeInterval] = accumulatedFlow;
         }
 
-        if (accumulatedFlow == null) {
-            return this.getFlow(this.outputModels[this.outputModels.length - 1], time);
-        } else {
-            return accumulatedFlow;
-        }
+        return (
+                this.getFlow(this.outputModels[timeInterval], time)
+                        .multiply(this.accumulatedFlowCache[startingAtInterval][timeInterval])
+        );
     }
 
     RealMatrix getFlow(ContinuousOutputModel output, double time) {

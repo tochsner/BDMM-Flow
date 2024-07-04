@@ -12,7 +12,7 @@ This package adds additional modifications to the algorithm in order to further 
 ## 🌴 Using the Package
 
 In order to try out BDMM-Flow, add https://raw.githubusercontent.com/tochsner/BDMM-Flow/main/version.xml as a third party
-BEAST package repository and installing the package that appears (see [this article](https://www.beast2.org/managing-packages/) for more information).
+BEAST package repository and install the package that appears (see [this article](https://www.beast2.org/managing-packages/) for more information).
 
 ## 🔧 Building from Source
 
