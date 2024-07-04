@@ -36,6 +36,10 @@ The flow algorithm was developed by Louca and Pennell in this paper:
 
 * Stilianos Louca, Matthew W Pennell, A General and Efficient Algorithm for the Likelihood of Diversification and Discrete-Trait Evolutionary Models, Systematic Biology, Volume 69, Issue 3, May 2020, Pages 545–556, [doi.org/10.1093/sysbio/syz055](https://doi.org/10.1093/sysbio/syz055)
 
+## 📚 Supplementary Material
+
+Supplementary material like benchmarks and runtime analyses can be found in the [supplementary repo](https://github.com/tochsner/BDMM-Flow-Supplementary).
+
 ## 📄 License
 
 BDMM-Flow is free software.  It is distributed under the terms of version 3 of the GNU General Public License.  A copy of this license should be found in the file COPYING located in the root directory of this repository. If this file is absent for some reason, it can also be retrieved from https://www.gnu.org/licenses.
