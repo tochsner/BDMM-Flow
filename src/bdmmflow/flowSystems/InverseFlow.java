@@ -93,7 +93,7 @@ public class InverseFlow implements IFlow {
                 }
 
                 RealMatrix flowEnd = this.getFlow(this.outputModels[i], this.outputModels[i].getFinalTime());
-                accumulatedFlow = accumulatedFlow.multiply(flowEnd).multiply(this.inverseInitialState);
+                accumulatedFlow = accumulatedFlow.multiply(flowEnd.multiply(this.inverseInitialState));
             }
         }
 

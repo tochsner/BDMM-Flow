@@ -10,11 +10,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 public class Benchmark {
 
+    static Random random = new Random();
+
     public static void main(String[] args) {
-        int NUM_TIMES = 10000;
+        int NUM_TIMES = 30000;
 
         ParameterizationSampler sampler = new ParameterizationSampler();
 
@@ -31,15 +34,14 @@ public class Benchmark {
                 RealParameter frequencies = sampler.sampleFrequencies(parameterization);
                 Tree tree = simulateTree(parameterization, frequencies);
 
-                boolean useIntervals = false;
-                int minNumIntervals = 1;
-                String integrator = "DormandPrince54Integrator";
-                double threshold = Math.pow(10, -7.35);
+                boolean useInverseFlow = Math.random() > 0.5;
+                boolean useRandom = Math.random() > 0.5;
+                int minNumIntervals = Math.random() > 0.5 ? 1 : 4;
 
-                BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useIntervals, minNumIntervals, integrator, true, threshold);
-                BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, frequencies, threshold);
+                BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, useRandom, minNumIntervals);
+                BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, frequencies);
 
-                BenchmarkResult result = new BenchmarkResult(parameterization, tree, flowRun, bdmmRun, useIntervals, minNumIntervals, integrator, true, threshold);
+                BenchmarkResult result = new BenchmarkResult(parameterization, tree, flowRun, bdmmRun, useInverseFlow, useRandom, minNumIntervals);
                 results.add(result);
             } catch (RuntimeException ignored) {
                 System.out.println(ignored);
@@ -70,11 +72,9 @@ public class Benchmark {
             Tree tree,
             Parameterization parameterization,
             RealParameter frequencies,
-            boolean useIntervals,
-            int minNumIntervals,
-            String integrator,
+            boolean useInverseFlow,
             boolean useRandomInitialMatrix,
-            double tolerance
+            int minNumIntervals
     ) {
         BirthDeathMigrationDistribution density = new BirthDeathMigrationDistribution();
         density.initByName(
@@ -82,9 +82,9 @@ public class Benchmark {
                 "tree", tree,
                 "frequencies", frequencies,
                 "typeLabel", "type",
-                "minNumIntervals", minNumIntervals,
                 "useRandomInitialMatrix", useRandomInitialMatrix,
-                "relTolerance", tolerance
+                "useInverseFlow", useInverseFlow,
+                "minNumIntervals", minNumIntervals
         );
         density.initAndValidate();
 
@@ -95,15 +95,14 @@ public class Benchmark {
         return new BenchmarkRun(duration, likelihood);
     }
 
-    static BenchmarkRun runBDMMBenchmark(Tree tree, Parameterization parameterization, RealParameter frequencies, double tolerance) {
+    static BenchmarkRun runBDMMBenchmark(Tree tree, Parameterization parameterization, RealParameter frequencies) {
         bdmmprime.distribution.BirthDeathMigrationDistribution density = new bdmmprime.distribution.BirthDeathMigrationDistribution();
         density.initByName(
                 "parameterization", parameterization,
                 "tree", tree,
                 "frequencies", frequencies,
                 "typeLabel", "type",
-                "parallelize", false,
-                "relTolerance", tolerance
+                "parallelize", false
         );
         density.initAndValidate();
 

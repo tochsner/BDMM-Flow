@@ -10,34 +10,28 @@ public class BenchmarkResult {
 
     Parameterization parameterization;
     Tree tree;
-    boolean useIntervals;
-    int minNumIntervals;
-    String integrator;
     BenchmarkRun flowRun;
     BenchmarkRun bdmmRun;
+    boolean useInverseFlow;
     boolean useRandomInitialMatrix;
-    double tolerance;
+    int minNumIntervals;
 
     public BenchmarkResult(
             Parameterization parameterization,
             Tree tree,
             BenchmarkRun flowRun,
             BenchmarkRun bdmmRun,
-            boolean useIntervals,
-            int minNumIntervals,
-            String integrator,
+            boolean useInverseFlow,
             boolean useRandomInitialMatrix,
-            double tolerance
+            int minNumIntervals
     ) {
         this.parameterization = parameterization;
         this.tree = tree;
         this.flowRun = flowRun;
         this.bdmmRun = bdmmRun;
-        this.useIntervals = useIntervals;
-        this.minNumIntervals = minNumIntervals;
-        this.integrator = integrator;
+        this.useInverseFlow = useInverseFlow;
         this.useRandomInitialMatrix = useRandomInitialMatrix;
-        this.tolerance = tolerance;
+        this.minNumIntervals = minNumIntervals;
     }
 
     @Override
@@ -56,11 +50,9 @@ public class BenchmarkResult {
         joiner.add(Double.toString(this.bdmmRun.likelihood));
         joiner.add(Long.toString(this.bdmmRun.duration));
 
-        joiner.add(Boolean.toString(this.useIntervals));
-        joiner.add(Integer.toString(this.minNumIntervals));
-        joiner.add(this.integrator);
+        joiner.add(Boolean.toString(this.useInverseFlow));
         joiner.add(Boolean.toString(this.useRandomInitialMatrix));
-        joiner.add(Double.toString(this.tolerance));
+        joiner.add(Integer.toString(this.minNumIntervals));
 
         return joiner.toString();
     }
@@ -80,12 +72,9 @@ public class BenchmarkResult {
         joiner.add("bdmm_likelihood");
         joiner.add("bdmm_duration");
 
-        joiner.add("use_intervals");
-        joiner.add("min_num_intervals");
-        joiner.add("integrator");
-        joiner.add("initialMatrixType");
-
-        joiner.add("rel_tolerance");
+        joiner.add("use_inverse_flow");
+        joiner.add("use_random_initial_matrix");
+        joiner.add("num_intervals");
 
         return joiner.toString();
     }

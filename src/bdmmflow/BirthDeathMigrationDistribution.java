@@ -241,7 +241,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     extinctionProbabilities
             );
         } catch (SingularMatrixException exception) {
-            Log.warning("A singular matrix was detected. This is due to numerical instability. Decrease maxIntervalSize to mitigate this issue.");
+            Log.warning("A singular matrix was detected. This is due to numerical instability. Increase minNumIntervals to mitigate this issue.");
             return Double.NEGATIVE_INFINITY;
         }
 
