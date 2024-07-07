@@ -14,8 +14,6 @@ import java.util.Random;
 
 public class Benchmark {
 
-    static Random random = new Random();
-
     public static void main(String[] args) {
         int NUM_TIMES = 30000;
 

@@ -7,8 +7,6 @@ import java.util.Random;
 
 public class Utils {
 
-    private static final Random random = new Random();
-
     /**
      * Returns whether the matrix is singular.
      *
@@ -27,11 +25,10 @@ public class Utils {
      */
     public static RealMatrix getRandomMatrix(int dimension, int seed) {
         RealMatrix randomMatrix;
+        Random random = new Random(seed);
 
         do {
             randomMatrix = new BlockRealMatrix(dimension, dimension);
-
-            random.setSeed(seed);
 
             for (int i = 0; i < dimension; i++) {
                 for (int j = 0; j < dimension; j++) {
