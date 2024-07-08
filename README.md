@@ -3,15 +3,15 @@
 BDMM-Flow is a [BEAST 2](http://www.beast2.org/) package for
 performing phylodynamic inference under multi-type birth-death models.
 
-The package is heavily inspired by and designed to be a drop-in-replacement of the [BDMM-Prime](https://github.com/tgvaughan/BDMM-Prime) package. BDMM-Flow implements the same model, but uses a flow-based representation of the model likelihood. This representation is faster for large trees and was introduced in the following paper:
+The package is heavily inspired by and designed to be a drop-in replacement for the [BDMM-Prime](https://github.com/tgvaughan/BDMM-Prime) package. BDMM-Flow implements the same model but uses a flow-based representation of the model likelihood. This representation is faster for large trees and was introduced in the following paper:
 
 * Stilianos Louca, Matthew W Pennell, A General and Efficient Algorithm for the Likelihood of Diversification and Discrete-Trait Evolutionary Models, Systematic Biology, Volume 69, Issue 3, May 2020, Pages 545–556, [doi.org/10.1093/sysbio/syz055](https://doi.org/10.1093/sysbio/syz055)
 
-This package adds additional modifications to the algorithm in order to further improve the performance. See [the report](https://github.com/tochsner/BDMM-Flow-Supplementary/blob/4aa40ea3014db7844470a7d0cf35c5d61734e1cc/report.pdf) in the supplementary repository for more details.
+This package adds additional modifications to the algorithm in order to further improve the performance. See [the report](https://github.com/tochsner/BDMM-Flow/blob/main/README.md) in the supplementary repository for more details.
 
 ## 🌴 Using the Package
 
-In order to try out BDMM-Flow, add https://raw.githubusercontent.com/tochsner/BDMM-Flow/main/version.xml as a third party
+To try out BDMM-Flow, add https://raw.githubusercontent.com/tochsner/BDMM-Flow/main/version.xml as a third-party
 BEAST package repository and install the package that appears (see [this article](https://www.beast2.org/managing-packages/) for more information).
 
 ## 🔧 Building from Source
