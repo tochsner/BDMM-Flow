@@ -7,7 +7,7 @@ The package is heavily inspired by and designed to be a drop-in replacement for 
 
 * Stilianos Louca, Matthew W Pennell, A General and Efficient Algorithm for the Likelihood of Diversification and Discrete-Trait Evolutionary Models, Systematic Biology, Volume 69, Issue 3, May 2020, Pages 545–556, [doi.org/10.1093/sysbio/syz055](https://doi.org/10.1093/sysbio/syz055)
 
-This package adds additional modifications to the algorithm in order to further improve the performance. See [the report](https://github.com/tochsner/BDMM-Flow/blob/main/README.md) in the supplementary repository for more details.
+This package adds additional modifications to the algorithm in order to further improve the performance. See [the report](https://github.com/tochsner/BDMM-Flow-Supplementary/blob/main/report.pdf) in the supplementary repository for more details.
 
 ## 🌴 Using the Package
 
