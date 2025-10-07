@@ -37,3 +37,6 @@ bin/
 /deps
 /build-beast
 /beast-source/
+
+results.csv
+BDMM-Flow.iml
