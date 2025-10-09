@@ -4,6 +4,7 @@ import bdmmflow.extinctionSystem.ExtinctionProbabilities;
 import bdmmflow.intervals.Interval;
 import bdmmflow.intervals.IntervalODESystem;
 import bdmmflow.utils.LRUCache;
+import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
@@ -152,6 +153,14 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         }
     }
 
+    RealMatrix getInitialState(String initialMatrixStrategy) {
+        return switch (initialMatrixStrategy) {
+            case "random" -> Utils.getRandomMatrix(this.param.getNTypes(), 0);
+            case "heuristic" -> MatrixUtils.createRealIdentityMatrix(this.param.getNTypes());
+            default -> MatrixUtils.createRealIdentityMatrix(this.param.getNTypes());
+        };
+    }
+
     /**
      * Calculates the flow integral using the given intervals.
      * @param intervals the intervals to use when integrating over the flow.
@@ -160,12 +169,14 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
     @Override
     public IFlow calculateFlowIntegral(
             List<Interval> intervals,
-            RealMatrix initialState,
-            RealMatrix inverseInitialState,
+            String initialMatrixStrategy,
             boolean resetInitialStateAtIntervalsBoundaries
     ) {
+        RealMatrix initialState = this.getInitialState(initialMatrixStrategy);
         double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
-        fillArray(initialState, initialStateArray);
+        Utils.fillArray(initialState, initialStateArray);
+
+        RealMatrix  inverseInitialState = MatrixUtils.inverse(initialState);
 
         ContinuousOutputModel[] rawOutputs = this.integrateForwards(
                 initialStateArray,

@@ -82,10 +82,10 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             1e-100
     );
 
-    public Input<Boolean> useRandomInitialMatrixInput = new Input<>(
-            "useRandomInitialMatrix",
-            "Whether to use a random initial matrix as the initial flow state.",
-            true
+    public Input<String> initialMatrixStrategyInput = new Input<>(
+            "initialMatrixStrategy",
+            "The strategy to use to get the initial flow state. Either 'random', 'heuristic', or 'identity'.",
+            "heuristic"
     );
 
     public Input<Integer> minNumIntervalsInput = new Input<>(
@@ -97,7 +97,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Boolean> useInverseFlowInput = new Input<>(
             "useInverseFlow",
             "Whether to use the inverse flow algorithm. It is faster, but can lead to higher numerical instability.",
-            true
+            false
     );
 
     public Input<Integer> seedInput = new Input<>(
@@ -109,7 +109,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     private Parameterization parameterization;
 
-    private boolean useRandomInitialMatrix;
+    private String initialMatrixStrategy;
 
     private double finalSampleOffset;
     private TreeInterface tree;
@@ -148,7 +148,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.absoluteTolerance = this.absoluteToleranceInput.get();
         this.relativeTolerance = this.relativeToleranceInput.get();
         this.numTypes = this.parameterization.getNTypes();
-        this.useRandomInitialMatrix = this.useRandomInitialMatrixInput.get();
+        this.initialMatrixStrategy = this.initialMatrixStrategyInput.get();
         this.seed = this.seedInput.get();
         this.minNumIntervals = this.minNumIntervalsInput.get();
         this.useInverseFlow = this.useInverseFlowInput.get();
@@ -309,11 +309,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 this.parameterization.getTotalProcessLength() / this.minNumIntervals
         );
 
-        RealMatrix initialMatrix = this.useRandomInitialMatrix ?
-                Utils.getRandomMatrix(this.numTypes, this.seed) :
-                MatrixUtils.createRealIdentityMatrix(this.numTypes);
-        RealMatrix inverseInitialMatrix = MatrixUtils.inverse(initialMatrix);
-
         boolean resetInitialStateAtIntervalBoundaries = 1 < this.minNumIntervals;
 
         IFlowODESystem system;
@@ -336,8 +331,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         return system.calculateFlowIntegral(
                 intervals,
-                initialMatrix,
-                inverseInitialMatrix,
+                initialMatrixStrategy,
                 resetInitialStateAtIntervalBoundaries
         );
     }

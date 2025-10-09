@@ -10,12 +10,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 
 public class Benchmark {
 
     public static void main(String[] args) {
-        int NUM_TIMES = 30000;
+        int NUM_TIMES = 30_000;
 
         ParameterizationSampler sampler = new ParameterizationSampler();
 
@@ -32,9 +31,9 @@ public class Benchmark {
                 RealParameter frequencies = sampler.sampleFrequencies(parameterization);
                 Tree tree = simulateTree(parameterization, frequencies);
 
-                boolean useInverseFlow = Math.random() > 0.5;
+                boolean useInverseFlow = false; // Math.random() > 0.5;
                 boolean useRandom = Math.random() > 0.5;
-                int minNumIntervals = Math.random() > 0.5 ? 1 : 4;
+                int minNumIntervals = 4; // Math.random() > 0.5 ? 1 : 4;
 
                 BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, useRandom, minNumIntervals);
                 BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, frequencies);
@@ -80,7 +79,7 @@ public class Benchmark {
                 "tree", tree,
                 "frequencies", frequencies,
                 "typeLabel", "type",
-                "useRandomInitialMatrix", useRandomInitialMatrix,
+                "initialMatrixStrategy", useRandomInitialMatrix ? "random"  : "heuristic",
                 "useInverseFlow", useInverseFlow,
                 "minNumIntervals", minNumIntervals
         );

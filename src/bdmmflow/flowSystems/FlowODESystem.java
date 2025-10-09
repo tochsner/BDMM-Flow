@@ -147,6 +147,27 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
         }
     }
 
+    RealMatrix getInitialState(String initialMatrixStrategy, double time) {
+        return switch (initialMatrixStrategy) {
+            case "random" -> Utils.getRandomMatrix(this.param.getNTypes(), 0);
+            case "heuristic" -> {
+                RealMatrix initialDerivative = buildSystemMatrix(time);
+
+                EigenDecomposition decomposition = new EigenDecomposition(initialDerivative.transpose().multiply(initialDerivative));
+
+                RealMatrix initialStateMatrix = new BlockRealMatrix(param.getNTypes(), param.getNTypes());
+                assert decomposition.getRealEigenvalues().length == param.getNTypes();
+
+                for (int i = 0; i < param.getNTypes(); i++) {
+                    initialStateMatrix.setColumnVector(i, decomposition.getEigenvector(i).mapMultiply(1.0 / (param.getNTypes() - i)));
+                }
+
+                yield initialStateMatrix;
+            }
+            default -> MatrixUtils.createRealIdentityMatrix(this.param.getNTypes());
+        };
+    }
+
     /**
      * Calculates the flow integral using the given intervals.
      * @param intervals the intervals to use when integrating over the flow.
@@ -155,10 +176,10 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     @Override
     public IFlow calculateFlowIntegral(
             List<Interval> intervals,
-            RealMatrix initialState,
-            RealMatrix inverseInitialState,
+            String initialMatrixStrategy,
             boolean resetInitialStateAtIntervalsBoundaries
     ) {
+        RealMatrix initialState = this.getInitialState(initialMatrixStrategy, intervals.get(intervals.size() - 1).end());
         double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
         Utils.fillArray(initialState, initialStateArray);
 
@@ -167,6 +188,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 intervals,
                 resetInitialStateAtIntervalsBoundaries
         );
+
+        RealMatrix  inverseInitialState = MatrixUtils.inverse(initialState);
 
         return new Flow(
                 rawOutputs,
