@@ -32,14 +32,22 @@ public class Benchmark {
                 Tree tree = simulateTree(parameterization, frequencies);
 
                 boolean useInverseFlow = false; // Math.random() > 0.5;
-                String initialStateStrategy = Math.random() > 0.75 ? "random" : Math.random() > 0.66 ? "taylor_heuristic" : Math.random() > 0.5 ? "error_heuristic" : "probe_heuristic" ;
                 int minNumIntervals = 4; // Math.random() > 0.5 ? 1 : 4;
 
-                BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, initialStateStrategy, minNumIntervals);
                 BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, frequencies);
 
-                BenchmarkResult result = new BenchmarkResult(parameterization, tree, flowRun, bdmmRun, useInverseFlow, initialStateStrategy, minNumIntervals);
-                results.add(result);
+                String[] initialStateStrategies = new String[]{
+                        "random",
+                        "taylor_heuristic",
+                        "error_heuristic",
+                        "probe_heuristic",
+                };
+
+                for (String strategy : initialStateStrategies) {
+                    BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, strategy, minNumIntervals);
+                    BenchmarkResult result = new BenchmarkResult(parameterization, tree, flowRun, bdmmRun, useInverseFlow, strategy, minNumIntervals);
+                    results.add(result);
+                }
             } catch (RuntimeException ignored) {
                 System.out.println(ignored);
             }
