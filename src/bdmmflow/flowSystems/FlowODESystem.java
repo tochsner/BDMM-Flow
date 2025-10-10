@@ -9,6 +9,7 @@ import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.nonstiff.ClassicalRungeKuttaIntegrator;
+import org.apache.commons.math3.ode.nonstiff.EulerIntegrator;
 import org.jblas.DoubleMatrix;
 import org.jblas.MatrixFunctions;
 
@@ -188,7 +189,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
-                    double probeStartTime = interval.end() - (interval.end() - interval.start()) / 5;
+                    double probeStartTime = interval.end() - (interval.end() - interval.start() / 4);
                     double probeEndTime = interval.end();
 
                     double[] identityMatrixArray = new double[this.param.getNTypes() * this.param.getNTypes()];
@@ -198,8 +199,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
                     ContinuousOutputModel probeIntegration = new ContinuousOutputModel();
 
-                    ClassicalRungeKuttaIntegrator integrator = new ClassicalRungeKuttaIntegrator(
-                            (probeEndTime - probeStartTime) / 10
+                    EulerIntegrator integrator = new EulerIntegrator(
+                            (probeEndTime - probeStartTime) / 5
                     );
 
                     double[] state = identityMatrixArray.clone();

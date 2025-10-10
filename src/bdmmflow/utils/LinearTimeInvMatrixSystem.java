@@ -6,6 +6,7 @@ import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;
 import org.apache.commons.math3.ode.nonstiff.ClassicalRungeKuttaIntegrator;
+import org.apache.commons.math3.ode.nonstiff.EulerIntegrator;
 
 public class LinearTimeInvMatrixSystem implements FirstOrderDifferentialEquations {
 
@@ -32,8 +33,8 @@ public class LinearTimeInvMatrixSystem implements FirstOrderDifferentialEquation
     public ContinuousOutputModel integrateBackwards(double[] initialState, double startTime, double endTime) {
         ContinuousOutputModel result = new ContinuousOutputModel();
 
-        ClassicalRungeKuttaIntegrator integrator = new ClassicalRungeKuttaIntegrator(
-                (endTime - startTime) / 10
+        EulerIntegrator integrator = new EulerIntegrator(
+                (endTime - startTime) / 5
         );
 
         double[] state = initialState.clone();
