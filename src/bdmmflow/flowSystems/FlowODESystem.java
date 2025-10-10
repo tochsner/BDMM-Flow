@@ -1,5 +1,6 @@
 package bdmmflow.flowSystems;
 
+import bdmmflow.benchmark.BenchmarkRun;
 import bdmmflow.extinctionSystem.ExtinctionProbabilities;
 import bdmmflow.intervals.Interval;
 import bdmmflow.intervals.IntervalODESystem;
@@ -13,9 +14,11 @@ import org.apache.commons.math3.ode.nonstiff.EulerIntegrator;
 import org.jblas.DoubleMatrix;
 import org.jblas.MatrixFunctions;
 
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.lang.reflect.Field;
 
 /**
  * This class represents the classical flow ODE.
@@ -246,7 +249,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     ContinuousOutputModel probeIntegration = new ContinuousOutputModel();
 
                     EulerIntegrator integrator = new EulerIntegrator(
-                            (probeEndTime - probeStartTime) / 5
+                            (probeEndTime - probeStartTime) / 50
                     );
 
                     double[] state = identityMatrixArray.clone();
@@ -270,7 +273,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
                     // minimize the error
 
-                    RealMatrix approximationError = integrated.subtract(expIntegrated);
+                    RealMatrix approximationError = expIntegrated.subtract(integrated);
                     RealMatrix initialStateMatrix = computeRegularMinimizer(approximationError);
 
                     double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
@@ -337,6 +340,20 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 intervals,
                 resetInitialStateAtIntervalsBoundaries
         );
+
+        int numIntegrationSteps = 0;
+
+        for (ContinuousOutputModel integrated : rawOutputs) {
+            try {
+                Field field = integrated.getClass().getDeclaredField("index");
+                field.setAccessible(true);
+                numIntegrationSteps += (Integer) field.get(integrated);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        BenchmarkRun.logMetric("num_steps", String.valueOf(numIntegrationSteps));
 
         return new Flow(
                 rawOutputs,

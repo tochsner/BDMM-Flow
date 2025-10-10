@@ -3,7 +3,8 @@ package bdmmflow.benchmark;
 import bdmmprime.parameterization.Parameterization;
 import beast.base.evolution.tree.Tree;
 
-import java.util.StringJoiner;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class BenchmarkResult {
@@ -15,6 +16,9 @@ public class BenchmarkResult {
     boolean useInverseFlow;
     String initialStateStrategy;
     int minNumIntervals;
+
+    List<String> flowMetricNames;
+    List<String> bdmmMetricNames;
 
     public BenchmarkResult(
             Parameterization parameterization,
@@ -32,6 +36,9 @@ public class BenchmarkResult {
         this.useInverseFlow = useInverseFlow;
         this.initialStateStrategy = initialStateStrategy;
         this.minNumIntervals = minNumIntervals;
+
+        this.flowMetricNames = new ArrayList<>(this.flowRun.loggedMetrics.keySet());
+        this.bdmmMetricNames = new ArrayList<>(this.bdmmRun.loggedMetrics.keySet());
     }
 
     @Override
@@ -54,10 +61,17 @@ public class BenchmarkResult {
         joiner.add(this.initialStateStrategy);
         joiner.add(Integer.toString(this.minNumIntervals));
 
+        for (String metricName : this.flowMetricNames) {
+            joiner.add(this.flowRun.loggedMetrics.get(metricName));
+        }
+        for (String metricName : this.bdmmMetricNames) {
+            joiner.add(this.bdmmRun.loggedMetrics.get(metricName));
+        }
+
         return joiner.toString();
     }
 
-    public static String getHeaders() {
+    public String getHeaders() {
         StringJoiner joiner = new StringJoiner(",");
 
         joiner.add("node_count");
@@ -75,6 +89,13 @@ public class BenchmarkResult {
         joiner.add("use_inverse_flow");
         joiner.add("initial_state_strategy");
         joiner.add("num_intervals");
+
+        for (String metricName : this.flowMetricNames) {
+            joiner.add("flow_" + metricName);
+        }
+        for (String metricName : this.bdmmMetricNames) {
+            joiner.add("bdmm_" + metricName);
+        }
 
         return joiner.toString();
     }

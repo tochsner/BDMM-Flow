@@ -37,6 +37,7 @@ public class Benchmark {
                 BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, frequencies);
 
                 String[] initialStateStrategies = new String[]{
+                        "identity",
                         "random",
                         "taylor_heuristic",
                         "error_heuristic",
@@ -120,7 +121,7 @@ public class Benchmark {
 
     static void writeResults(List<BenchmarkResult> results, String fileName) {
         try (FileWriter fileWriter = new FileWriter(fileName)) {
-            fileWriter.write(BenchmarkResult.getHeaders());
+            fileWriter.write(results.get(0).getHeaders());
             fileWriter.write("\n");
 
             for (BenchmarkResult result : results) {
