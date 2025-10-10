@@ -5,7 +5,6 @@ import org.apache.commons.math3.exception.MaxCountExceededException;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;
-import org.apache.commons.math3.ode.nonstiff.ClassicalRungeKuttaIntegrator;
 import org.apache.commons.math3.ode.nonstiff.EulerIntegrator;
 
 public class LinearTimeInvMatrixSystem implements FirstOrderDifferentialEquations {

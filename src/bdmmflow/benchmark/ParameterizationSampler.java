@@ -15,7 +15,7 @@ public class ParameterizationSampler {
         Parameterization parameterization = new CanonicalParameterization();
 
         int numTypes = this.random.nextInt(2, 11);
-        double processLength = this.random.nextDouble(5.5);
+        double processLength = this.random.nextDouble(5);
 
         double[] birthRates = sampleUniformDoubles(numTypes, 1, 3);
         double[] deathRates = Arrays.stream(birthRates).map(x -> x * this.random.nextDouble()).toArray();

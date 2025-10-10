@@ -185,11 +185,57 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
                 yield arrays;
             }
+            case "taylor_heuristic" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    double probeStartTime = interval.end() - (interval.end() - interval.start()) / 3;
+                    double probeEndTime = interval.end();
+
+                    double[] identityMatrixArray = new double[this.param.getNTypes() * this.param.getNTypes()];
+                    RealMatrix identityMatrix = MatrixUtils.createRealIdentityMatrix(this.param.getNTypes());
+                    Utils.fillArray(identityMatrix, identityMatrixArray);
+
+                    // integrate the probe
+
+                    ContinuousOutputModel probeIntegration = new ContinuousOutputModel();
+
+                    EulerIntegrator integrator = new EulerIntegrator(
+                            (probeEndTime - probeStartTime) / 5
+                    );
+
+                    double[] state = identityMatrixArray.clone();
+
+                    integrator.addStepHandler(probeIntegration);
+                    integrator.integrate(this, probeEndTime, state, probeStartTime, state);
+                    integrator.clearStepHandlers();
+
+                    probeIntegration.setInterpolatedTime(probeStartTime);
+                    RealMatrix integrated = Utils.toMatrix(probeIntegration.getInterpolatedState(), param.getNTypes());
+
+                    // perform taylor approximation
+
+                    RealMatrix initialDerivative = buildSystemMatrix(interval.end());
+                    RealMatrix taylorApproximation = identityMatrix.add(initialDerivative.scalarMultiply(probeStartTime - probeEndTime));
+
+                    // minimize the error
+
+                    RealMatrix approximationError = integrated.subtract(taylorApproximation);
+                    RealMatrix initialStateMatrix = computeRegularMinimizer(approximationError);
+
+                    double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
+                    Utils.fillArray(initialStateMatrix, initialStateArray);
+
+                    arrays.add(initialStateArray);
+                }
+
+                yield arrays;
+            }
             case "probe_heuristic" -> {
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
-                    double probeStartTime = interval.end() - (interval.end() - interval.start() / 4);
+                    double probeStartTime = interval.end() - (interval.end() - interval.start()) / 2;
                     double probeEndTime = interval.end();
 
                     double[] identityMatrixArray = new double[this.param.getNTypes() * this.param.getNTypes()];

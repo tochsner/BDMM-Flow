@@ -32,7 +32,7 @@ public class Benchmark {
                 Tree tree = simulateTree(parameterization, frequencies);
 
                 boolean useInverseFlow = false; // Math.random() > 0.5;
-                String initialStateStrategy = Math.random() > 0.66 ? "random" : Math.random() > 0.5 ? "error_heuristic" : "probe_heuristic" ;
+                String initialStateStrategy = Math.random() > 0.75 ? "random" : Math.random() > 0.66 ? "taylor_heuristic" : Math.random() > 0.5 ? "error_heuristic" : "probe_heuristic" ;
                 int minNumIntervals = 4; // Math.random() > 0.5 ? 1 : 4;
 
                 BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, initialStateStrategy, minNumIntervals);
