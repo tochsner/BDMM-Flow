@@ -6,6 +6,9 @@ import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.util.Pair;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * This class is a lightweight wrapper of the result of the Flow ODE integration. It allows to easily query the
  * flow at every point in time and to use the flow to efficiently integrate over a time span.
@@ -14,7 +17,7 @@ import org.apache.commons.math3.util.Pair;
 public class Flow implements IFlow {
     ContinuousOutputModel[] outputModels;
 
-    RealMatrix inverseInitialState;
+    List<RealMatrix> inverseInitialStates;
     boolean wasInitialStateResetAtEachInterval;
     int n;
 
@@ -22,15 +25,22 @@ public class Flow implements IFlow {
     RealMatrix[][] accumulatedFlowCache;
 
     public Flow(ContinuousOutputModel[] flows, int n) {
-        this(flows, n, MatrixUtils.createRealIdentityMatrix(n), false);
+        assert false;
+        // this(flows, n, List.of(MatrixUtils.createRealIdentityMatrix(n)), false);
     }
 
-    public Flow(ContinuousOutputModel[] outputModels, int n, RealMatrix inverseInitialState, boolean wasInitialStateResetAtEachInterval) {
+    public Flow(ContinuousOutputModel[] outputModels, int n, List<double[]> initialStateArrays, boolean wasInitialStateResetAtEachInterval) {
         this.outputModels = outputModels;
         this.n = n;
-        this.inverseInitialState = inverseInitialState;
         this.wasInitialStateResetAtEachInterval = wasInitialStateResetAtEachInterval;
         this.accumulatedFlowCache = new RealMatrix[outputModels.length][outputModels.length];
+
+        this.inverseInitialStates = new ArrayList<>();
+        for (double[] initialStateArray : initialStateArrays) {
+            RealMatrix initialStateMatrix = Utils.toMatrix(initialStateArray, this.n);
+            RealMatrix inverseInitialStateMatrix = MatrixUtils.inverse(initialStateMatrix);
+            this.inverseInitialStates.add(inverseInitialStateMatrix);
+        }
     }
 
     /**
@@ -84,7 +94,7 @@ public class Flow implements IFlow {
 
             for (int i = startingAtInterval; i < timeInterval; i++) {
                 RealMatrix flowEnd = this.getFlow(this.outputModels[i], this.outputModels[i].getFinalTime());
-                accumulatedFlow = this.inverseInitialState.multiply(flowEnd.multiply(accumulatedFlow));
+                accumulatedFlow = this.inverseInitialStates.get(this.inverseInitialStates.size() - i - 2).multiply(flowEnd.multiply(accumulatedFlow));
             }
 
             this.accumulatedFlowCache[startingAtInterval][timeInterval] = accumulatedFlow;

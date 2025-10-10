@@ -1,7 +1,5 @@
 package bdmmflow.intervals;
 
-import bdmmflow.intervals.Interval;
-import bdmmflow.intervals.IntervalUtils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;
@@ -113,7 +111,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
      */
     public ContinuousOutputModel[] integrateBackwards(double[] initialState) {
         return this.integrateBackwards(
-                initialState,
+                List.of(initialState),
                 IntervalUtils.getIntervals(this.param, this.param.getTotalProcessLength()),
                 false
         );
@@ -125,25 +123,24 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
      * The parameterization interval boundaries are handled automatically
      * by calling handleParameterizationIntervalBoundary at the boundaries.
      *
-     * @param initialState the initial state at time totalProcessLength.
+     * @param initialStates the initial states at the interval ends.
      * @param intervals the list of intervals where integration is restarted. Should include the parameterization intervals.
      *                  Use IntervalUtils.getIntervals to generate these.
      * @param alwaysStartAtInitialState if the integration should be restarted at the initial state at the interval boundaries.
      *                                  this can increase numerical stability.
      * @return the integration result.
      */
-    public ContinuousOutputModel[] integrateBackwards(double[] initialState, List<Interval> intervals, boolean alwaysStartAtInitialState) {
+    public ContinuousOutputModel[] integrateBackwards(List<double[]> initialStates, List<Interval> intervals, boolean alwaysStartAtInitialState) {
         this.currentParameterizationInterval = this.param.getTotalIntervalCount() - 1;
 
         ContinuousOutputModel[] outputModels = new ContinuousOutputModel[intervals.size()];
 
-        double[] state = initialState.clone();
-
+        double[] state = initialStates.get(initialStates.size() - 1).clone();
         for (int i = intervals.size() - 1; i >= 0; i--) {
             Interval interval = intervals.get(i);
 
             if (alwaysStartAtInitialState) {
-                state = initialState.clone();
+                state = initialStates.get(i).clone();
             }
 
             if (this.currentParameterizationInterval != interval.parameterizationInterval()) {

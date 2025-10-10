@@ -23,6 +23,8 @@ public class ParameterizationSampler {
         double[] removalProbabilities = sampleUniformDoubles(numTypes, 0.0, 1.0);
         double[] migrationRates = sampleUniformDoubles(numTypes*(numTypes-1), 0.0, 0.5);
 
+        new TypeSet(numTypes);
+
         parameterization.initByName(
                 "typeSet", new TypeSet(numTypes),
                 "processLength", Double.toString(processLength),

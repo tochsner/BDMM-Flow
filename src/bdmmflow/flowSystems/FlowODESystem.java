@@ -3,11 +3,16 @@ package bdmmflow.flowSystems;
 import bdmmflow.extinctionSystem.ExtinctionProbabilities;
 import bdmmflow.intervals.Interval;
 import bdmmflow.intervals.IntervalODESystem;
+import bdmmflow.utils.LinearTimeInvMatrixSystem;
 import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
+import org.apache.commons.math3.ode.nonstiff.ClassicalRungeKuttaIntegrator;
+import org.jblas.DoubleMatrix;
+import org.jblas.MatrixFunctions;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -147,25 +152,124 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
         }
     }
 
-    RealMatrix getInitialState(String initialMatrixStrategy, double time) {
+    List<double[]> getInitialStates(String initialMatrixStrategy, List<Interval> intervals) {
         return switch (initialMatrixStrategy) {
-            case "random" -> Utils.getRandomMatrix(this.param.getNTypes(), 0);
-            case "heuristic" -> {
-                RealMatrix initialDerivative = buildSystemMatrix(time);
+            case "random" -> {
 
-                EigenDecomposition decomposition = new EigenDecomposition(initialDerivative.transpose().multiply(initialDerivative));
+                List<double[]> arrays = new ArrayList<>();
+                for (Interval ignored : intervals) {
+                    RealMatrix matrix = Utils.getRandomMatrix(this.param.getNTypes());
 
-                RealMatrix initialStateMatrix = new BlockRealMatrix(param.getNTypes(), param.getNTypes());
-                assert decomposition.getRealEigenvalues().length == param.getNTypes();
+                    double[] array = new double[this.param.getNTypes() * this.param.getNTypes()];
+                    Utils.fillArray(matrix, array);
 
-                for (int i = 0; i < param.getNTypes(); i++) {
-                    initialStateMatrix.setColumnVector(i, decomposition.getEigenvector(i).mapMultiply(1.0 / (param.getNTypes() - i)));
+                    arrays.add(array);
                 }
 
-                yield initialStateMatrix;
+                yield arrays;
             }
-            default -> MatrixUtils.createRealIdentityMatrix(this.param.getNTypes());
+            case "error_heuristic" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    RealMatrix initialDerivative = buildSystemMatrix(interval.end());
+
+                    RealMatrix initialStateMatrix = computeRegularMinimizer(initialDerivative);
+
+                    double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
+                    Utils.fillArray(initialStateMatrix, initialStateArray);
+
+                    arrays.add(initialStateArray);
+                }
+
+                yield arrays;
+            }
+            case "probe_heuristic" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    double probeStartTime = interval.end() - (interval.end() - interval.start()) / 5;
+                    double probeEndTime = interval.end();
+
+                    double[] identityMatrixArray = new double[this.param.getNTypes() * this.param.getNTypes()];
+                    Utils.fillArray(MatrixUtils.createRealIdentityMatrix(this.param.getNTypes()), identityMatrixArray);
+
+                    // integrate the probe
+
+                    ContinuousOutputModel probeIntegration = new ContinuousOutputModel();
+
+                    ClassicalRungeKuttaIntegrator integrator = new ClassicalRungeKuttaIntegrator(
+                            (probeEndTime - probeStartTime) / 10
+                    );
+
+                    double[] state = identityMatrixArray.clone();
+
+                    integrator.addStepHandler(probeIntegration);
+                    integrator.integrate(this, probeEndTime, state, probeStartTime, state);
+                    integrator.clearStepHandlers();
+
+                    probeIntegration.setInterpolatedTime(probeStartTime);
+                    RealMatrix integrated = Utils.toMatrix(probeIntegration.getInterpolatedState(), param.getNTypes());
+
+                    // integrate a simple exponential
+
+                    RealMatrix initialDerivative = buildSystemMatrix(probeEndTime);
+                    ContinuousOutputModel expIntegration = new LinearTimeInvMatrixSystem(initialDerivative).integrateBackwards(
+                            identityMatrixArray, probeStartTime, probeEndTime
+                    );
+
+                    expIntegration.setInterpolatedTime(probeStartTime);
+                    RealMatrix expIntegrated = Utils.toMatrix(expIntegration.getInterpolatedState(), param.getNTypes());
+
+                    // minimize the error
+
+                    RealMatrix approximationError = integrated.subtract(expIntegrated);
+                    RealMatrix initialStateMatrix = computeRegularMinimizer(approximationError);
+
+                    double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
+                    Utils.fillArray(initialStateMatrix, initialStateArray);
+
+                    arrays.add(initialStateArray);
+                }
+
+                yield arrays;
+            }
+            default -> {
+                RealMatrix matrix = MatrixUtils.createRealIdentityMatrix(this.param.getNTypes());
+
+                double[] array = new double[this.param.getNTypes() * this.param.getNTypes()];
+                Utils.fillArray(matrix, array);
+
+                List<double[]> arrays = new ArrayList<>();
+                for (Interval ignored : intervals) {
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
         };
+    }
+
+    public static RealMatrix computeRegularMinimizer(RealMatrix A) {
+        // Step 1: Compute SVD
+        SingularValueDecomposition svd = new SingularValueDecomposition(A);
+        RealMatrix V = svd.getV();               // V matrix
+        double[] sigma = svd.getSingularValues(); // singular values
+
+        int n = sigma.length;
+
+        // Step 3: Build Sigma^-1 diagonal matrix
+        RealMatrix SigmaInv = MatrixUtils.createRealDiagonalMatrix(new double[n]);
+        for (int i = 0; i < n; i++) {
+            SigmaInv.setEntry(i, i, 1.0 / sigma[i]);
+        }
+
+        // Step 4: Compute X* = g * V * Sigma^-1 * V^T
+        double d = 1.0; // desired determinant
+        double g_d = Math.pow(d * Arrays.stream(sigma).reduce(1.0, (a,b) -> a*b), 1.0/n);
+        RealMatrix Xstar = V.multiply(SigmaInv).multiply(V.transpose()).scalarMultiply(g_d);
+
+        return Xstar;
     }
 
     /**
@@ -179,22 +283,18 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
             String initialMatrixStrategy,
             boolean resetInitialStateAtIntervalsBoundaries
     ) {
-        RealMatrix initialState = this.getInitialState(initialMatrixStrategy, intervals.get(intervals.size() - 1).end());
-        double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
-        Utils.fillArray(initialState, initialStateArray);
+        List<double[]> initialStates = this.getInitialStates(initialMatrixStrategy, intervals);
 
         ContinuousOutputModel[] rawOutputs = this.integrateBackwards(
-                initialStateArray,
+                initialStates,
                 intervals,
                 resetInitialStateAtIntervalsBoundaries
         );
 
-        RealMatrix  inverseInitialState = MatrixUtils.inverse(initialState);
-
         return new Flow(
                 rawOutputs,
                 this.param.getNTypes(),
-                inverseInitialState,
+                initialStates,
                 resetInitialStateAtIntervalsBoundaries
         );
     }

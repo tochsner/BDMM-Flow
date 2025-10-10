@@ -32,13 +32,13 @@ public class Benchmark {
                 Tree tree = simulateTree(parameterization, frequencies);
 
                 boolean useInverseFlow = false; // Math.random() > 0.5;
-                boolean useRandom = Math.random() > 0.5;
+                String initialStateStrategy = Math.random() > 0.66 ? "random" : Math.random() > 0.5 ? "error_heuristic" : "probe_heuristic" ;
                 int minNumIntervals = 4; // Math.random() > 0.5 ? 1 : 4;
 
-                BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, useRandom, minNumIntervals);
+                BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, initialStateStrategy, minNumIntervals);
                 BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, frequencies);
 
-                BenchmarkResult result = new BenchmarkResult(parameterization, tree, flowRun, bdmmRun, useInverseFlow, useRandom, minNumIntervals);
+                BenchmarkResult result = new BenchmarkResult(parameterization, tree, flowRun, bdmmRun, useInverseFlow, initialStateStrategy, minNumIntervals);
                 results.add(result);
             } catch (RuntimeException ignored) {
                 System.out.println(ignored);
@@ -70,7 +70,7 @@ public class Benchmark {
             Parameterization parameterization,
             RealParameter frequencies,
             boolean useInverseFlow,
-            boolean useRandomInitialMatrix,
+            String initialStateStrategy,
             int minNumIntervals
     ) {
         BirthDeathMigrationDistribution density = new BirthDeathMigrationDistribution();
@@ -79,7 +79,7 @@ public class Benchmark {
                 "tree", tree,
                 "frequencies", frequencies,
                 "typeLabel", "type",
-                "initialMatrixStrategy", useRandomInitialMatrix ? "random"  : "heuristic",
+                "initialMatrixStrategy", initialStateStrategy,
                 "useInverseFlow", useInverseFlow,
                 "minNumIntervals", minNumIntervals
         );

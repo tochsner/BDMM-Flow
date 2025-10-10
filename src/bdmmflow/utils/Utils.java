@@ -1,6 +1,7 @@
 package bdmmflow.utils;
 
 import org.apache.commons.math3.linear.*;
+import org.jblas.DoubleMatrix;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -18,6 +19,13 @@ public class Utils {
 
         SingularValueDecomposition svd = new SingularValueDecomposition(matrix);
         return svd.getRank() != matrix.getColumnDimension();
+    }
+
+    /**
+     * Returns a random square matrix of the given dimension.
+     */
+    public static RealMatrix getRandomMatrix(int dimension) {
+        return getRandomMatrix(dimension, new Random().nextInt());
     }
 
     /**
@@ -51,6 +59,26 @@ public class Utils {
             }
         }
         return matrix;
+    }
+
+    public static RealMatrix toMatrix(DoubleMatrix source) {
+        RealMatrix destination = new BlockRealMatrix(source.rows, source.columns);
+        for (int i = 0; i < source.rows; i++) {
+            for (int j = 0; j < source.columns; j++) {
+                destination.setEntry(i, j, source.get(i, j));
+            }
+        }
+        return destination;
+    }
+
+    public static DoubleMatrix toMatrix(RealMatrix source) {
+        DoubleMatrix destination = new DoubleMatrix(source.getRowDimension(), source.getColumnDimension());
+        for (int i = 0; i < source.getRowDimension(); i++) {
+            for (int j = 0; j < source.getColumnDimension(); j++) {
+                destination.put(i, j, source.getEntry(i, j));
+            }
+        }
+        return destination;
     }
 
     /**

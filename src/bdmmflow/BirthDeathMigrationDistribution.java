@@ -85,7 +85,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<String> initialMatrixStrategyInput = new Input<>(
             "initialMatrixStrategy",
             "The strategy to use to get the initial flow state. Either 'random', 'heuristic', or 'identity'.",
-            "heuristic"
+            "random"
     );
 
     public Input<Integer> minNumIntervalsInput = new Input<>(

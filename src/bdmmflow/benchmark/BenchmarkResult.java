@@ -13,7 +13,7 @@ public class BenchmarkResult {
     BenchmarkRun flowRun;
     BenchmarkRun bdmmRun;
     boolean useInverseFlow;
-    boolean useRandomInitialMatrix;
+    String initialStateStrategy;
     int minNumIntervals;
 
     public BenchmarkResult(
@@ -22,7 +22,7 @@ public class BenchmarkResult {
             BenchmarkRun flowRun,
             BenchmarkRun bdmmRun,
             boolean useInverseFlow,
-            boolean useRandomInitialMatrix,
+            String initialStateStrategy,
             int minNumIntervals
     ) {
         this.parameterization = parameterization;
@@ -30,7 +30,7 @@ public class BenchmarkResult {
         this.flowRun = flowRun;
         this.bdmmRun = bdmmRun;
         this.useInverseFlow = useInverseFlow;
-        this.useRandomInitialMatrix = useRandomInitialMatrix;
+        this.initialStateStrategy = initialStateStrategy;
         this.minNumIntervals = minNumIntervals;
     }
 
@@ -51,7 +51,7 @@ public class BenchmarkResult {
         joiner.add(Long.toString(this.bdmmRun.duration));
 
         joiner.add(Boolean.toString(this.useInverseFlow));
-        joiner.add(Boolean.toString(this.useRandomInitialMatrix));
+        joiner.add(this.initialStateStrategy);
         joiner.add(Integer.toString(this.minNumIntervals));
 
         return joiner.toString();
@@ -73,7 +73,7 @@ public class BenchmarkResult {
         joiner.add("bdmm_duration");
 
         joiner.add("use_inverse_flow");
-        joiner.add("use_random_initial_matrix");
+        joiner.add("initial_state_strategy");
         joiner.add("num_intervals");
 
         return joiner.toString();
