@@ -11,6 +11,7 @@ import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.nonstiff.EulerIntegrator;
+import org.jblas.MatrixFunctions;
 
 
 import java.util.ArrayList;
@@ -130,30 +131,6 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
         int interval = this.param.getIntervalIndex(t);
         RealMatrix systemMatrix = this.timeInvariantSystemMatrices[interval].copy();
         this.addTimeVaryingSystemMatrix(t, systemMatrix);
-
-        for (int i = 0; i < systemMatrix.getColumnDimension(); i++) {
-            double expectedSum = Arrays.stream(systemMatrix.getRow(i)).sum();
-
-            int finalI = i;
-            double actual = deathRates[0][i] + samplingRates[0][finalI] + birthRates[0][finalI]*(1.0 - 2*extinctionProbabilities.getProbability(t)[finalI]) + IntStream.range(0, systemMatrix.getColumnDimension()).filter(x -> x != finalI).mapToDouble(x -> x).map(j -> crossBirthRates[0][finalI][(int) j] * (1 - 2*extinctionProbabilities.getProbability(t)[finalI])).sum();
-            double actualSum = actual;
-
-
-            double diff = Math.abs(expectedSum - actualSum);
-            if (diff > 1e-10) {
-                int a = 5;
-            }
-
-            double a = actualSum * actualSum;
-            double b = Arrays.stream(systemMatrix.getRow(i)).map(x -> x*x).sum();
-
-            if (a / systemMatrix.getColumnDimension() > b) {
-                System.out.println("A");
-            } else {
-                System.out.println("B");
-            }
-        }
-
         return systemMatrix;
     }
 
@@ -187,14 +164,10 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 RealMatrix matrix = Utils.getRandomMatrix(this.param.getNTypes());
 
                 List<double[]> arrays = new ArrayList<>();
-                for (Interval interval : intervals) {
-
+                for (Interval ignored : intervals) {
                     double[] array = new double[this.param.getNTypes() * this.param.getNTypes()];
                     Utils.fillArray(matrix, array);
-
                     arrays.add(array);
-
-                    RealMatrix initialDerivative = buildSystemMatrix(interval.end());
                 }
 
                 yield arrays;
@@ -274,12 +247,9 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     // integrate a simple exponential
 
                     RealMatrix initialDerivative = buildSystemMatrix(probeEndTime);
-                    ContinuousOutputModel expIntegration = new LinearTimeInvMatrixSystem(initialDerivative.copy()).integrateBackwards(
-                            identityMatrixArray, probeEndTime, probeStartTime
+                    RealMatrix expIntegrated = Utils.toMatrix(
+                            MatrixFunctions.expm(Utils.toMatrix(initialDerivative.scalarMultiply( probeStartTime - probeEndTime)))
                     );
-
-                    expIntegration.setInterpolatedTime(probeStartTime);
-                    RealMatrix expIntegrated = Utils.toMatrix(expIntegration.getInterpolatedState(), param.getNTypes());
 
                     // perform taylor approximation
 
@@ -329,12 +299,9 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     // integrate a simple exponential
 
                     RealMatrix initialDerivative = buildSystemMatrix(probeEndTime);
-                    ContinuousOutputModel expIntegration = new LinearTimeInvMatrixSystem(initialDerivative).integrateBackwards(
-                            identityMatrixArray, probeEndTime, probeStartTime
+                    RealMatrix expIntegrated = Utils.toMatrix(
+                            MatrixFunctions.expm(Utils.toMatrix(initialDerivative.scalarMultiply( probeStartTime - probeEndTime)))
                     );
-
-                    expIntegration.setInterpolatedTime(probeStartTime);
-                    RealMatrix expIntegrated = Utils.toMatrix(expIntegration.getInterpolatedState(), param.getNTypes());
 
                     // minimize the error
 
@@ -388,15 +355,15 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
         int numIntegrationSteps = 0;
 
-        for (ContinuousOutputModel integrated : rawOutputs) {
-            try {
-                Field field = integrated.getClass().getDeclaredField("index");
-                field.setAccessible(true);
-                numIntegrationSteps += (Integer) field.get(integrated);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
+         for (ContinuousOutputModel integrated : rawOutputs) {
+             try {
+                 Field field = integrated.getClass().getDeclaredField("index");
+                 field.setAccessible(true);
+                 numIntegrationSteps += (Integer) field.get(integrated);
+             } catch (Exception e) {
+                 throw new RuntimeException(e);
+             }
+         }
 
         BenchmarkRun.addToMetric("num_steps", Double.valueOf(numIntegrationSteps));
 
@@ -406,62 +373,6 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 initialStates,
                 resetInitialStateAtIntervalsBoundaries
         );
-
-        // log trajectory metrics
-
-        double start = intervals.get(0).start();
-        double end = intervals.get(intervals.size() - 1).end();
-        for (int i = 0; i < 101; i++) {
-            double time = (end - start) / 100 * i;
-            int interval = flow.getInterval(time);
-            RealMatrix flowMatrix = flow.getFlow(rawOutputs[interval], time);
-            RealMatrix systemMatrix = this.buildSystemMatrix(time);
-            RealMatrix jacobianMatrix = systemMatrix.multiply(flowMatrix);
-
-            LoggedMetric.logMetric(
-                    initialMatrixStrategy,
-                    "flow_norm",
-                    time,
-                    flowMatrix.getFrobeniusNorm()
-            );
-
-            LoggedMetric.logMetric(
-                    initialMatrixStrategy,
-                    "jacobian_norm",
-                    time,
-                    jacobianMatrix.getFrobeniusNorm()
-            );
-
-            LoggedMetric.logMetric(
-                    initialMatrixStrategy,
-                    "normalized_jacobian",
-                    time,
-                    jacobianMatrix.getFrobeniusNorm() / flowMatrix.getFrobeniusNorm()
-            );
-
-            EigenDecomposition jacobianED = new EigenDecomposition(jacobianMatrix);
-            double jacobianMinEv = Arrays.stream(jacobianED.getRealEigenvalues()).map(Math::abs).min().orElseThrow();
-            double jacobianMaxEv = Arrays.stream(jacobianED.getRealEigenvalues()).map(Math::abs).max().orElseThrow();
-            double jacobianTrace = jacobianMatrix.getTrace();
-
-            LoggedMetric.logMetric(initialMatrixStrategy, "jacobian_min_ev", time, jacobianMinEv);
-            LoggedMetric.logMetric(initialMatrixStrategy, "jacobian_max_ev", time, jacobianMaxEv);
-            LoggedMetric.logMetric(initialMatrixStrategy, "jacobian_ev_ratio", time, jacobianMaxEv / jacobianMinEv);
-            LoggedMetric.logMetric(initialMatrixStrategy, "jacobian_trace", time, jacobianTrace);
-
-            double sum = 0.0;
-            int n = systemMatrix.getColumnDimension();
-            for (int i_ = 0; i_ < n; i_++) {
-                for (int j = 0; j < n; j++) {
-                    for (int k = 0; k < n; k++) {
-                        if (j == k) continue;
-                        sum += systemMatrix.getEntry(i_, j) * systemMatrix.getEntry(i_, k);
-                    }
-                }
-            }
-
-            LoggedMetric.logMetric(initialMatrixStrategy, "system_bound", time, jacobianTrace);
-        }
 
         return flow;
     }

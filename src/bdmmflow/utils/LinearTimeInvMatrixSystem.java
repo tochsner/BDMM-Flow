@@ -33,7 +33,7 @@ public class LinearTimeInvMatrixSystem implements FirstOrderDifferentialEquation
         ContinuousOutputModel result = new ContinuousOutputModel();
 
         EulerIntegrator integrator = new EulerIntegrator(
-                (endTime - startTime) / 50
+                (endTime - startTime) / 500
         );
 
         double[] state = initialState.clone();

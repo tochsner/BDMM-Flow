@@ -32,18 +32,14 @@ public class Utils {
      * Returns a random square matrix of the given dimension.
      */
     public static RealMatrix getRandomMatrix(int dimension, int seed) {
-        RealMatrix randomMatrix;
+        RealMatrix randomMatrix = new BlockRealMatrix(dimension, dimension);
         Random random = new Random(seed);
 
-        do {
-            randomMatrix = new BlockRealMatrix(dimension, dimension);
-
-            for (int i = 0; i < dimension; i++) {
-                for (int j = 0; j < dimension; j++) {
-                    randomMatrix.setEntry(i, j, random.nextDouble());
-                }
+        for (int i = 0; i < dimension; i++) {
+            for (int j = 0; j < dimension; j++) {
+                randomMatrix.setEntry(i, j, random.nextDouble());
             }
-        } while (isSingular(randomMatrix));
+        }
 
         return randomMatrix;
     }
