@@ -48,6 +48,31 @@ public class Utils {
         return randomMatrix;
     }
 
+    public static RealMatrix computeRegularMinimizer(RealMatrix A) {
+        // Compute SVD
+        SingularValueDecomposition svd = new SingularValueDecomposition(A);
+        RealMatrix V = svd.getV();
+        double[] sigma = svd.getSingularValues();
+        int n = sigma.length;
+
+        // Compute product of singular values directly (avoid streams)
+        double logProd = 0.0;
+        for (double s : sigma) logProd += Math.log(s);
+        double geomMean = Math.exp((Math.log(1.0) + logProd) / n); // d=1.0 inline
+
+        // Compute V * Σ⁻¹ efficiently (scale columns of V by 1/σᵢ)
+        double[][] vData = V.getData();
+        for (int j = 0; j < n; j++) {
+            double scale = geomMean / sigma[j];  // combine scalarMultiply(g_d) + Σ⁻¹
+            for (int i = 0; i < n; i++) {
+                vData[i][j] *= scale;
+            }
+        }
+        RealMatrix Xstar = MatrixUtils.createRealMatrix(vData).multiply(V.transpose());
+
+        return Xstar;
+    }
+
     /**
      * Returns a RealMatrix matrix filled with the values in the array in column-major order.
      */

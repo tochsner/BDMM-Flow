@@ -32,7 +32,7 @@ public class Benchmark {
                 Tree tree = simulateTree(parameterization, frequencies);
 
                 boolean useInverseFlow = false; // Math.random() > 0.5;
-                int minNumIntervals = 4; // Math.random() > 0.5 ? 1 : 4;
+                int minNumIntervals = Math.random() > 0.5 ? 1 : 4;
 
                 BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, frequencies);
 
@@ -42,11 +42,14 @@ public class Benchmark {
                         "taylor_heuristic",
                         "error_heuristic",
                         "probe_heuristic",
+                        "taylor_exp_heuristic"
                 };
 
                 for (String strategy : initialStateStrategies) {
                     BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, strategy, minNumIntervals);
-                    BenchmarkResult result = new BenchmarkResult(parameterization, tree, flowRun, bdmmRun, useInverseFlow, strategy, minNumIntervals);
+                    BenchmarkResult result = new BenchmarkResult(
+                            parameterization, tree, flowRun, bdmmRun, useInverseFlow, strategy, minNumIntervals
+                    );
                     results.add(result);
                 }
             } catch (RuntimeException ignored) {
@@ -131,6 +134,8 @@ public class Benchmark {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        LoggedMetric.storeMetrics("metrics.csv");
     }
 
 }

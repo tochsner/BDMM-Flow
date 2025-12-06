@@ -10,6 +10,14 @@ public class BenchmarkRun {
         lastLoggedMetrics.put(key, value);
     }
 
+    public static void addToMetric(String key, Double value) {
+        lastLoggedMetrics.merge(
+                key,
+                String.valueOf(value),
+                (x, y) -> String.valueOf((Double.parseDouble(x) + Double.parseDouble(y)))
+        );
+    }
+
     long duration;
     double likelihood;
     Map<String, String> loggedMetrics;

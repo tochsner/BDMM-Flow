@@ -32,9 +32,9 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
         this.param = parameterization;
 
         double integrationMinStep = this.param.getTotalProcessLength() * 1e-100;
-        double integrationMaxStep = this.param.getTotalProcessLength() / 20;
+        double integrationMaxStep = this.param.getTotalProcessLength() / 5;
 
-        this.integrator = new DormandPrince54Integrator(
+        this.integrator = new DormandPrince853Integrator(
                 integrationMinStep, integrationMaxStep, absoluteTolerance, relativeTolerance
         );
     }
