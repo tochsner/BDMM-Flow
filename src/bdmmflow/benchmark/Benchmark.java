@@ -30,8 +30,6 @@ public class Benchmark {
                 Parameterization parameterization = sampler.sampleParameterization();
                 RealParameter frequencies = sampler.sampleFrequencies(parameterization);
                 Tree tree = simulateTree(parameterization, frequencies);
-
-                boolean useInverseFlow = false; // Math.random() > 0.5;
                 int minNumIntervals = Math.random() > 0.5 ? 1 : 4;
 
                 BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, frequencies);
@@ -39,15 +37,23 @@ public class Benchmark {
                 String[] initialStateStrategies = new String[]{
                         "identity",
                         "random",
-                        "taylor_heuristic",
-                        "error_heuristic",
-                        "probe_heuristic",
-                        "taylor_exp_heuristic"
+//                        "taylor_heuristic",
+//                        "error_heuristic",
+//                        "probe_heuristic",
+//                        "taylor_exp_heuristic"
                 };
 
                 for (String strategy : initialStateStrategies) {
+                    boolean useInverseFlow = true;
                     BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, strategy, minNumIntervals);
                     BenchmarkResult result = new BenchmarkResult(
+                            parameterization, tree, flowRun, bdmmRun, useInverseFlow, strategy, minNumIntervals
+                    );
+                    results.add(result);
+
+                    useInverseFlow = false;
+                    flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, strategy, minNumIntervals);
+                    result = new BenchmarkResult(
                             parameterization, tree, flowRun, bdmmRun, useInverseFlow, strategy, minNumIntervals
                     );
                     results.add(result);

@@ -353,19 +353,19 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
         // log num integration steps taken
 
-        int numIntegrationSteps = 0;
-
-         for (ContinuousOutputModel integrated : rawOutputs) {
-             try {
-                 Field field = integrated.getClass().getDeclaredField("index");
-                 field.setAccessible(true);
-                 numIntegrationSteps += (Integer) field.get(integrated);
-             } catch (Exception e) {
-                 throw new RuntimeException(e);
-             }
-         }
-
-        BenchmarkRun.addToMetric("num_steps", Double.valueOf(numIntegrationSteps));
+//        int numIntegrationSteps = 0;
+//
+//        for (ContinuousOutputModel integrated : rawOutputs) {
+//            try {
+//                Field field = integrated.getClass().getDeclaredField("index");
+//                field.setAccessible(true);
+//                numIntegrationSteps += (Integer) field.get(integrated);
+//            } catch (Exception e) {
+//                throw new RuntimeException(e);
+//            }
+//        }
+//
+//        BenchmarkRun.addToMetric("num_steps", Double.valueOf(numIntegrationSteps));
 
         Flow flow = new Flow(
                 rawOutputs,
