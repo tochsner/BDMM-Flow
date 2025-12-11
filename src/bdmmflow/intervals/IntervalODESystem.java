@@ -6,7 +6,10 @@ import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;
 import org.apache.commons.math3.ode.FirstOrderIntegrator;
 import org.apache.commons.math3.ode.nonstiff.*;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.IntStream;
 
 
 /**
@@ -28,11 +31,18 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     protected Parameterization param;
     protected FirstOrderIntegrator integrator;
 
+    double absoluteTolerance;
+    double relativeTolerance;
+    double integrationMinStep;
+    double integrationMaxStep;
+
     public IntervalODESystem(Parameterization parameterization, double absoluteTolerance, double relativeTolerance) {
         this.param = parameterization;
 
-        double integrationMinStep = this.param.getTotalProcessLength() * 1e-100;
-        double integrationMaxStep = this.param.getTotalProcessLength() / 5;
+        integrationMinStep = this.param.getTotalProcessLength() * 1e-100;
+        integrationMaxStep = this.param.getTotalProcessLength() / 5;
+        this.absoluteTolerance = absoluteTolerance;
+        this.relativeTolerance = relativeTolerance;
 
         this.integrator = new DormandPrince853Integrator(
                 integrationMinStep, integrationMaxStep, absoluteTolerance, relativeTolerance
@@ -68,35 +78,75 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
      * @return the integration result.
      */
     public ContinuousOutputModel[] integrateForwards(double[] initialState, List<Interval> intervals, boolean alwaysStartAtInitialState) {
-        this.currentParameterizationInterval = 0;
-
         ContinuousOutputModel[] outputModels = new ContinuousOutputModel[intervals.size()];
 
-        double[] state = initialState.clone();
-
-        for (Interval interval : intervals) {
-            if (alwaysStartAtInitialState) {
-                state = initialState.clone();
+        if (alwaysStartAtInitialState) {
+            Set<Integer> parameterizationIntervals = new HashSet<>();
+            int currentParameterizationInterval = 0;
+            for (int i = 0; i < intervals.size(); i++) {
+                Interval interval = intervals.get(i);
+                if (currentParameterizationInterval != interval.parameterizationInterval()) {
+                    assert currentParameterizationInterval + 1 == interval.parameterizationInterval();
+                    currentParameterizationInterval = interval.parameterizationInterval();
+                    parameterizationIntervals.add(i);
+                }
             }
 
-            if (this.currentParameterizationInterval != interval.parameterizationInterval()) {
-                assert this.currentParameterizationInterval + 1 == interval.parameterizationInterval();
+            IntStream.range(0, intervals.size()).parallel().forEach(i -> {
+                Interval interval = intervals.get(i);
+                double[] state = initialState.clone();
 
-                this.handleParameterizationIntervalBoundary(
-                        interval.start(),
-                        this.currentParameterizationInterval,
-                        this.currentParameterizationInterval + 1,
-                        state
+                if (parameterizationIntervals.contains(i)) {
+                    this.handleParameterizationIntervalBoundary(
+                            interval.start(),
+                            interval.parameterizationInterval() - 1,
+                            interval.parameterizationInterval(),
+                            state
+                    );
+                }
+
+                ContinuousOutputModel intervalResult = new ContinuousOutputModel();
+
+                DormandPrince853Integrator integrator = new DormandPrince853Integrator(
+                        integrationMinStep, integrationMaxStep, absoluteTolerance, relativeTolerance
                 );
+                integrator.addStepHandler(intervalResult);
+                integrator.integrate(this, interval.start(), state, interval.end(), state);
+                integrator.clearStepHandlers();
+
+                outputModels[interval.interval()] = intervalResult;
+            });
+
+        } else {
+
+            this.currentParameterizationInterval = 0;
+
+            double[] state = initialState.clone();
+
+            for (Interval interval : intervals) {
+                if (alwaysStartAtInitialState) {
+                    state = initialState.clone();
+                }
+
+                if (this.currentParameterizationInterval != interval.parameterizationInterval()) {
+                    assert this.currentParameterizationInterval + 1 == interval.parameterizationInterval();
+
+                    this.handleParameterizationIntervalBoundary(
+                            interval.start(),
+                            this.currentParameterizationInterval,
+                            this.currentParameterizationInterval + 1,
+                            state
+                    );
+                }
+
+                ContinuousOutputModel intervalResult = new ContinuousOutputModel();
+
+                integrator.addStepHandler(intervalResult);
+                integrator.integrate(this, interval.start(), state, interval.end(), state);
+                integrator.clearStepHandlers();
+
+                outputModels[interval.interval()] = intervalResult;
             }
-
-            ContinuousOutputModel intervalResult = new ContinuousOutputModel();
-
-            integrator.addStepHandler(intervalResult);
-            integrator.integrate(this, interval.start(), state, interval.end(), state);
-            integrator.clearStepHandlers();
-
-            outputModels[interval.interval()] = intervalResult;
         }
 
         return outputModels;
@@ -131,36 +181,76 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
      * @return the integration result.
      */
     public ContinuousOutputModel[] integrateBackwards(List<double[]> initialStates, List<Interval> intervals, boolean alwaysStartAtInitialState) {
-        this.currentParameterizationInterval = this.param.getTotalIntervalCount() - 1;
-
         ContinuousOutputModel[] outputModels = new ContinuousOutputModel[intervals.size()];
 
-        double[] state = initialStates.get(initialStates.size() - 1).clone();
-        for (int i = intervals.size() - 1; i >= 0; i--) {
-            Interval interval = intervals.get(i);
-
-            if (alwaysStartAtInitialState) {
-                state = initialStates.get(i).clone();
+        if (alwaysStartAtInitialState) {
+            Set<Integer> parameterizationIntervals = new HashSet<>();
+            double currentParameterizationInterval = this.param.getTotalIntervalCount() - 1;
+            for (int i = intervals.size() - 1; i >= 0; i--) {
+                Interval interval = intervals.get(i);
+                if (currentParameterizationInterval != interval.parameterizationInterval()) {
+                    assert currentParameterizationInterval - 1 == interval.parameterizationInterval();
+                    currentParameterizationInterval = interval.parameterizationInterval();
+                    parameterizationIntervals.add(i);
+                }
             }
 
-            if (this.currentParameterizationInterval != interval.parameterizationInterval()) {
-                assert this.currentParameterizationInterval - 1 == interval.parameterizationInterval();
+            IntStream.range(0, intervals.size()).parallel().forEach(i -> {
+                Interval interval = intervals.get(i);
+                double[] state = initialStates.get(i).clone();
 
-                this.handleParameterizationIntervalBoundary(
-                        interval.end(),
-                        this.currentParameterizationInterval,
-                        this.currentParameterizationInterval - 1,
-                        state
+                if (parameterizationIntervals.contains(i)) {
+                    this.handleParameterizationIntervalBoundary(
+                            interval.end(),
+                            interval.parameterizationInterval() + 1,
+                            interval.parameterizationInterval(),
+                            state
+                    );
+                }
+
+                ContinuousOutputModel intervalResult = new ContinuousOutputModel();
+
+                DormandPrince853Integrator integrator = new DormandPrince853Integrator(
+                        integrationMinStep, integrationMaxStep, absoluteTolerance, relativeTolerance
                 );
+                integrator.addStepHandler(intervalResult);
+                integrator.integrate(this, interval.end(), state, interval.start(), state);
+                integrator.clearStepHandlers();
+
+                outputModels[intervals.size() - interval.interval() - 1] = intervalResult;
+            });
+
+        } else {
+
+            this.currentParameterizationInterval = this.param.getTotalIntervalCount() - 1;
+
+            double[] state = initialStates.get(initialStates.size() - 1).clone();
+            for (int i = intervals.size() - 1; i >= 0; i--) {
+                Interval interval = intervals.get(i);
+
+                if (alwaysStartAtInitialState) {
+                    state = initialStates.get(i).clone();
+                }
+
+                if (this.currentParameterizationInterval != interval.parameterizationInterval()) {
+                    assert this.currentParameterizationInterval - 1 == interval.parameterizationInterval();
+
+                    this.handleParameterizationIntervalBoundary(
+                            interval.end(),
+                            this.currentParameterizationInterval,
+                            this.currentParameterizationInterval - 1,
+                            state
+                    );
+                }
+
+                ContinuousOutputModel intervalResult = new ContinuousOutputModel();
+
+                integrator.addStepHandler(intervalResult);
+                integrator.integrate(this, interval.end(), state, interval.start(), state);
+                integrator.clearStepHandlers();
+
+                outputModels[intervals.size() - interval.interval() - 1] = intervalResult;
             }
-
-            ContinuousOutputModel intervalResult = new ContinuousOutputModel();
-
-            integrator.addStepHandler(intervalResult);
-            integrator.integrate(this, interval.end(), state, interval.start(), state);
-            integrator.clearStepHandlers();
-
-            outputModels[intervals.size() - interval.interval() - 1] = intervalResult;
         }
 
         return outputModels;

@@ -16,13 +16,11 @@ import beast.base.evolution.tree.Tree;
 import beast.base.evolution.tree.TreeInterface;
 import beast.base.inference.parameter.RealParameter;
 import org.apache.commons.math.special.Gamma;
-import org.apache.commons.math3.linear.MatrixUtils;
-import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.SingularMatrixException;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Citation(value = "Kuehnert D, Stadler T, Vaughan TG, Drummond AJ. (2016). " +
         "A General and Efficient Algorithm for the Likelihood of Diversification and Discrete-Trait Evolutionary Models, \n" +
@@ -281,7 +279,14 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 this.relativeTolerance
         );
 
-        // create the initial state
+        // create intervals
+
+        List<Interval> intervals = IntervalUtils.getIntervals(
+                this.parameterization,
+                this.parameterization.getTotalProcessLength() / this.minNumIntervals
+        );
+
+        // create the initial states
 
         int endInterval = this.parameterization.getTotalIntervalCount() - 1;
 
@@ -290,9 +295,13 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             initialState[i] = 1 - this.parameterization.getRhoValues()[endInterval][i];
         }
 
+        List<double[]> initialStates = intervals.stream().map(x -> initialState).toList();
+
         // integrate
 
-        ContinuousOutputModel[] integrationResults = system.integrateBackwards(initialState);
+        ContinuousOutputModel[] integrationResults = system.integrateBackwards(
+                initialStates, intervals, false
+        );
 
         return new ExtinctionProbabilities(integrationResults);
     }
