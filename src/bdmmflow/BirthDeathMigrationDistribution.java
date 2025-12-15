@@ -113,7 +113,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Boolean> parallelizeInput = new Input<>(
             "parallelize",
             "Whether or not parallelize the computation.",
-            true
+            false
     );
 
     /* If a large number a cores is available (more than 8 or 10) the
