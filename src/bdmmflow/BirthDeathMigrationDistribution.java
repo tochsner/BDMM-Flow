@@ -83,7 +83,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<String> initialMatrixStrategyInput = new Input<>(
             "initialMatrixStrategy",
             "The strategy to use to get the initial flow state. Either 'random', 'heuristic', or 'identity'.",
-            "random"
+            "identity"
     );
 
     public Input<Integer> minNumIntervalsInput = new Input<>(
@@ -354,7 +354,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             initialState[i] = 1 - this.parameterization.getRhoValues()[endInterval][i];
         }
 
-        List<double[]> initialStates = intervals.stream().map(x -> initialState).toList();
+        List<double[]> initialStates = List.of(initialState);
 
         // integrate
 

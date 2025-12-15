@@ -48,21 +48,21 @@ public class Benchmark {
                     boolean useInverseFlow = true;
                     BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, useSplitting, strategy, minNumIntervals);
                     BenchmarkResult result = new BenchmarkResult(
-                            parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
+                            i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
                     );
                     results.add(result);
 
                     useInverseFlow = false;
                     flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, useSplitting, strategy, minNumIntervals);
                     result = new BenchmarkResult(
-                            parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
+                            i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
                     );
                     results.add(result);
 
                     useSplitting = true;
                     flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, useSplitting, strategy, minNumIntervals);
                     result = new BenchmarkResult(
-                            parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
+                            i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
                     );
                     results.add(result);
                 }
@@ -127,7 +127,7 @@ public class Benchmark {
                 "tree", tree,
                 "frequencies", frequencies,
                 "typeLabel", "type",
-                "parallelize", true
+                "parallelize", false
         );
         density.initAndValidate();
 

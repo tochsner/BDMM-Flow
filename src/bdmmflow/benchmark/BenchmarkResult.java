@@ -8,6 +8,7 @@ import java.util.*;
 
 public class BenchmarkResult {
 
+    int trial;
     Parameterization parameterization;
     Tree tree;
     BenchmarkRun flowRun;
@@ -21,6 +22,7 @@ public class BenchmarkResult {
     List<String> bdmmMetricNames;
 
     public BenchmarkResult(
+            int trial,
             Parameterization parameterization,
             Tree tree,
             BenchmarkRun flowRun,
@@ -30,6 +32,7 @@ public class BenchmarkResult {
             String initialStateStrategy,
             int minNumIntervals
     ) {
+        this.trial = trial;
         this.parameterization = parameterization;
         this.tree = tree;
         this.flowRun = flowRun;
@@ -46,6 +49,8 @@ public class BenchmarkResult {
     @Override
     public String toString() {
         StringJoiner joiner = new StringJoiner(",");
+
+        joiner.add(Integer.toString(this.trial));
 
         joiner.add(Integer.toString(this.tree.getNodeCount()));
         joiner.add(Integer.toString(this.tree.getLeafNodeCount()));
@@ -76,6 +81,8 @@ public class BenchmarkResult {
 
     public String getHeaders() {
         StringJoiner joiner = new StringJoiner(",");
+
+        joiner.add("trial");
 
         joiner.add("node_count");
         joiner.add("leaf_count");
