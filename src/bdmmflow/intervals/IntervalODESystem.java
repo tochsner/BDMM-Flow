@@ -106,16 +106,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                     );
                 }
 
-                ContinuousOutputModel intervalResult = new ContinuousOutputModel();
-
-                DormandPrince853Integrator integrator = new DormandPrince853Integrator(
-                        integrationMinStep, integrationMaxStep, absoluteTolerance, relativeTolerance
-                );
-                integrator.addStepHandler(intervalResult);
-                integrator.integrate(this, interval.start(), state, interval.end(), state);
-                integrator.clearStepHandlers();
-
-                outputModels[interval.interval()] = intervalResult;
+                outputModels[interval.interval()] = this.integrate(state, interval.start(), interval.end());
             });
 
         } else {
@@ -140,13 +131,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                     );
                 }
 
-                ContinuousOutputModel intervalResult = new ContinuousOutputModel();
-
-                integrator.addStepHandler(intervalResult);
-                integrator.integrate(this, interval.start(), state, interval.end(), state);
-                integrator.clearStepHandlers();
-
-                outputModels[interval.interval()] = intervalResult;
+                outputModels[interval.interval()] = this.integrate(state, interval.start(), interval.end());
             }
         }
 
@@ -210,16 +195,9 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                     );
                 }
 
-                ContinuousOutputModel intervalResult = new ContinuousOutputModel();
-
-                DormandPrince853Integrator integrator = new DormandPrince853Integrator(
-                        integrationMinStep, integrationMaxStep, absoluteTolerance, relativeTolerance
+                outputModels[intervals.size() - interval.interval() - 1] = this.integrate(
+                        state, interval.end(), interval.start()
                 );
-                integrator.addStepHandler(intervalResult);
-                integrator.integrate(this, interval.end(), state, interval.start(), state);
-                integrator.clearStepHandlers();
-
-                outputModels[intervals.size() - interval.interval() - 1] = intervalResult;
             });
 
         } else {
@@ -245,17 +223,26 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                     );
                 }
 
-                ContinuousOutputModel intervalResult = new ContinuousOutputModel();
-
-                integrator.addStepHandler(intervalResult);
-                integrator.integrate(this, interval.end(), state, interval.start(), state);
-                integrator.clearStepHandlers();
-
-                outputModels[intervals.size() - interval.interval() - 1] = intervalResult;
+                outputModels[intervals.size() - interval.interval() - 1] = this.integrate(
+                        state, interval.end(), interval.start()
+                );
             }
         }
 
         return outputModels;
+    }
+
+    protected ContinuousOutputModel integrate(double[] initialState, double start, double end) {
+        ContinuousOutputModel intervalResult = new ContinuousOutputModel();
+
+        DormandPrince853Integrator integrator = new DormandPrince853Integrator(
+                integrationMinStep, integrationMaxStep, absoluteTolerance, relativeTolerance
+        );
+        integrator.addStepHandler(intervalResult);
+        integrator.integrate(this, start, initialState, end, initialState);
+        integrator.clearStepHandlers();
+
+        return intervalResult;
     }
 
     /**

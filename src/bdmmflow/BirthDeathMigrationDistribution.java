@@ -98,6 +98,12 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             false
     );
 
+    public Input<Boolean> useODESplittingInput = new Input<>(
+            "useODESplitting",
+            "Whether to use the inverse flow algorithm. It is faster, but can lead to higher numerical instability.",
+            false
+    );
+
     public Input<Integer> seedInput = new Input<>(
             "seed",
             "The random seed used in the analysis.",
@@ -147,6 +153,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     int minNumIntervals;
     boolean useInverseFlow;
+    boolean useODESplitting;
     int seed;
 
     boolean parallelize;
@@ -183,6 +190,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.minimalSubtreeSizeForParallelization = minimalSubtreeSizeForParallelizationInput.get();
         this.minNumIntervals = this.minNumIntervalsInput.get();
         this.useInverseFlow = this.useInverseFlowInput.get();
+        this.useODESplitting = this.useODESplittingInput.get();
 
         // validate typeLabelInput
 
@@ -375,6 +383,13 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         if (this.useInverseFlow) {
             system = new InverseFlowODESystem(
+                    this.parameterization,
+                    extinctionProbabilities,
+                    this.absoluteTolerance,
+                    this.relativeTolerance
+            );
+        } else if (this.useODESplitting) {
+            system = new DiagonalIPFlowODESystem(
                     this.parameterization,
                     extinctionProbabilities,
                     this.absoluteTolerance,

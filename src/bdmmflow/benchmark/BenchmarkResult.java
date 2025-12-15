@@ -4,7 +4,6 @@ import bdmmprime.parameterization.Parameterization;
 import beast.base.evolution.tree.Tree;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 public class BenchmarkResult {
@@ -14,6 +13,7 @@ public class BenchmarkResult {
     BenchmarkRun flowRun;
     BenchmarkRun bdmmRun;
     boolean useInverseFlow;
+    boolean useSplitting;
     String initialStateStrategy;
     int minNumIntervals;
 
@@ -26,6 +26,7 @@ public class BenchmarkResult {
             BenchmarkRun flowRun,
             BenchmarkRun bdmmRun,
             boolean useInverseFlow,
+            boolean useSplitting,
             String initialStateStrategy,
             int minNumIntervals
     ) {
@@ -34,6 +35,7 @@ public class BenchmarkResult {
         this.flowRun = flowRun;
         this.bdmmRun = bdmmRun;
         this.useInverseFlow = useInverseFlow;
+        this.useSplitting = useSplitting;
         this.initialStateStrategy = initialStateStrategy;
         this.minNumIntervals = minNumIntervals;
 
@@ -58,6 +60,7 @@ public class BenchmarkResult {
         joiner.add(Long.toString(this.bdmmRun.duration));
 
         joiner.add(Boolean.toString(this.useInverseFlow));
+        joiner.add(Boolean.toString(this.useSplitting));
         joiner.add(this.initialStateStrategy);
         joiner.add(Integer.toString(this.minNumIntervals));
 
@@ -87,6 +90,7 @@ public class BenchmarkResult {
         joiner.add("bdmm_duration");
 
         joiner.add("use_inverse_flow");
+        joiner.add("use_splitting");
         joiner.add("initial_state_strategy");
         joiner.add("num_intervals");
 

@@ -44,17 +44,25 @@ public class Benchmark {
                 };
 
                 for (String strategy : initialStateStrategies) {
+                    boolean useSplitting = false;
                     boolean useInverseFlow = true;
-                    BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, strategy, minNumIntervals);
+                    BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, useSplitting, strategy, minNumIntervals);
                     BenchmarkResult result = new BenchmarkResult(
-                            parameterization, tree, flowRun, bdmmRun, useInverseFlow, strategy, minNumIntervals
+                            parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
                     );
                     results.add(result);
 
                     useInverseFlow = false;
-                    flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, strategy, minNumIntervals);
+                    flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, useSplitting, strategy, minNumIntervals);
                     result = new BenchmarkResult(
-                            parameterization, tree, flowRun, bdmmRun, useInverseFlow, strategy, minNumIntervals
+                            parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
+                    );
+                    results.add(result);
+
+                    useSplitting = true;
+                    flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, useSplitting, strategy, minNumIntervals);
+                    result = new BenchmarkResult(
+                            parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
                     );
                     results.add(result);
                 }
@@ -88,6 +96,7 @@ public class Benchmark {
             Parameterization parameterization,
             RealParameter frequencies,
             boolean useInverseFlow,
+            boolean useSplitting,
             String initialStateStrategy,
             int minNumIntervals
     ) {
@@ -99,6 +108,7 @@ public class Benchmark {
                 "typeLabel", "type",
                 "initialMatrixStrategy", initialStateStrategy,
                 "useInverseFlow", useInverseFlow,
+                "useODESplitting", useSplitting,
                 "minNumIntervals", minNumIntervals
         );
         density.initAndValidate();
@@ -117,7 +127,7 @@ public class Benchmark {
                 "tree", tree,
                 "frequencies", frequencies,
                 "typeLabel", "type",
-                "parallelize", false
+                "parallelize", true
         );
         density.initAndValidate();
 

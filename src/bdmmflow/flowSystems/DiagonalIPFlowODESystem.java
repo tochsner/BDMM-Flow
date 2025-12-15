@@ -2,14 +2,12 @@ package bdmmflow.flowSystems;
 
 import bdmmflow.extinctionSystem.ExtinctionProbabilities;
 import bdmmflow.intervals.Interval;
-import bdmmflow.utils.LinearTimeInvMatrixSystem;
 import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.exception.MathIllegalArgumentException;
 import org.apache.commons.math3.exception.MaxCountExceededException;
 import org.apache.commons.math3.exception.OutOfRangeException;
-import org.apache.commons.math3.linear.BlockRealMatrix;
-import org.apache.commons.math3.linear.MatrixUtils;
+import org.apache.commons.math3.linear.DiagonalMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.sampling.StepInterpolator;
@@ -42,63 +40,19 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
         return false;
     }
 
-    /**
-     * Integrates over the system backwards in time. Integration is restarted at the given intervals.
-     * <p>
-     * The parameterization interval boundaries are handled automatically
-     * by calling handleParameterizationIntervalBoundary at the boundaries.
-     *
-     * @param initialStates the initial states at the interval ends.
-     * @param intervals the list of intervals where integration is restarted. Should include the parameterization intervals.
-     *                  Use IntervalUtils.getIntervals to generate these.
-     * @param alwaysStartAtInitialState if the integration should be restarted at the initial state at the interval boundaries.
-     *                                  this can increase numerical stability.
-     * @return the integration result.
-     */
-    public ContinuousOutputModel[] integrateBackwards(List<double[]> initialStates, List<Interval> intervals, boolean alwaysStartAtInitialState) {
+    @Override
+    protected ContinuousOutputModel integrate(double[] initialState, double start, double end) {
         if (isNonDiagonalTimeHeterogeneous) {
-            return super.integrateBackwards(initialStates, intervals, alwaysStartAtInitialState, false);
+            return super.integrate(initialState, start, end);
         }
 
-        this.currentParameterizationInterval = this.param.getTotalIntervalCount() - 1;
-
-        ContinuousOutputModel[] outputModels = new ContinuousOutputModel[intervals.size()];
-
-        double[] state = initialStates.get(initialStates.size() - 1).clone();
-        for (int i = intervals.size() - 1; i >= 0; i--) {
-            Interval interval = intervals.get(i);
-
-            if (alwaysStartAtInitialState) {
-                state = initialStates.get(i).clone();
-            }
-
-            if (this.currentParameterizationInterval != interval.parameterizationInterval()) {
-                assert this.currentParameterizationInterval - 1 == interval.parameterizationInterval();
-
-                this.handleParameterizationIntervalBoundary(
-                        interval.end(),
-                        this.currentParameterizationInterval,
-                        this.currentParameterizationInterval - 1,
-                        state
-                );
-            }
-
-            outputModels[intervals.size() - interval.interval() - 1] = integrate(
-                    interval.end(), interval.start(), state
-            );
-        }
-
-        return outputModels;
-    }
-
-    private SimpleContinuousModel integrate(double start, double end, double[] state) {
         int n = this.param.getNTypes();
 
-        int numSteps = 10;
+        int numSteps = 16;
         double stepSize = (end - start) / (numSteps - 1);
 
         double[] times = new double[numSteps];
-        double[][] states = new double[numSteps][state.length];
+        double[][] states = new double[numSteps][initialState.length];
 
         // pre-compute non-diagonal exponential
 
@@ -111,17 +65,16 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
         // run Strang scheme
 
         times[0] = start;
-        states[0] = state;
+        states[0] = initialState;
 
-        RealMatrix lastStateMatrix = Utils.toMatrix(state, n);
-        RealMatrix timeVaryingMatrix = new BlockRealMatrix(n, n);
+        RealMatrix lastStateMatrix = Utils.toMatrix(initialState, n);
+        DiagonalMatrix timeVaryingMatrix = new DiagonalMatrix(n);
 
         for (int i = 1; i < numSteps; i++) {
             double time = start + i*stepSize;
             times[i] = time;
 
-            timeVaryingMatrix = timeVaryingMatrix.scalarMultiply(0.0);
-            this.addTimeVaryingSystemMatrix(time - 0.5*stepSize, timeVaryingMatrix);
+            this.setDiagonalTimeVaryingSystemMatrix(time - 0.5*stepSize, timeVaryingMatrix);
 
             // compute diagonal exponential
 

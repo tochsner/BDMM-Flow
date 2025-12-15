@@ -116,6 +116,30 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     }
 
     /**
+     * Builds the time-varying part of the system matrix for a given interval. This has to be computed for every
+     * time step.
+     */
+    void setDiagonalTimeVaryingSystemMatrix(double t, DiagonalMatrix system) {
+        double[] extinctProbabilities = this.extinctionProbabilities.getProbability(t);
+
+        for (int i = 0; i < param.getNTypes(); i++) {
+            system.setEntry(
+                    i,
+                    i,
+                    -2 * this.birthRates[currentParameterizationInterval][i] * extinctProbabilities[i]
+            );
+
+            for (int j = 0; j < param.getNTypes(); j++) {
+                system.addToEntry(
+                        i,
+                        i,
+                        -this.crossBirthRates[currentParameterizationInterval][i][j] * extinctProbabilities[j]
+                );
+            }
+        }
+    }
+
+    /**
      * Builds the system matrix for a given time point.
      */
     RealMatrix buildSystemMatrix(double t) {
