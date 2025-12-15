@@ -30,17 +30,13 @@ public class Benchmark {
                 Parameterization parameterization = sampler.sampleParameterization();
                 RealParameter frequencies = sampler.sampleFrequencies(parameterization);
                 Tree tree = simulateTree(parameterization, frequencies);
-                int minNumIntervals = Math.random() > 0.5 ? 1 : 4;
+                int minNumIntervals = 8;
 
                 BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, frequencies);
 
                 String[] initialStateStrategies = new String[]{
                         "identity",
                         "random",
-//                        "taylor_heuristic",
-//                        "error_heuristic",
-//                        "probe_heuristic",
-//                        "taylor_exp_heuristic"
                 };
 
                 for (String strategy : initialStateStrategies) {
