@@ -104,6 +104,29 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             3215
     );
 
+    public Input<Boolean> parallelizeInput = new Input<>(
+            "parallelize",
+            "Whether or not parallelize the computation.",
+            true
+    );
+
+    /* If a large number a cores is available (more than 8 or 10) the
+    calculation speed can be increased by diminishing the parallelization
+    factor. On the contrary, if only 2-4 cores are available, a slightly
+    higher value (1/5 to 1/8) can be beneficial to the calculation speed. */
+    public Input<Double> minimalProportionForParallelizationInput = new Input<>(
+            "parallelizationFactor",
+            "the minimal relative size the two children " +
+                    "subtrees of a node must have to start parallel " +
+                    "calculations on the children. (default: 1/10). ",
+            1.0 / 10);
+    public Input<Integer> minimalSubtreeSizeForParallelizationInput = new Input<>(
+            "minimalSubtreeSizeForParallelization",
+            "the minimal absolute size the two children " +
+                    "subtrees of a node must have to start parallel " +
+                    "calculations on the children. ",
+            16);
+
 
     private Parameterization parameterization;
 
@@ -126,10 +149,17 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     boolean useInverseFlow;
     int seed;
 
+    boolean parallelize;
+    double minimalProportionForParallelization;
+    double minimalSubtreeSizeForParallelization;
+
     int numTypes;
 
     double[] logScalingFactors;
     boolean[] isRhoSampled;
+
+    int[] subtreeSizes;
+    double parallelizeSubtreeSizeThreshold;
 
     @Override
     public void initAndValidate() {
@@ -148,6 +178,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.numTypes = this.parameterization.getNTypes();
         this.initialMatrixStrategy = this.initialMatrixStrategyInput.get();
         this.seed = this.seedInput.get();
+        this.parallelize = this.parallelizeInput.get();
+        this.minimalProportionForParallelization = minimalProportionForParallelizationInput.get();
+        this.minimalSubtreeSizeForParallelization = minimalSubtreeSizeForParallelizationInput.get();
         this.minNumIntervals = this.minNumIntervalsInput.get();
         this.useInverseFlow = this.useInverseFlowInput.get();
 
@@ -189,6 +222,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         this.logScalingFactors = new double[this.tree.getNodeCount()];
         this.initializeIsRhoSampled();
+        this.initializeSubtreeSizes();
     }
 
     /**
@@ -210,6 +244,23 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 }
             }
         }
+    }
+
+    private void initializeSubtreeSizes() {
+        this.subtreeSizes = new int[this.tree.getNodeCount()];
+        initializeSubtreeSizes(tree.getRoot());
+        this.parallelizeSubtreeSizeThreshold = Math.max(
+                this.subtreeSizes[tree.getRoot().getNr()] * this.minimalProportionForParallelization,
+                this.minimalSubtreeSizeForParallelization
+        );
+    }
+    private int initializeSubtreeSizes(Node node) {
+        int subtreeSize = 1;
+        for (Node child : node.getChildren()) {
+            subtreeSize += this.initializeSubtreeSizes(child);
+        }
+        this.subtreeSizes[node.getNr()] = subtreeSize;
+        return subtreeSize;
     }
 
     /**
@@ -300,7 +351,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         // integrate
 
         ContinuousOutputModel[] integrationResults = system.integrateBackwards(
-                initialStates, intervals, false
+                initialStates, intervals, false, parallelize
         );
 
         return new ExtinctionProbabilities(integrationResults);
@@ -341,7 +392,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         return system.calculateFlowIntegral(
                 intervals,
                 initialMatrixStrategy,
-                resetInitialStateAtIntervalBoundaries
+                resetInitialStateAtIntervalBoundaries,
+                parallelize
         );
     }
 
@@ -499,22 +551,42 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         int intervalEdgeEnd = this.parameterization.getIntervalIndex(timeEdgeEnd);
 
         Node child1 = root.getChild(0);
-        double[] likelihoodChild1 = this.calculateSubTreeLikelihood(
-                child1,
-                timeEdgeEnd,
-                this.parameterization.getNodeTime(child1, this.finalSampleOffset),
-                flow,
-                extinctionProbabilities
-        );
-
         Node child2 = root.getChild(1);
-        double[] likelihoodChild2 = this.calculateSubTreeLikelihood(
-                child2,
-                timeEdgeEnd,
-                this.parameterization.getNodeTime(child2, this.finalSampleOffset),
-                flow,
-                extinctionProbabilities
-        );
+
+        double[] likelihoodChild1;
+        double[] likelihoodChild2;
+
+        if (parallelize
+                && subtreeSizes[child1.getNr()] > parallelizeSubtreeSizeThreshold
+                && subtreeSizes[child2.getNr()] > parallelizeSubtreeSizeThreshold
+        ) {
+            List<double[]> likelihoodChildren = root.getChildren().parallelStream().map(
+                    child -> this.calculateSubTreeLikelihood(
+                            child,
+                            timeEdgeEnd,
+                            this.parameterization.getNodeTime(child, this.finalSampleOffset),
+                            flow.copy(),
+                            extinctionProbabilities.copy()
+                    )
+            ).toList();
+            likelihoodChild1 = likelihoodChildren.get(0);
+            likelihoodChild2 = likelihoodChildren.get(1);
+        } else {
+            likelihoodChild1 = this.calculateSubTreeLikelihood(
+                    child1,
+                    timeEdgeEnd,
+                    this.parameterization.getNodeTime(child1, this.finalSampleOffset),
+                    flow,
+                    extinctionProbabilities
+            );
+            likelihoodChild2 = this.calculateSubTreeLikelihood(
+                    child2,
+                    timeEdgeEnd,
+                    this.parameterization.getNodeTime(child2, this.finalSampleOffset),
+                    flow,
+                    extinctionProbabilities
+            );
+        }
 
         // combine the child likelihoods to get the likelihood at the edge end
 

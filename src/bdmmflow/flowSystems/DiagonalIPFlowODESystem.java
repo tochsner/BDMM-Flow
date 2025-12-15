@@ -57,7 +57,7 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
      */
     public ContinuousOutputModel[] integrateBackwards(List<double[]> initialStates, List<Interval> intervals, boolean alwaysStartAtInitialState) {
         if (isNonDiagonalTimeHeterogeneous) {
-            return super.integrateBackwards(initialStates, intervals, alwaysStartAtInitialState);
+            return super.integrateBackwards(initialStates, intervals, alwaysStartAtInitialState, false);
         }
 
         this.currentParameterizationInterval = this.param.getTotalIntervalCount() - 1;

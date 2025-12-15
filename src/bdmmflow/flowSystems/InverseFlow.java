@@ -6,6 +6,8 @@ import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.util.Pair;
 
+import java.util.List;
+
 /**
  * This class is a lightweight wrapper of the result of the Inverse Flow ODE integration. It allows to easily query the
  * inverse flow at every point in time and to use the inverse flow to efficiently integrate over a time span.
@@ -32,6 +34,14 @@ public class InverseFlow implements IFlow {
         this.n = n;
         this.inverseInitialState = inverseInitialState;
         this.wasInitialStateResetAtEachInterval = useIntervals;
+        this.accumulatedFlowCache = new RealMatrix[outputModels.length][outputModels.length];
+    }
+
+    private InverseFlow(ContinuousOutputModel[] outputModels, int n, boolean wasInitialStateResetAtEachInterval, RealMatrix inverseInitialState) {
+        this.outputModels = outputModels;
+        this.n = n;
+        this.wasInitialStateResetAtEachInterval = wasInitialStateResetAtEachInterval;
+        this.inverseInitialState = inverseInitialState;
         this.accumulatedFlowCache = new RealMatrix[outputModels.length][outputModels.length];
     }
 
@@ -119,5 +129,18 @@ public class InverseFlow implements IFlow {
         }
 
         return this.outputModels.length - 1;
+    }
+
+    public InverseFlow copy() {
+        ContinuousOutputModel[] clonedOutputModels = new ContinuousOutputModel[this.outputModels.length];
+
+        for (int i = 0; i < this.outputModels.length; i++) {
+            clonedOutputModels[i] = new ContinuousOutputModel();
+            clonedOutputModels[i].append(this.outputModels[i]);
+        }
+
+        return new InverseFlow(
+                clonedOutputModels, this.n, this.wasInitialStateResetAtEachInterval, this.inverseInitialState
+        );
     }
 }

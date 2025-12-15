@@ -43,6 +43,14 @@ public class Flow implements IFlow {
         }
     }
 
+    private Flow(ContinuousOutputModel[] outputModels, int n, boolean wasInitialStateResetAtEachInterval, List<RealMatrix> inverseInitialStates) {
+        this.outputModels = outputModels;
+        this.n = n;
+        this.wasInitialStateResetAtEachInterval = wasInitialStateResetAtEachInterval;
+        this.inverseInitialStates = inverseInitialStates;
+        this.accumulatedFlowCache = new RealMatrix[outputModels.length][outputModels.length];
+    }
+
     /**
      * Allows to integrate over an edge of a tree using the pre-computed flow.
      *
@@ -131,5 +139,18 @@ public class Flow implements IFlow {
         }
 
         return this.outputModels.length - 1;
+    }
+
+    public Flow copy() {
+        ContinuousOutputModel[] clonedOutputModels = new ContinuousOutputModel[this.outputModels.length];
+
+        for (int i = 0; i < this.outputModels.length; i++) {
+            clonedOutputModels[i] = new ContinuousOutputModel();
+            clonedOutputModels[i].append(this.outputModels[i]);
+        }
+
+        return new Flow(
+                clonedOutputModels, this.n, this.wasInitialStateResetAtEachInterval, this.inverseInitialStates
+        );
     }
 }

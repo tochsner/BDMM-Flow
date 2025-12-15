@@ -60,6 +60,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
         return this.integrateForwards(
                 initialState,
                 IntervalUtils.getIntervals(this.param, this.param.getTotalProcessLength()),
+                false,
                 false
         );
     }
@@ -77,10 +78,10 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
      *                                  this can increase numerical stability.
      * @return the integration result.
      */
-    public ContinuousOutputModel[] integrateForwards(double[] initialState, List<Interval> intervals, boolean alwaysStartAtInitialState) {
+    public ContinuousOutputModel[] integrateForwards(double[] initialState, List<Interval> intervals, boolean alwaysStartAtInitialState, boolean parallelize) {
         ContinuousOutputModel[] outputModels = new ContinuousOutputModel[intervals.size()];
 
-        if (alwaysStartAtInitialState) {
+        if (alwaysStartAtInitialState && parallelize) {
             Set<Integer> parameterizationIntervals = new HashSet<>();
             int currentParameterizationInterval = 0;
             for (int i = 0; i < intervals.size(); i++) {
@@ -163,6 +164,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
         return this.integrateBackwards(
                 List.of(initialState),
                 IntervalUtils.getIntervals(this.param, this.param.getTotalProcessLength()),
+                false,
                 false
         );
     }
@@ -180,10 +182,10 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
      *                                  this can increase numerical stability.
      * @return the integration result.
      */
-    public ContinuousOutputModel[] integrateBackwards(List<double[]> initialStates, List<Interval> intervals, boolean alwaysStartAtInitialState) {
+    public ContinuousOutputModel[] integrateBackwards(List<double[]> initialStates, List<Interval> intervals, boolean alwaysStartAtInitialState, boolean parallelize) {
         ContinuousOutputModel[] outputModels = new ContinuousOutputModel[intervals.size()];
 
-        if (alwaysStartAtInitialState) {
+        if (alwaysStartAtInitialState && parallelize) {
             Set<Integer> parameterizationIntervals = new HashSet<>();
             double currentParameterizationInterval = this.param.getTotalIntervalCount() - 1;
             for (int i = intervals.size() - 1; i >= 0; i--) {

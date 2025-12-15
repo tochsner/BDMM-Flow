@@ -170,7 +170,8 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
     public IFlow calculateFlowIntegral(
             List<Interval> intervals,
             String initialMatrixStrategy,
-            boolean resetInitialStateAtIntervalsBoundaries
+            boolean resetInitialStateAtIntervalsBoundaries,
+            boolean parallelize
     ) {
         RealMatrix initialState = this.getInitialState(initialMatrixStrategy);
         double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
@@ -181,7 +182,8 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         ContinuousOutputModel[] rawOutputs = this.integrateForwards(
                 initialStateArray,
                 intervals,
-                resetInitialStateAtIntervalsBoundaries
+                resetInitialStateAtIntervalsBoundaries,
+                parallelize
         );
         return new InverseFlow(
                 rawOutputs,

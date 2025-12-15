@@ -1,11 +1,8 @@
 package bdmmflow.flowSystems;
 
-import bdmmflow.benchmark.BenchmarkRun;
-import bdmmflow.benchmark.LoggedMetric;
 import bdmmflow.extinctionSystem.ExtinctionProbabilities;
 import bdmmflow.intervals.Interval;
 import bdmmflow.intervals.IntervalODESystem;
-import bdmmflow.utils.LinearTimeInvMatrixSystem;
 import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
@@ -15,10 +12,7 @@ import org.jblas.MatrixFunctions;
 
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.lang.reflect.Field;
-import java.util.stream.IntStream;
 
 /**
  * This class represents the classical flow ODE.
@@ -90,9 +84,6 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
         return system;
     }
-
-    // this.deathRates[interval][i] + this.samplingRates[interval][i] + this.birthRates[interval][i] ( 1 - 2 * extinctProbabilities[i]) + sum_j( this.crossBirthRates[interval][i][j] (1.0 - 2* extinctProbabilities[j] )
-
 
     /**
      * Builds the time-varying part of the system matrix for a given interval. This has to be computed for every
@@ -341,14 +332,16 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     public IFlow calculateFlowIntegral(
             List<Interval> intervals,
             String initialMatrixStrategy,
-            boolean resetInitialStateAtIntervalsBoundaries
+            boolean resetInitialStateAtIntervalsBoundaries,
+            boolean parallelize
     ) {
         List<double[]> initialStates = this.getInitialStates(initialMatrixStrategy, intervals);
 
         ContinuousOutputModel[] rawOutputs = this.integrateBackwards(
                 initialStates,
                 intervals,
-                resetInitialStateAtIntervalsBoundaries
+                resetInitialStateAtIntervalsBoundaries,
+                parallelize
         );
 
         // log num integration steps taken

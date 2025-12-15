@@ -36,4 +36,15 @@ public class ExtinctionProbabilities {
 
         return this.getProbability(this.outputModels[this.outputModels.length - 1], time);
     }
+
+    public ExtinctionProbabilities copy() {
+        ContinuousOutputModel[] clonedOutputModels = new ContinuousOutputModel[this.outputModels.length];
+
+        for (int i = 0; i < this.outputModels.length; i++) {
+            clonedOutputModels[i] = new ContinuousOutputModel();
+            clonedOutputModels[i].append(this.outputModels[i]);
+        }
+
+        return new ExtinctionProbabilities(clonedOutputModels);
+    }
 }
