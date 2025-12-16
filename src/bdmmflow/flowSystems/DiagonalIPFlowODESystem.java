@@ -1,7 +1,6 @@
 package bdmmflow.flowSystems;
 
 import bdmmflow.extinctionSystem.ExtinctionProbabilities;
-import bdmmflow.intervals.Interval;
 import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.exception.MathIllegalArgumentException;
@@ -15,7 +14,9 @@ import org.apache.commons.math3.util.FastMath;
 import org.jblas.DoubleMatrix;
 import org.jblas.MatrixFunctions;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * This class represents the classical flow ODE.
@@ -23,6 +24,9 @@ import java.util.List;
 public class DiagonalIPFlowODESystem extends FlowODESystem {
 
     boolean isNonDiagonalTimeHeterogeneous;
+
+    // cache for matrix exponentials to avoid recomputation
+    private final Map<ExponentialCacheKey, RealMatrix> nonDiagonalExpCache = new HashMap<>();
 
     public DiagonalIPFlowODESystem(Parameterization parameterization, ExtinctionProbabilities extinctionProbabilities, double absoluteTolerance, double relativeTolerance) {
         super(parameterization, extinctionProbabilities, absoluteTolerance, relativeTolerance);
@@ -48,19 +52,25 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
 
         int n = this.param.getNTypes();
 
-        int numSteps = 16;
+        int numSteps = 8;
         double stepSize = (end - start) / (numSteps - 1);
 
         double[] times = new double[numSteps];
         double[][] states = new double[numSteps][initialState.length];
 
-        // pre-compute non-diagonal exponential
+        // pre-compute non-diagonal exponential (with caching)
 
         int interval = this.param.getIntervalIndex(start);
-        DoubleMatrix constantSystem = Utils.toMatrix(this.buildTimeInvariantSystemMatrix(interval));
-        RealMatrix nonDiagonalExp = Utils.toMatrix(MatrixFunctions.expm(
-                constantSystem.mul(stepSize / 2)
-        ));
+        ExponentialCacheKey cacheKey = new ExponentialCacheKey(interval, stepSize);
+
+        RealMatrix nonDiagonalExp = nonDiagonalExpCache.get(cacheKey);
+        if (nonDiagonalExp == null) {
+            DoubleMatrix constantSystem = Utils.toMatrix(this.buildTimeInvariantSystemMatrix(interval));
+            nonDiagonalExp = Utils.toMatrix(MatrixFunctions.expm(
+                    constantSystem.mul(stepSize / 2)
+            ));
+            nonDiagonalExpCache.put(cacheKey, nonDiagonalExp);
+        }
 
         // run Strang scheme
 
@@ -85,7 +95,7 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
             // compute new state using the Strang scheme
 
             lastStateMatrix = nonDiagonalExp
-                    .multiply(timeVaryingMatrix).multiply(nonDiagonalExp).multiply(lastStateMatrix);
+                    .multiply(timeVaryingMatrix.multiply(nonDiagonalExp)).multiply(lastStateMatrix);
             Utils.fillArray(lastStateMatrix, states[i]);
         }
 
@@ -187,6 +197,32 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
 
         public double[] getInterpolatedSecondaryDerivatives(int secondaryStateIndex) throws MaxCountExceededException {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    /**
+     * cache key for storing matrix exponentials based on interval and step size
+     */
+    private static class ExponentialCacheKey {
+        final int interval;
+        final double stepSize;
+
+        ExponentialCacheKey(int interval, double stepSize) {
+            this.interval = interval;
+            this.stepSize = stepSize;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ExponentialCacheKey that = (ExponentialCacheKey) o;
+            return interval == that.interval && Double.compare(that.stepSize, stepSize) == 0;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(interval, stepSize);
         }
     }
 
