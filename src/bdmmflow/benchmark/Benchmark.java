@@ -29,7 +29,6 @@ public class Benchmark {
             Parameterization parameterization = sampler.sampleParameterization();
             RealParameter startTypePriorProbs = sampler.sampleStartTypePriorProbs(parameterization);
             Tree tree = simulateTree(parameterization, startTypePriorProbs);
-            int minNumIntervals = 8;
 
             BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, startTypePriorProbs);
 
@@ -41,23 +40,23 @@ public class Benchmark {
             for (String strategy : initialStateStrategies) {
                 boolean useSplitting = false;
                 boolean useInverseFlow = true;
-                BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy, minNumIntervals);
+                BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy);
                 BenchmarkResult result = new BenchmarkResult(
-                        i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
+                        i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy
                 );
                 results.add(result);
 
                 useInverseFlow = false;
-                flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy, minNumIntervals);
+                flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy);
                 result = new BenchmarkResult(
-                        i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
+                        i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy
                 );
                 results.add(result);
 
                 useSplitting = true;
-                flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy, minNumIntervals);
+                flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy);
                 result = new BenchmarkResult(
-                        i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
+                        i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy
                 );
                 results.add(result);
             }
@@ -89,8 +88,7 @@ public class Benchmark {
             RealParameter startTypePriorProbs,
             boolean useInverseFlow,
             boolean useSplitting,
-            String initialStateStrategy,
-            int minNumIntervals
+            String initialStateStrategy
     ) {
         BirthDeathMigrationDistribution density = new BirthDeathMigrationDistribution();
         density.initByName(
@@ -101,7 +99,6 @@ public class Benchmark {
                 "initialMatrixStrategy", initialStateStrategy,
                 "useInverseFlow", useInverseFlow,
                 "useODESplitting", useSplitting,
-                "minNumIntervals", minNumIntervals,
                 "parallelize", true
         );
         density.initAndValidate();

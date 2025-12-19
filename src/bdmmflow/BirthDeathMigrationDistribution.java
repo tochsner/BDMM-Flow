@@ -85,12 +85,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             "identity"
     );
 
-    public Input<Integer> minNumIntervalsInput = new Input<>(
-            "minNumIntervals",
-            "The number of intervals the time span is broken up into. Increase this when running into numerical stability issues.",
-            1
-    );
-
     public Input<Boolean> useInverseFlowInput = new Input<>(
             "useInverseFlow",
             "Whether to use the inverse flow algorithm. It is faster, but can lead to higher numerical instability.",
@@ -150,7 +144,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     double absoluteTolerance;
     double relativeTolerance;
 
-    int minNumIntervals;
+    int minNumIntervals = 1;
     boolean useInverseFlow;
     boolean useODESplitting;
     int seed;
@@ -187,7 +181,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.parallelize = this.parallelizeInput.get();
         this.minimalProportionForParallelization = minimalProportionForParallelizationInput.get();
         this.minimalSubtreeSizeForParallelization = minimalSubtreeSizeForParallelizationInput.get();
-        this.minNumIntervals = this.minNumIntervalsInput.get();
         this.useInverseFlow = this.useInverseFlowInput.get();
         this.useODESplitting = this.useODESplittingInput.get();
 

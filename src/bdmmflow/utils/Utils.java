@@ -9,19 +9,6 @@ import java.util.Random;
 public class Utils {
 
     /**
-     * Returns whether the matrix is singular.
-     *
-     * @param matrix the matrix to check.
-     * @return if the matrix is singular.
-     */
-    public static boolean isSingular(RealMatrix matrix) {
-        if (matrix.getRowDimension() != matrix.getColumnDimension()) return false;
-
-        SingularValueDecomposition svd = new SingularValueDecomposition(matrix);
-        return svd.getRank() != matrix.getColumnDimension();
-    }
-
-    /**
      * Returns a random square matrix of the given dimension.
      */
     public static RealMatrix getRandomMatrix(int dimension) {
@@ -37,7 +24,7 @@ public class Utils {
 
         for (int i = 0; i < dimension; i++) {
             for (int j = 0; j < dimension; j++) {
-                randomMatrix.setEntry(i, j, random.nextGaussian());
+                randomMatrix.setEntry(i, j, random.nextDouble());
             }
         }
 
