@@ -40,7 +40,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
         this.birthRates = this.param.getBirthRates();
         this.deathRates = this.param.getDeathRates();
         this.samplingRates = this.param.getSamplingRates();
-        this.crossBirthRates = this.param.getCrossBirthRates();
+        this.crossBirthRates = this.param.getCrossBirthRates2();
         this.migrationRates = this.param.getMigRates();
 
         this.timeInvariantSystemMatrices = new RealMatrix[this.param.getTotalIntervalCount()];
