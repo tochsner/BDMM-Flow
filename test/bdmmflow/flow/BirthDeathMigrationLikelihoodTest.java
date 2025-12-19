@@ -6,13 +6,42 @@ import beast.base.evolution.tree.TreeParser;
 import beast.base.inference.parameter.RealParameter;
 import org.apache.commons.math.special.Gamma;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 import static junit.framework.Assert.assertEquals;
 
 /**
  * These tests were taken from the <a href="https://github.com/tgvaughan/BDMM-Prime">BDMM-Prime package.</a>
  */
+@RunWith(Parameterized.class)
 public class BirthDeathMigrationLikelihoodTest {
+
+    private final String initialStateStrategy;
+    private final boolean useInverseFlow;
+    private final boolean parallelize;
+
+    @Parameters(name = "strategy={0}, useInverseFlow={1}, parallelize={2}")
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {
+            { "identity", false,  false },
+            { "identity", false,  true },
+            { "random",  false, false },
+            { "random",  false, true },
+            { "random", true,  false },
+            { "random", true,  true },
+        });
+    }
+
+    public BirthDeathMigrationLikelihoodTest(String initialStateStrategy, boolean useInverseFlow, boolean parallelize) {
+        this.initialStateStrategy = initialStateStrategy;
+        this.useInverseFlow = useInverseFlow;
+        this.parallelize = parallelize;
+    }
 
     /**
      * The original tests were developed assuming BDSKY/BDMM-like behaviour, i.e. return an oriented
@@ -83,7 +112,10 @@ public class BirthDeathMigrationLikelihoodTest {
                         false, false,
                         true, 0),
                 "conditionOnSurvival", false,
-                "typeLabel", "state"
+                "typeLabel", "state",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         double logL = density.calculateLogP();
@@ -142,7 +174,10 @@ public class BirthDeathMigrationLikelihoodTest {
                         false, false,
                         true, 0),
                 "conditionOnSurvival", false,
-                "typeLabel", "state"
+                "typeLabel", "state",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         double logL = density.calculateLogP();
@@ -189,7 +224,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "tree", new TreeParser(newick, false, false, true, 0),
                 "conditionOnSurvival", false,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         double logL = density.calculateLogP();
@@ -204,7 +242,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "tree", new TreeParser(newick, false, false, true, 0),
                 "conditionOnSurvival", false,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         double logLExact = densityExact.calculateLogP();
@@ -249,7 +290,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "tree", new TreeParser(newick, false, false, true, 0),
                 "conditionOnSurvival", false,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
                 );
 
         double logLnumerical = density.calculateLogP();
@@ -260,7 +304,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "tree", new TreeParser(newick, false, false, true, 0),
                 "conditionOnSurvival", false,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
                 );
 
         double logLanalytical = densityExact.calculateLogP();
@@ -311,7 +358,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("0.5 0.5"),
                 "tree", new TreeParser(newick, false, false, true, 0),
                 "conditionOnSurvival", false,
-                "typeLabel", "type");
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize);
 
         double logL = density.calculateLogP();
 
@@ -352,7 +402,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "tree", tree,
                 "conditionOnSurvival", false,
-                "typeLabel", "state"
+                "typeLabel", "state",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
                 );
 
         assertEquals(-19.019796073623493 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-5);   // Reference BDSKY (version 1.3.3)
@@ -390,7 +443,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "tree", tree,
                 "conditionOnSurvival", false,
-                "typeLabel", "state");
+                "typeLabel", "state",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize);
 
         assertEquals(-33.7573 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-4); // Reference BDSKY
     }
@@ -432,7 +488,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("0.5 0.5"),
                 "tree", tree,
                 "conditionOnSurvival", false,
-                "typeLabel", "state"
+                "typeLabel", "state",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
                 );
 
         assertEquals(-7.215222 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-6); // result from R
@@ -536,7 +595,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("0.5 0.5"),
                 "tree", tree,
                 "conditionOnSurvival", false,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         assertEquals(-26.53293 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-5);
@@ -583,7 +645,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("0.5 0.5"),
                 "tree", tree,
                 "conditionOnSurvival", false,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         assertEquals(-16.466832439520886 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-4); // result from BDMM, 28/06/2017
@@ -630,7 +695,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0 0.0"),
                 "tree", tree,
                 "conditionOnSurvival", false,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         assertEquals(-12.1441 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-4); // tanja's result from R
@@ -673,7 +741,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter((1.0/3.0) + " " + (1.0/3.0) + " " + (1.0/3.0)),
                 "tree", tree,
                 "conditionOnSurvival", false,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         assertEquals(-16.88601100061662 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-4); // result from BDMM, version 0.2.0, 06/07/2017
@@ -706,7 +777,10 @@ public class BirthDeathMigrationLikelihoodTest {
         density.initByName(
                 "parameterization", parameterization, "relTolerance", 1e-10,
                 "tree", new TreeParser(newick, false, false, true,0),
-                "conditionOnSurvival", false
+                "conditionOnSurvival", false,
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         // this value was calculated by Sasha with Mathematica
@@ -746,7 +820,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "conditionOnSurvival", true,
                 "tree", tree,
-                "typeLabel", "state"
+                "typeLabel", "state",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         double logPnumeric = density.calculateLogP();
@@ -797,7 +874,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("0.5 0.5"),
                 "conditionOnSurvival", true,
                 "tree", tree,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         //System.out.println("Log-likelihood " + logL + " - testLikelihoodCalculationInfAmongDemes \t");
@@ -842,7 +922,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("0.5 0.5"),
                 "conditionOnSurvival", true,
                 "tree", tree,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         assertEquals(-26.7939 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-5);  //result from R
@@ -881,7 +964,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "conditionOnSurvival", true,
                 "tree", tree,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         assertEquals(-18.854438107814335 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-4); //Reference value from BDSKY (23/03/2017)
@@ -914,7 +1000,10 @@ public class BirthDeathMigrationLikelihoodTest {
         density.initByName(
                 "parameterization", parameterization, "relTolerance", 1e-10,
                 "conditionOnSurvival", true,
-                "tree", new TreeParser(newick, false, false, true,0)
+                "tree", new TreeParser(newick, false, false, true,0),
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         // this value was calculated by Sasha with Mathematica
@@ -957,7 +1046,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "conditionOnSurvival", true,
                 "conditionOnRoot", true,
                 "tree", tree,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         // Conditioned on root:
@@ -1019,7 +1111,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "tree", new TreeParser(newick1, false, false, true,0),
                 "startTypePriorProbs", new RealParameter("0.5 0.5"),
                 "conditionOnSurvival", false,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         density.setInputValue("tree", new TreeParser(newick1, false, false, true,0));
@@ -1076,7 +1171,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "conditionOnRoot", true,
                 "tree", tree,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         double logL = density.calculateLogP();
@@ -1150,7 +1248,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "conditionOnSurvival", true,
                 "tree", tree,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
 //        double logL = density.calculateLogP();
@@ -1216,7 +1317,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "conditionOnSurvival", false,
                 "tree", tree,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         assertEquals(-124.96086690757612 + labeledTreeConversionFactor(density),
@@ -1277,7 +1381,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "conditionOnSurvival", true,
                 "tree", tree,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         assertEquals(-21.42666177086957 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-5);
@@ -1322,7 +1429,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "conditionOnSurvival", false,
                 "tree", tree,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         assertEquals(-87.59718586549747 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-4);
@@ -1366,7 +1476,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "conditionOnSurvival", false,
                 "tree", tree,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         assertEquals(-87.96488 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-1);
@@ -1410,7 +1523,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "conditionOnSurvival", false,
                 "conditionOnRoot", true,
                 "tree", tree,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         assertEquals(-99.0428845398644 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-1);
@@ -1456,7 +1572,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "conditionOnSurvival", false,
                 "conditionOnRoot", true,
                 "tree", tree,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         // Corrected value from BDMM (original was incorrectly conditioned)
@@ -1503,7 +1622,10 @@ public class BirthDeathMigrationLikelihoodTest {
                 "startTypePriorProbs", new RealParameter("1.0"),
                 "conditionOnSurvival", true,
                 "tree", tree,
-                "typeLabel", "type"
+                "typeLabel", "type",
+                "initialMatrixStrategy", initialStateStrategy,
+                "useInverseFlow", useInverseFlow,
+                "parallelize", parallelize
         );
 
         assertEquals(-22.348462265673483 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-5); //Reference value from BDSKY (06/04/2017)
