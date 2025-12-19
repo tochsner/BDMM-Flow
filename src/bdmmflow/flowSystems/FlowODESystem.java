@@ -31,44 +31,45 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     public FlowODESystem(
             Parameterization parameterization,
             ExtinctionProbabilities extinctionProbabilities,
+            List<Interval> intervals,
             double absoluteTolerance,
             double relativeTolerance
     ) {
-        super(parameterization, absoluteTolerance, relativeTolerance);
+        super(parameterization, intervals, absoluteTolerance, relativeTolerance);
         this.extinctionProbabilities = extinctionProbabilities;
 
-        this.birthRates = this.param.getBirthRates();
-        this.deathRates = this.param.getDeathRates();
-        this.samplingRates = this.param.getSamplingRates();
-        this.crossBirthRates = this.param.getCrossBirthRates2();
-        this.migrationRates = this.param.getMigRates();
+        this.birthRates = this.parameterization.getBirthRates();
+        this.deathRates = this.parameterization.getDeathRates();
+        this.samplingRates = this.parameterization.getSamplingRates();
+        this.crossBirthRates = this.parameterization.getCrossBirthRates2();
+        this.migrationRates = this.parameterization.getMigRates();
 
-        this.timeInvariantSystemMatrices = new RealMatrix[this.param.getTotalIntervalCount()];
+        this.timeInvariantSystemMatrices = new RealMatrix[this.parameterization.getTotalIntervalCount()];
 
-        for (int i = 0; i < this.param.getTotalIntervalCount(); i++) {
+        for (int i = 0; i < this.parameterization.getTotalIntervalCount(); i++) {
             this.timeInvariantSystemMatrices[i] = this.buildTimeInvariantSystemMatrix(i);
         }
     }
 
     @Override
     public int getDimension() {
-        return param.getNTypes() * param.getNTypes();
+        return parameterization.getNTypes() * parameterization.getNTypes();
     }
 
     /**
      * Builds the time-invariant part of the system matrix for a given interval. This can be reused.
      */
     RealMatrix buildTimeInvariantSystemMatrix(int interval) {
-        RealMatrix system = new BlockRealMatrix(param.getNTypes(), param.getNTypes());
+        RealMatrix system = new BlockRealMatrix(parameterization.getNTypes(), parameterization.getNTypes());
 
-        for (int i = 0; i < param.getNTypes(); i++) {
+        for (int i = 0; i < parameterization.getNTypes(); i++) {
             system.addToEntry(
                     i,
                     i,
                     this.deathRates[interval][i] + this.samplingRates[interval][i] + this.birthRates[interval][i]
             );
 
-            for (int j = 0; j < param.getNTypes(); j++) {
+            for (int j = 0; j < parameterization.getNTypes(); j++) {
                 system.addToEntry(
                         i,
                         i,
@@ -91,49 +92,26 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
      */
     void addTimeVaryingSystemMatrix(double t, RealMatrix system) {
         double[] extinctProbabilities = this.extinctionProbabilities.getProbability(t);
+        int interval = getCurrentParameterizationInterval(t);
 
-        for (int i = 0; i < param.getNTypes(); i++) {
+        for (int i = 0; i < parameterization.getNTypes(); i++) {
             system.addToEntry(
                     i,
                     i,
-                    -2 * this.birthRates[currentParameterizationInterval][i] * extinctProbabilities[i]
+                    -2 * this.birthRates[interval][i] * extinctProbabilities[i]
             );
 
-            for (int j = 0; j < param.getNTypes(); j++) {
+            for (int j = 0; j < parameterization.getNTypes(); j++) {
                 system.addToEntry(
                         i,
                         i,
-                        -this.crossBirthRates[currentParameterizationInterval][i][j] * extinctProbabilities[j]
+                        -this.crossBirthRates[interval][i][j] * extinctProbabilities[j]
                 );
 
                 system.addToEntry(
                         i,
                         j,
-                        -this.crossBirthRates[currentParameterizationInterval][i][j] * extinctProbabilities[i]
-                );
-            }
-        }
-    }
-
-    /**
-     * Builds the time-varying part of the system matrix for a given interval. This has to be computed for every
-     * time step.
-     */
-    void setDiagonalTimeVaryingSystemMatrix(double t, DiagonalMatrix system) {
-        double[] extinctProbabilities = this.extinctionProbabilities.getProbability(t);
-
-        for (int i = 0; i < param.getNTypes(); i++) {
-            system.setEntry(
-                    i,
-                    i,
-                    -2 * this.birthRates[currentParameterizationInterval][i] * extinctProbabilities[i]
-            );
-
-            for (int j = 0; j < param.getNTypes(); j++) {
-                system.addToEntry(
-                        i,
-                        i,
-                        -this.crossBirthRates[currentParameterizationInterval][i][j] * extinctProbabilities[j]
+                        -this.crossBirthRates[interval][i][j] * extinctProbabilities[i]
                 );
             }
         }
@@ -143,7 +121,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
      * Builds the system matrix for a given time point.
      */
     RealMatrix buildSystemMatrix(double t) {
-        int interval = this.param.getIntervalIndex(t);
+        int interval = this.parameterization.getIntervalIndex(t);
         RealMatrix systemMatrix = this.timeInvariantSystemMatrices[interval].copy();
         this.addTimeVaryingSystemMatrix(t, systemMatrix);
         return systemMatrix;
@@ -151,7 +129,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
     @Override
     public void computeDerivatives(double t, double[] y, double[] yDot) {
-        int numTypes = this.param.getNTypes();
+        int numTypes = this.parameterization.getNTypes();
 
         RealMatrix yMatrix = Utils.toMatrix(y, numTypes);
         RealMatrix systemMatrix = this.buildSystemMatrix(t);
@@ -166,9 +144,9 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
         // include rho sampling effects
 
-        for (int i = 0; i < this.param.getNTypes(); i++) {
-            for (int j = 0; j < this.param.getNTypes(); j++) {
-                state[i * this.param.getNTypes() + j] *= (1 - this.param.getRhoValues()[newInterval][i]);
+        for (int i = 0; i < this.parameterization.getNTypes(); i++) {
+            for (int j = 0; j < this.parameterization.getNTypes(); j++) {
+                state[i * this.parameterization.getNTypes() + j] *= (1 - this.parameterization.getRhoValues()[newInterval][i]);
             }
         }
     }
@@ -176,11 +154,11 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     List<double[]> getInitialStates(String initialMatrixStrategy, List<Interval> intervals) {
         return switch (initialMatrixStrategy) {
             case "random" -> {
-                RealMatrix matrix = Utils.getRandomMatrix(this.param.getNTypes());
+                RealMatrix matrix = Utils.getRandomMatrix(this.parameterization.getNTypes());
 
                 List<double[]> arrays = new ArrayList<>();
                 for (Interval ignored : intervals) {
-                    double[] array = new double[this.param.getNTypes() * this.param.getNTypes()];
+                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
                     Utils.fillArray(matrix, array);
                     arrays.add(array);
                 }
@@ -194,7 +172,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     RealMatrix initialDerivative = buildSystemMatrix(interval.end());
                     RealMatrix initialStateMatrix = Utils.computeRegularMinimizer(initialDerivative);
 
-                    double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
+                    double[] initialStateArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
                     Utils.fillArray(initialStateMatrix, initialStateArray);
 
                     arrays.add(initialStateArray);
@@ -209,8 +187,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     double probeStartTime = interval.end() - (interval.end() - interval.start()) / 3;
                     double probeEndTime = interval.end();
 
-                    double[] identityMatrixArray = new double[this.param.getNTypes() * this.param.getNTypes()];
-                    RealMatrix identityMatrix = MatrixUtils.createRealIdentityMatrix(this.param.getNTypes());
+                    double[] identityMatrixArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    RealMatrix identityMatrix = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
                     Utils.fillArray(identityMatrix, identityMatrixArray);
 
                     // integrate the probe
@@ -228,7 +206,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     integrator.clearStepHandlers();
 
                     probeIntegration.setInterpolatedTime(probeStartTime);
-                    RealMatrix integrated = Utils.toMatrix(probeIntegration.getInterpolatedState(), param.getNTypes());
+                    RealMatrix integrated = Utils.toMatrix(probeIntegration.getInterpolatedState(), parameterization.getNTypes());
 
                     // perform taylor approximation
 
@@ -240,7 +218,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     RealMatrix approximationError = integrated.subtract(taylorApproximation);
                     RealMatrix initialStateMatrix = Utils.computeRegularMinimizer(approximationError);
 
-                    double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
+                    double[] initialStateArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
                     Utils.fillArray(initialStateMatrix, initialStateArray);
 
                     arrays.add(initialStateArray);
@@ -255,8 +233,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     double probeStartTime = interval.end() - (interval.end() - interval.start()) / 3;
                     double probeEndTime = interval.end();
 
-                    double[] identityMatrixArray = new double[this.param.getNTypes() * this.param.getNTypes()];
-                    RealMatrix identityMatrix = MatrixUtils.createRealIdentityMatrix(this.param.getNTypes());
+                    double[] identityMatrixArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    RealMatrix identityMatrix = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
                     Utils.fillArray(identityMatrix, identityMatrixArray);
 
                     // integrate a simple exponential
@@ -276,7 +254,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     RealMatrix approximationError = expIntegrated.subtract(taylorApproximation);
                     RealMatrix initialStateMatrix = Utils.computeRegularMinimizer(approximationError);
 
-                    double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
+                    double[] initialStateArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
                     Utils.fillArray(initialStateMatrix, initialStateArray);
 
                     arrays.add(initialStateArray);
@@ -291,8 +269,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     double probeStartTime = interval.end() - (interval.end() - interval.start()) / 3;
                     double probeEndTime = interval.end();
 
-                    double[] identityMatrixArray = new double[this.param.getNTypes() * this.param.getNTypes()];
-                    Utils.fillArray(MatrixUtils.createRealIdentityMatrix(this.param.getNTypes()), identityMatrixArray);
+                    double[] identityMatrixArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    Utils.fillArray(MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes()), identityMatrixArray);
 
                     // integrate the probe
 
@@ -309,7 +287,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     integrator.clearStepHandlers();
 
                     probeIntegration.setInterpolatedTime(probeStartTime);
-                    RealMatrix integrated = Utils.toMatrix(probeIntegration.getInterpolatedState(), param.getNTypes());
+                    RealMatrix integrated = Utils.toMatrix(probeIntegration.getInterpolatedState(), parameterization.getNTypes());
 
                     // integrate a simple exponential
 
@@ -323,7 +301,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     RealMatrix approximationError = expIntegrated.subtract(integrated);
                     RealMatrix initialStateMatrix = Utils.computeRegularMinimizer(approximationError);
 
-                    double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
+                    double[] initialStateArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
                     Utils.fillArray(initialStateMatrix, initialStateArray);
 
                     arrays.add(initialStateArray);
@@ -332,9 +310,9 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 yield arrays;
             }
             default -> {
-                RealMatrix matrix = MatrixUtils.createRealIdentityMatrix(this.param.getNTypes());
+                RealMatrix matrix = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
 
-                double[] array = new double[this.param.getNTypes() * this.param.getNTypes()];
+                double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
                 Utils.fillArray(matrix, array);
 
                 List<double[]> arrays = new ArrayList<>();
@@ -386,7 +364,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
         Flow flow = new Flow(
                 rawOutputs,
-                this.param.getNTypes(),
+                this.parameterization.getNTypes(),
                 initialStates,
                 resetInitialStateAtIntervalsBoundaries
         );

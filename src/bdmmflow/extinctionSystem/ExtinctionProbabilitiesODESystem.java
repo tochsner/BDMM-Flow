@@ -1,7 +1,10 @@
 package bdmmflow.extinctionSystem;
 
+import bdmmflow.intervals.Interval;
 import bdmmflow.intervals.IntervalODESystem;
 import bdmmprime.parameterization.Parameterization;
+
+import java.util.List;
 
 /**
  * This class represents the ODE system for extinction probabilities.
@@ -14,36 +17,38 @@ public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
     private final double[][][] crossBirthRates;
     private final double[][][] migrationRates;
 
-    public ExtinctionProbabilitiesODESystem(Parameterization parameterization, double absoluteTolerance, double relativeTolerance) {
-        super(parameterization, absoluteTolerance, relativeTolerance);
+    public ExtinctionProbabilitiesODESystem(Parameterization parameterization, List<Interval> intervals, double absoluteTolerance, double relativeTolerance) {
+        super(parameterization, intervals, absoluteTolerance, relativeTolerance);
 
-        this.birthRates = this.param.getBirthRates();
-        this.deathRates = this.param.getDeathRates();
-        this.samplingRates = this.param.getSamplingRates();
-        this.crossBirthRates = this.param.getCrossBirthRates2();
-        this.migrationRates = this.param.getMigRates();
+        this.birthRates = this.parameterization.getBirthRates();
+        this.deathRates = this.parameterization.getDeathRates();
+        this.samplingRates = this.parameterization.getSamplingRates();
+        this.crossBirthRates = this.parameterization.getCrossBirthRates2();
+        this.migrationRates = this.parameterization.getMigRates();
     }
 
     @Override
     public int getDimension() {
-        return this.param.getNTypes();
+        return this.parameterization.getNTypes();
     }
 
     @Override
     public void computeDerivatives(double t, double[] y, double[] yDot) {
-        for (int i = 0; i < this.param.getNTypes(); i++) {
+        int interval = getCurrentParameterizationInterval(t);
+
+        for (int i = 0; i < this.parameterization.getNTypes(); i++) {
             yDot[i] = (
-                    this.birthRates[currentParameterizationInterval][i] * y[i]
-                            + this.deathRates[currentParameterizationInterval][i] * y[i]
-                            + this.samplingRates[currentParameterizationInterval][i] * y[i]
-                            - this.birthRates[currentParameterizationInterval][i] * y[i] * y[i]
-                            - this.deathRates[currentParameterizationInterval][i]
+                    this.birthRates[interval][i] * y[i]
+                            + this.deathRates[interval][i] * y[i]
+                            + this.samplingRates[interval][i] * y[i]
+                            - this.birthRates[interval][i] * y[i] * y[i]
+                            - this.deathRates[interval][i]
             );
 
-            for (int j = 0; j < this.param.getNTypes(); j++) {
+            for (int j = 0; j < this.parameterization.getNTypes(); j++) {
                 yDot[i] += (
-                        this.crossBirthRates[currentParameterizationInterval][i][j] * (y[i] - y[i] * y[j])
-                                + this.migrationRates[currentParameterizationInterval][i][j] * (y[i] - y[j])
+                        this.crossBirthRates[interval][i][j] * (y[i] - y[i] * y[j])
+                                + this.migrationRates[interval][i][j] * (y[i] - y[j])
                 );
             }
         }
@@ -55,8 +60,8 @@ public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
 
         // include rho sampling effects
 
-        for (int type = 0; type < param.getNTypes(); type++) {
-            state[type] *= (1.0 - param.getRhoValues()[newInterval][type]);
+        for (int type = 0; type < parameterization.getNTypes(); type++) {
+            state[type] *= (1.0 - parameterization.getRhoValues()[newInterval][type]);
         }
     }
 }

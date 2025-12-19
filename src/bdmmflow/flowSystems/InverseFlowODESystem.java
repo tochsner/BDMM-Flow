@@ -32,21 +32,22 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
     public InverseFlowODESystem(
             Parameterization parameterization,
             ExtinctionProbabilities extinctionProbabilities,
+            List<Interval> intervals,
             double absoluteTolerance,
             double relativeTolerance
     ) {
-        super(parameterization, absoluteTolerance, relativeTolerance);
+        super(parameterization, intervals, absoluteTolerance, relativeTolerance);
         this.extinctionProbabilities = extinctionProbabilities;
 
-        this.birthRates = this.param.getBirthRates();
-        this.deathRates = this.param.getDeathRates();
-        this.samplingRates = this.param.getSamplingRates();
-        this.crossBirthRates = this.param.getCrossBirthRates2();
-        this.migrationRates = this.param.getMigRates();
+        this.birthRates = this.parameterization.getBirthRates();
+        this.deathRates = this.parameterization.getDeathRates();
+        this.samplingRates = this.parameterization.getSamplingRates();
+        this.crossBirthRates = this.parameterization.getCrossBirthRates2();
+        this.migrationRates = this.parameterization.getMigRates();
 
-        this.timeInvariantSystemMatrices = new RealMatrix[this.param.getTotalIntervalCount()];
+        this.timeInvariantSystemMatrices = new RealMatrix[this.parameterization.getTotalIntervalCount()];
 
-        for (int i = 0; i < this.param.getTotalIntervalCount(); i++) {
+        for (int i = 0; i < this.parameterization.getTotalIntervalCount(); i++) {
             this.timeInvariantSystemMatrices[i] = this.buildTimeInvariantSystemMatrix(i);
         }
 
@@ -55,23 +56,23 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
     @Override
     public int getDimension() {
-        return param.getNTypes() * param.getNTypes();
+        return parameterization.getNTypes() * parameterization.getNTypes();
     }
 
     /**
      * Builds the time-invariant part of the system matrix for a given interval. This can be reused.
      */
     RealMatrix buildTimeInvariantSystemMatrix(int interval) {
-        RealMatrix system = new BlockRealMatrix(param.getNTypes(), param.getNTypes());
+        RealMatrix system = new BlockRealMatrix(parameterization.getNTypes(), parameterization.getNTypes());
 
-        for (int i = 0; i < param.getNTypes(); i++) {
+        for (int i = 0; i < parameterization.getNTypes(); i++) {
             system.addToEntry(
                     i,
                     i,
                     -this.deathRates[interval][i] - this.samplingRates[interval][i] - this.birthRates[interval][i]
             );
 
-            for (int j = 0; j < param.getNTypes(); j++) {
+            for (int j = 0; j < parameterization.getNTypes(); j++) {
                 system.addToEntry(
                         i,
                         i,
@@ -94,25 +95,26 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
      */
     void addTimeVaryingSystemMatrix(double t, RealMatrix system) {
         double[] extinctProbabilities = this.extinctionProbabilities.getProbability(t);
+        int interval = getCurrentParameterizationInterval(t);
 
-        for (int i = 0; i < param.getNTypes(); i++) {
+        for (int i = 0; i < parameterization.getNTypes(); i++) {
             system.addToEntry(
                     i,
                     i,
-                    2 * this.birthRates[currentParameterizationInterval][i] * extinctProbabilities[i]
+                    2 * this.birthRates[interval][i] * extinctProbabilities[i]
             );
 
-            for (int j = 0; j < param.getNTypes(); j++) {
+            for (int j = 0; j < parameterization.getNTypes(); j++) {
                 system.addToEntry(
                         i,
                         i,
-                        this.crossBirthRates[currentParameterizationInterval][i][j] * extinctProbabilities[j]
+                        this.crossBirthRates[interval][i][j] * extinctProbabilities[j]
                 );
 
                 system.addToEntry(
                         i,
                         j,
-                        this.crossBirthRates[currentParameterizationInterval][i][j] * extinctProbabilities[i]
+                        this.crossBirthRates[interval][i][j] * extinctProbabilities[i]
                 );
             }
         }
@@ -122,7 +124,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
      * Builds the system matrix for a given time point.
      */
     RealMatrix buildSystemMatrix(double t) {
-        int interval = this.param.getIntervalIndex(t);
+        int interval = this.parameterization.getIntervalIndex(t);
         RealMatrix systemMatrix = this.timeInvariantSystemMatrices[interval].copy();
         this.addTimeVaryingSystemMatrix(t, systemMatrix);
 
@@ -131,7 +133,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
     @Override
     public void computeDerivatives(double t, double[] y, double[] yDot) {
-        int numTypes = this.param.getNTypes();
+        int numTypes = this.parameterization.getNTypes();
 
         RealMatrix yMatrix = toMatrix(y, numTypes);
         RealMatrix systemMatrix = this.buildSystemMatrix(t);
@@ -146,18 +148,18 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
         // include rho sampling effects
 
-        for (int i = 0; i < this.param.getNTypes(); i++) {
-            for (int j = 0; j < this.param.getNTypes(); j++) {
-                state[i * this.param.getNTypes() + j] *= (1 - this.param.getRhoValues()[oldInterval][i]);
+        for (int i = 0; i < this.parameterization.getNTypes(); i++) {
+            for (int j = 0; j < this.parameterization.getNTypes(); j++) {
+                state[i * this.parameterization.getNTypes() + j] *= (1 - this.parameterization.getRhoValues()[oldInterval][i]);
             }
         }
     }
 
     RealMatrix getInitialState(String initialMatrixStrategy) {
         return switch (initialMatrixStrategy) {
-            case "random" -> Utils.getRandomMatrix(this.param.getNTypes(), 0);
-            case "heuristic" -> MatrixUtils.createRealIdentityMatrix(this.param.getNTypes());
-            default -> MatrixUtils.createRealIdentityMatrix(this.param.getNTypes());
+            case "random" -> Utils.getRandomMatrix(this.parameterization.getNTypes(), 0);
+            case "heuristic" -> MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
+            default -> MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
         };
     }
 
@@ -174,7 +176,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
             boolean parallelize
     ) {
         RealMatrix initialState = this.getInitialState(initialMatrixStrategy);
-        double[] initialStateArray = new double[this.param.getNTypes() * this.param.getNTypes()];
+        double[] initialStateArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
         Utils.fillArray(initialState, initialStateArray);
 
         RealMatrix  inverseInitialState = MatrixUtils.inverse(initialState);
@@ -187,7 +189,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         );
         return new InverseFlow(
                 rawOutputs,
-                this.param.getNTypes(),
+                this.parameterization.getNTypes(),
                 inverseInitialState,
                 resetInitialStateAtIntervalsBoundaries
         );

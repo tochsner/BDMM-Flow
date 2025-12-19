@@ -347,17 +347,18 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      * @return a wrapper class that allows to query the extinction probabilities at any given time.
      */
     private ExtinctionProbabilities calculateExtinctionProbabilities() {
-        IntervalODESystem system = new ExtinctionProbabilitiesODESystem(
-                this.parameterization,
-                this.absoluteTolerance,
-                this.relativeTolerance
-        );
-
         // create intervals
 
         List<Interval> intervals = IntervalUtils.getIntervals(
                 this.parameterization,
                 this.parameterization.getTotalProcessLength() / this.minNumIntervals
+        );
+
+        IntervalODESystem system = new ExtinctionProbabilitiesODESystem(
+                this.parameterization,
+                intervals,
+                this.absoluteTolerance,
+                this.relativeTolerance
         );
 
         // create the initial states
@@ -400,6 +401,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             system = new InverseFlowODESystem(
                     this.parameterization,
                     extinctionProbabilities,
+                    intervals,
                     this.absoluteTolerance,
                     this.relativeTolerance
             );
@@ -407,6 +409,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             system = new DiagonalIPFlowODESystem(
                     this.parameterization,
                     extinctionProbabilities,
+                    intervals,
                     this.absoluteTolerance,
                     this.relativeTolerance
             );
@@ -414,6 +417,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             system = new FlowODESystem(
                     this.parameterization,
                     extinctionProbabilities,
+                    intervals,
                     this.absoluteTolerance,
                     this.relativeTolerance
             );

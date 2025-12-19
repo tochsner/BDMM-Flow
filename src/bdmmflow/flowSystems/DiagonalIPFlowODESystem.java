@@ -1,6 +1,7 @@
 package bdmmflow.flowSystems;
 
 import bdmmflow.extinctionSystem.ExtinctionProbabilities;
+import bdmmflow.intervals.Interval;
 import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.exception.MathIllegalArgumentException;
@@ -15,6 +16,7 @@ import org.jblas.DoubleMatrix;
 import org.jblas.MatrixFunctions;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -28,8 +30,8 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
     // cache for matrix exponentials to avoid recomputation
     private final Map<ExponentialCacheKey, RealMatrix> nonDiagonalExpCache = new HashMap<>();
 
-    public DiagonalIPFlowODESystem(Parameterization parameterization, ExtinctionProbabilities extinctionProbabilities, double absoluteTolerance, double relativeTolerance) {
-        super(parameterization, extinctionProbabilities, absoluteTolerance, relativeTolerance);
+    public DiagonalIPFlowODESystem(Parameterization parameterization, ExtinctionProbabilities extinctionProbabilities, List<Interval> intervals, double absoluteTolerance, double relativeTolerance) {
+        super(parameterization, extinctionProbabilities, intervals, absoluteTolerance, relativeTolerance);
         isNonDiagonalTimeHeterogeneous = isNonDiagonalTimeHeterogeneous();
     }
 
@@ -44,13 +46,39 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
         return false;
     }
 
+    /**
+     * Adds the diagonal time-varying elements to the given system matrix. Note
+     * that this only captures the complete behavior if there are no cross-deme
+     * birth events.
+     */
+    void setDiagonalTimeVaryingSystemMatrix(double t, DiagonalMatrix system) {
+        double[] extinctProbabilities = this.extinctionProbabilities.getProbability(t);
+        int interval = getCurrentParameterizationInterval(t);
+
+        for (int i = 0; i < parameterization.getNTypes(); i++) {
+            system.setEntry(
+                    i,
+                    i,
+                    -2 * this.birthRates[interval][i] * extinctProbabilities[i]
+            );
+
+            for (int j = 0; j < parameterization.getNTypes(); j++) {
+                system.addToEntry(
+                        i,
+                        i,
+                        -this.crossBirthRates[interval][i][j] * extinctProbabilities[j]
+                );
+            }
+        }
+    }
+
     @Override
     protected ContinuousOutputModel integrate(double[] initialState, double start, double end) {
         if (isNonDiagonalTimeHeterogeneous) {
             return super.integrate(initialState, start, end);
         }
 
-        int n = this.param.getNTypes();
+        int n = this.parameterization.getNTypes();
 
         int numSteps = 16;
         double stepSize = (end - start) / (numSteps - 1);
@@ -60,7 +88,7 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
 
         // pre-compute non-diagonal exponential (with caching)
 
-        int interval = this.param.getIntervalIndex(start);
+        int interval = this.parameterization.getIntervalIndex(start);
         ExponentialCacheKey cacheKey = new ExponentialCacheKey(interval, stepSize);
 
         RealMatrix nonDiagonalExp = nonDiagonalExpCache.get(cacheKey);
