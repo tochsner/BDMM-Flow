@@ -493,7 +493,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      * Calculates the likelihood of a single leaf node including the edge leading to it.
      */
     private double[] calculateLeafLikelihood(
-            Node root,
+            Node node,
             double timeEdgeEnd,
             ExtinctionProbabilities extinctionProbabilities
     ) {
@@ -501,20 +501,46 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         int intervalEdgeEnd = this.parameterization.getIntervalIndex(timeEdgeEnd);
         double[] extinctionProbabilityEdgeEnd = extinctionProbabilities.getProbability(timeEdgeEnd);
 
-        int nodeType = this.getNodeType(root);
+        int nodeType = this.getNodeType(node);
 
         double[] likelihoodEdgeEnd = new double[this.parameterization.getNTypes()];
 
-        if (isRhoSampled[root.getNr()]) {
-            likelihoodEdgeEnd[nodeType] = this.parameterization.getRhoValues()[intervalEdgeEnd][nodeType];
+        if (parameterization.getTypeSet().isAmbiguousTypeIndex(nodeType)) {
+            // this is an ambiguous state, we set the end likelihoods for all states
+            // TODO: test if SA model case is properly implemented
+
+            for (int type = 0; type < parameterization.getNTypes(); type++) {
+                if (parameterization.getTypeSet().ambiguityExcludesType(nodeType, type))
+                    continue;
+
+                if (isRhoSampled[node.getNr()]) {
+                    likelihoodEdgeEnd[type] = this.parameterization.getRhoValues()[intervalEdgeEnd][type];
+                    // in this case, the other boundary conditions are handled by the ODE system in
+                    // FlowODESystem and ExtinctionProbabilitiesODESystem
+                } else {
+                    likelihoodEdgeEnd[type] = this.parameterization.getSamplingRates()[intervalEdgeEnd][type] *
+                            (this.parameterization.getRemovalProbs()[intervalEdgeEnd][type]
+                                    + (1 - this.parameterization.getRemovalProbs()[intervalEdgeEnd][type])
+                                    * extinctionProbabilityEdgeEnd[type]);
+                }
+            }
+
         } else {
-            likelihoodEdgeEnd[nodeType] = this.parameterization.getSamplingRates()[intervalEdgeEnd][nodeType] *
-                    (this.parameterization.getRemovalProbs()[intervalEdgeEnd][nodeType]
-                            + (1 - this.parameterization.getRemovalProbs()[intervalEdgeEnd][nodeType])
-                            * extinctionProbabilityEdgeEnd[nodeType]);
+            // we know the state and only set its end likelihood
+
+            if (isRhoSampled[node.getNr()]) {
+                likelihoodEdgeEnd[nodeType] = this.parameterization.getRhoValues()[intervalEdgeEnd][nodeType];
+                // in this case, the other boundary conditions are handled by the ODE system in
+                // FlowODESystem and ExtinctionProbabilitiesODESystem
+            } else {
+                likelihoodEdgeEnd[nodeType] = this.parameterization.getSamplingRates()[intervalEdgeEnd][nodeType] *
+                        (this.parameterization.getRemovalProbs()[intervalEdgeEnd][nodeType]
+                                + (1 - this.parameterization.getRemovalProbs()[intervalEdgeEnd][nodeType])
+                                * extinctionProbabilityEdgeEnd[nodeType]);
+            }
         }
 
-        this.logScalingFactors[root.getNr()] = Utils.rescale(likelihoodEdgeEnd);
+        this.logScalingFactors[node.getNr()] = Utils.rescale(likelihoodEdgeEnd);
 
         return likelihoodEdgeEnd;
     }
@@ -523,7 +549,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      * Calculates the likelihood of a node that has a direct ancestor as a child; including the edge leading to it.
      */
     private double[] calculateDirectAncestorWithChildLikelihood(
-            Node root,
+            Node node,
             double timeEdgeEnd,
             IFlow flow,
             ExtinctionProbabilities extinctionProbabilities
@@ -532,10 +558,10 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // find the direct ancestor and the child
 
-        Node directAncestor = root.getChild(0).isDirectAncestor() ?
-                root.getChild(0) : root.getChild(1);
-        Node child = root.getChild(0).isDirectAncestor() ?
-                root.getChild(1) : root.getChild(0);
+        Node directAncestor = node.getChild(0).isDirectAncestor() ?
+                node.getChild(0) : node.getChild(1);
+        Node child = node.getChild(0).isDirectAncestor() ?
+                node.getChild(1) : node.getChild(0);
 
         // calculate the subtree likelihood of the child
 
@@ -551,18 +577,40 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         double[] likelihoodEdgeEnd = new double[this.parameterization.getNTypes()];
 
-        int nodeType = this.getNodeType(directAncestor);
+        int daNodeType = this.getNodeType(directAncestor);
 
-        if (isRhoSampled[directAncestor.getNr()]) {
-            likelihoodEdgeEnd[nodeType] = this.parameterization.getRhoValues()[intervalEdgeEnd][nodeType];
+        if (parameterization.getTypeSet().isAmbiguousTypeIndex(daNodeType)) {
+            // the direct ancestor is in an ambiguous state, we set the end likelihoods for all states
+            // TODO: test if SA model case is properly implemented
+
+            for (int type = 0; type < parameterization.getNTypes(); type++) {
+                if (parameterization.getTypeSet().ambiguityExcludesType(daNodeType, type))
+                    continue;
+
+                if (isRhoSampled[directAncestor.getNr()]) {
+                    likelihoodEdgeEnd[type] = this.parameterization.getRhoValues()[intervalEdgeEnd][type];
+                } else {
+                    likelihoodEdgeEnd[type] = this.parameterization.getSamplingRates()[intervalEdgeEnd][type];
+                }
+
+                likelihoodEdgeEnd[type] *= (1 - this.parameterization.getRemovalProbs()[intervalEdgeEnd][type])
+                        * likelihoodChild[type];
+            }
+
         } else {
-            likelihoodEdgeEnd[nodeType] = this.parameterization.getSamplingRates()[intervalEdgeEnd][nodeType];
+            // we know the direct ancestor state and set the likelihood edge enf only for this type
+
+            if (isRhoSampled[directAncestor.getNr()]) {
+                likelihoodEdgeEnd[daNodeType] = this.parameterization.getRhoValues()[intervalEdgeEnd][daNodeType];
+            } else {
+                likelihoodEdgeEnd[daNodeType] = this.parameterization.getSamplingRates()[intervalEdgeEnd][daNodeType];
+            }
+
+            likelihoodEdgeEnd[daNodeType] *= (1 - this.parameterization.getRemovalProbs()[intervalEdgeEnd][daNodeType])
+                    * likelihoodChild[daNodeType];
         }
 
-        likelihoodEdgeEnd[nodeType] *= (1 - this.parameterization.getRemovalProbs()[intervalEdgeEnd][nodeType])
-                * likelihoodChild[nodeType];
-
-        this.logScalingFactors[root.getNr()] = Utils.rescale(likelihoodEdgeEnd, this.logScalingFactors[child.getNr()]);
+        this.logScalingFactors[node.getNr()] = Utils.rescale(likelihoodEdgeEnd, this.logScalingFactors[child.getNr()]);
 
         return likelihoodEdgeEnd;
     }
@@ -571,15 +619,15 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      * Calculates the likelihood of the subtree of the given internal node including the edge leading to it.
      */
     private double[] calculateInternalEdgeLikelihood(
-            Node root,
+            Node node,
             double timeEdgeEnd,
             IFlow flow,
             ExtinctionProbabilities extinctionProbabilities
     ) {
         int intervalEdgeEnd = this.parameterization.getIntervalIndex(timeEdgeEnd);
 
-        Node child1 = root.getChild(0);
-        Node child2 = root.getChild(1);
+        Node child1 = node.getChild(0);
+        Node child2 = node.getChild(1);
 
         // calculate the likelihood of the two subtrees
 
@@ -590,7 +638,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 && subtreeSizes[child1.getNr()] > parallelizeSubtreeSizeThreshold
                 && subtreeSizes[child2.getNr()] > parallelizeSubtreeSizeThreshold
         ) {
-            List<double[]> likelihoodChildren = root.getChildren().parallelStream().map(
+            List<double[]> likelihoodChildren = node.getChildren().parallelStream().map(
                     child -> this.calculateSubTreeLikelihood(
                             child,
                             timeEdgeEnd,
@@ -637,7 +685,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             }
         }
 
-        this.logScalingFactors[root.getNr()] = Utils.rescale(
+        this.logScalingFactors[node.getNr()] = Utils.rescale(
                 likelihoodEdgeEnd,
                 this.logScalingFactors[child1.getNr()] + this.logScalingFactors[child2.getNr()]
         );
