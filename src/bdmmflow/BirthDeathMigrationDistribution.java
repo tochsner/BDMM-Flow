@@ -88,7 +88,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Integer> minNumIntervalsInput = new Input<>(
             "minNumIntervals",
             "The number of intervals the time span is broken up into. Increase this when running into numerical stability issues.",
-            4
+            1
     );
 
     public Input<Boolean> useInverseFlowInput = new Input<>(
@@ -313,8 +313,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     extinctionProbabilities
             );
         } catch (SingularMatrixException exception) {
-            Log.warning("A singular matrix was detected. This is due to numerical instability. Increase minNumIntervals to mitigate this issue.");
-            return Double.NEGATIVE_INFINITY;
+            Log.debug("A singular matrix was detected. Number of intervals gets increased.");
+            this.minNumIntervals = (int) Math.floor(1.5 * this.minNumIntervals);
+            return this.calculateTreeLogLikelihood(dummyTree);
         }
 
         // get tree likelihood by a weighted average of the root likelihood per state
