@@ -145,8 +145,14 @@ public class Flow implements IFlow {
         ContinuousOutputModel[] clonedOutputModels = new ContinuousOutputModel[this.outputModels.length];
 
         for (int i = 0; i < this.outputModels.length; i++) {
-            clonedOutputModels[i] = new ContinuousOutputModel();
-            clonedOutputModels[i].append(this.outputModels[i]);
+            ContinuousOutputModel outputModel = this.outputModels[i];
+
+            if (outputModel instanceof DiagonalIPFlowODESystem.ContinuousModel) {
+                clonedOutputModels[i] = ((DiagonalIPFlowODESystem.ContinuousModel) outputModel).copy();
+            } else {
+                clonedOutputModels[i] = new ContinuousOutputModel();
+                clonedOutputModels[i].append(this.outputModels[i]);
+            }
         }
 
         return new Flow(

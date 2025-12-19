@@ -127,17 +127,17 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
             Utils.fillArray(lastStateMatrix, states[i]);
         }
 
-        return new SimpleContinuousModel(times, states);
+        return new ContinuousModel(times, states);
     }
 
-    private class SimpleContinuousModel extends ContinuousOutputModel {
+    static class ContinuousModel extends ContinuousOutputModel {
 
         private final double[] times;
         private final double[][] states;
 
         private double interpolatedTime;
 
-        public SimpleContinuousModel(double[] times, double[][] states) {
+        public ContinuousModel(double[] times, double[][] states) {
             this.times = times;
             this.states = states;
         }
@@ -225,6 +225,10 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
 
         public double[] getInterpolatedSecondaryDerivatives(int secondaryStateIndex) throws MaxCountExceededException {
             throw new UnsupportedOperationException();
+        }
+
+        public ContinuousModel copy() {
+            return new ContinuousModel(this.times, this.states);
         }
     }
 
