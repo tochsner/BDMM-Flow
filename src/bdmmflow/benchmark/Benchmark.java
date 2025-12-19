@@ -14,11 +14,11 @@ import java.util.List;
 public class Benchmark {
 
     public static void main(String[] args) {
-        int NUM_TIMES = 30_000;
+        int NUM_TRIALS = 30_000;
 
         ParameterizationSampler sampler = new ParameterizationSampler();
 
-        List<BenchmarkResult> results = runBenchmarks(NUM_TIMES, sampler);
+        List<BenchmarkResult> results = runBenchmarks(NUM_TRIALS, sampler);
         writeResults(results, "results.csv");
     }
 
@@ -28,11 +28,11 @@ public class Benchmark {
         for (int i = 0; i < numTrials; i++) {
             try {
                 Parameterization parameterization = sampler.sampleParameterization();
-                RealParameter frequencies = sampler.sampleFrequencies(parameterization);
-                Tree tree = simulateTree(parameterization, frequencies);
+                RealParameter startTypePriorProbs = sampler.sampleStartTypePriorProbs(parameterization);
+                Tree tree = simulateTree(parameterization, startTypePriorProbs);
                 int minNumIntervals = 8;
 
-                BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, frequencies);
+                BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, startTypePriorProbs);
 
                 String[] initialStateStrategies = new String[]{
                         "identity",
@@ -42,21 +42,21 @@ public class Benchmark {
                 for (String strategy : initialStateStrategies) {
                     boolean useSplitting = false;
                     boolean useInverseFlow = true;
-                    BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, useSplitting, strategy, minNumIntervals);
+                    BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy, minNumIntervals);
                     BenchmarkResult result = new BenchmarkResult(
                             i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
                     );
                     results.add(result);
 
                     useInverseFlow = false;
-                    flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, useSplitting, strategy, minNumIntervals);
+                    flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy, minNumIntervals);
                     result = new BenchmarkResult(
                             i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
                     );
                     results.add(result);
 
                     useSplitting = true;
-                    flowRun = runFlowBenchmark(tree, parameterization, frequencies, useInverseFlow, useSplitting, strategy, minNumIntervals);
+                    flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy, minNumIntervals);
                     result = new BenchmarkResult(
                             i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals
                     );
@@ -75,12 +75,12 @@ public class Benchmark {
         return results;
     }
 
-    static Tree simulateTree(Parameterization parameterization, RealParameter frequencies) throws IllegalStateException {
+    static Tree simulateTree(Parameterization parameterization, RealParameter startTypePriorProbs) throws IllegalStateException {
         SimulatedTree simulatedTree = new SimulatedTree();
         simulatedTree.initByName(
                 "parameterization", parameterization,
                 "finalSampleOffset", new RealParameter("0.0"),
-                "frequencies", frequencies,
+                "startTypePriorProbs", startTypePriorProbs,
                 "minSamples", 2,
                 "simulateUntypedTree", true
         );
@@ -90,7 +90,7 @@ public class Benchmark {
     static BenchmarkRun runFlowBenchmark(
             Tree tree,
             Parameterization parameterization,
-            RealParameter frequencies,
+            RealParameter startTypePriorProbs,
             boolean useInverseFlow,
             boolean useSplitting,
             String initialStateStrategy,
@@ -100,7 +100,7 @@ public class Benchmark {
         density.initByName(
                 "parameterization", parameterization,
                 "tree", tree,
-                "frequencies", frequencies,
+                "startTypePriorProbs", startTypePriorProbs,
                 "typeLabel", "type",
                 "initialMatrixStrategy", initialStateStrategy,
                 "useInverseFlow", useInverseFlow,
@@ -116,12 +116,12 @@ public class Benchmark {
         return new BenchmarkRun(duration, likelihood);
     }
 
-    static BenchmarkRun runBDMMBenchmark(Tree tree, Parameterization parameterization, RealParameter frequencies) {
+    static BenchmarkRun runBDMMBenchmark(Tree tree, Parameterization parameterization, RealParameter startTypePriorProbs) {
         bdmmprime.distribution.BirthDeathMigrationDistribution density = new bdmmprime.distribution.BirthDeathMigrationDistribution();
         density.initByName(
                 "parameterization", parameterization,
                 "tree", tree,
-                "frequencies", frequencies,
+                "startTypePriorProbs", startTypePriorProbs,
                 "typeLabel", "type",
                 "parallelize", false
         );

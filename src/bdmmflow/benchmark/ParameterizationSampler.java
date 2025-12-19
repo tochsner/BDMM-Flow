@@ -58,7 +58,7 @@ public class ParameterizationSampler {
         return parameterization;
     }
 
-    public RealParameter sampleFrequencies(Parameterization parameterization) {
+    public RealParameter sampleStartTypePriorProbs(Parameterization parameterization) {
         int numTypes = parameterization.getNTypes();
 
         double[] frequencies = new double[numTypes];

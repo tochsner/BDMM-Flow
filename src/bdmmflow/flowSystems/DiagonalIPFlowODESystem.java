@@ -52,7 +52,7 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
 
         int n = this.param.getNTypes();
 
-        int numSteps = 8;
+        int numSteps = 16;
         double stepSize = (end - start) / (numSteps - 1);
 
         double[] times = new double[numSteps];

@@ -20,7 +20,6 @@ import org.apache.commons.math3.linear.SingularMatrixException;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Citation(value = "Kuehnert D, Stadler T, Vaughan TG, Drummond AJ. (2016). " +
         "A General and Efficient Algorithm for the Likelihood of Diversification and Discrete-Trait Evolutionary Models, \n" +
@@ -47,9 +46,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             new RealParameter("0.0")
     );
 
-    public Input<RealParameter> frequenciesInput = new Input<>(
-            "frequencies",
-            "The equilibrium frequencies for each type",
+    public Input<RealParameter> startTypePriorProbsInput = new Input<>(
+            "startTypePriorProbs",
+            "The prior probabilities for the type of the first individual",
             new RealParameter("1.0")
     );
 
@@ -143,7 +142,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     private String typeLabel;
     private TraitSet typeTraitSet;
 
-    double[] frequencies;
+    double[] startTypePriorProbs;
 
     boolean conditionOnRoot;
     boolean conditionOnSurvival;
@@ -177,7 +176,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.tree = this.treeInput.get();
         this.typeLabel = this.typeLabelInput.get();
         this.typeTraitSet = this.typeTraitSetInput.get();
-        this.frequencies = this.frequenciesInput.get().getDoubleValues();
+        this.startTypePriorProbs = this.startTypePriorProbsInput.get().getDoubleValues();
         this.conditionOnRoot = this.conditionOnRootInput.get();
         this.conditionOnSurvival = this.conditionOnSurvivalInput.get();
         this.absoluteTolerance = this.absoluteToleranceInput.get();
@@ -192,7 +191,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.useInverseFlow = this.useInverseFlowInput.get();
         this.useODESplitting = this.useODESplittingInput.get();
 
-        // validate typeLabelInput
+        // validate type label
 
         if (this.numTypes != 1 && this.typeLabel == null && this.typeTraitSet == null) {
             throw new RuntimeException(
@@ -200,21 +199,21 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             );
         }
 
-        // validate frequenciesInput
+        // validate start type prior probabilities
 
-        if (this.frequencies.length != numTypes) {
+        if (this.startTypePriorProbs.length != numTypes) {
             throw new RuntimeException(
-                    "Error: dimension of equilibrium frequencies parameter must match number of types."
+                    "Error: dimension of start type prior probabilities must match number of types."
             );
         }
 
-        double freqSum = 0.0;
-        for (double f : this.frequencies) {
-            freqSum += f;
+        double probSum = 0.0;
+        for (double f : this.startTypePriorProbs) {
+            probSum += f;
         }
-        if (!bdmmprime.util.Utils.equalWithPrecision(freqSum, 1.0)) {
+        if (!bdmmprime.util.Utils.equalWithPrecision(probSum, 1.0)) {
             throw new RuntimeException(
-                    "Error: equilibrium frequencies must add up to 1 but currently add to %f.".formatted(freqSum)
+                    "Error: start type prior probabilities must add up to 1 but currently add to %f.".formatted(probSum)
             );
         }
 
@@ -254,6 +253,10 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         }
     }
 
+    /**
+     * Initialized the `subtreeSizes` array with the number of nodes in the subtree of
+     * each node.
+     */
     private void initializeSubtreeSizes() {
         this.subtreeSizes = new int[this.tree.getNodeCount()];
         initializeSubtreeSizes(tree.getRoot());
@@ -262,6 +265,10 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 this.minimalSubtreeSizeForParallelization
         );
     }
+    /**
+     * Initialized the `subtreeSizes` array with the number of nodes in the subtree of
+     * `node`.
+     */
     private int initializeSubtreeSizes(Node node) {
         int subtreeSize = 1;
         for (Node child : node.getChildren()) {
@@ -306,7 +313,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         double treeLikelihood = 0.0;
         for (int i = 0; i < this.parameterization.getNTypes(); i++) {
-            treeLikelihood += rootLikelihoodPerState[i] * this.frequencies[i];
+            treeLikelihood += rootLikelihoodPerState[i] * this.startTypePriorProbs[i];
         }
 
         // consider different ways to condition the tree
@@ -436,7 +443,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                             ? parameterization.getBirthRates()[startInterval][type1]
                             : parameterization.getCrossBirthRates()[startInterval][type1][type2];
 
-                    conditionDensity += rate * this.frequencies[type1]
+                    conditionDensity += rate * this.startTypePriorProbs[type1]
                             * (1 - extinctionAtRoot[type1])
                             * (1 - extinctionAtRoot[type2]);
                 }
@@ -445,7 +452,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             double[] extinctionAtRoot = extinctionProbabilities.getProbability(0);
 
             for (int type = 0; type < parameterization.getNTypes(); type++) {
-                conditionDensity += this.frequencies[type] * (1 - extinctionAtRoot[type]);
+                conditionDensity += this.startTypePriorProbs[type] * (1 - extinctionAtRoot[type]);
             }
         } else {
             conditionDensity = 1.0;
@@ -523,10 +530,14 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     ) {
         int intervalEdgeEnd = this.parameterization.getIntervalIndex(timeEdgeEnd);
 
+        // find the direct ancestor and the child
+
         Node directAncestor = root.getChild(0).isDirectAncestor() ?
                 root.getChild(0) : root.getChild(1);
         Node child = root.getChild(0).isDirectAncestor() ?
                 root.getChild(1) : root.getChild(0);
+
+        // calculate the subtree likelihood of the child
 
         double[] likelihoodChild = this.calculateSubTreeLikelihood(
                 child,
@@ -535,6 +546,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 flow,
                 extinctionProbabilities
         );
+
+        // calculate the likelihood at the edge end
 
         double[] likelihoodEdgeEnd = new double[this.parameterization.getNTypes()];
 
@@ -567,6 +580,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         Node child1 = root.getChild(0);
         Node child2 = root.getChild(1);
+
+        // calculate the likelihood of the two subtrees
 
         double[] likelihoodChild1;
         double[] likelihoodChild2;
