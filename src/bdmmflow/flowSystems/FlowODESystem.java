@@ -7,8 +7,6 @@ import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
-import org.apache.commons.math3.ode.nonstiff.EulerIntegrator;
-import org.jblas.MatrixFunctions;
 
 
 import java.util.ArrayList;
@@ -165,151 +163,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
                 yield arrays;
             }
-            case "error_heuristic" -> {
-                List<double[]> arrays = new ArrayList<>();
-
-                for (Interval interval : intervals) {
-                    RealMatrix initialDerivative = buildSystemMatrix(interval.end());
-                    RealMatrix initialStateMatrix = Utils.computeRegularMinimizer(initialDerivative);
-
-                    double[] initialStateArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                    Utils.fillArray(initialStateMatrix, initialStateArray);
-
-                    arrays.add(initialStateArray);
-                }
-
-                yield arrays;
-            }
-            case "taylor_heuristic" -> {
-                List<double[]> arrays = new ArrayList<>();
-
-                for (Interval interval : intervals) {
-                    double probeStartTime = interval.end() - (interval.end() - interval.start()) / 3;
-                    double probeEndTime = interval.end();
-
-                    double[] identityMatrixArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                    RealMatrix identityMatrix = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
-                    Utils.fillArray(identityMatrix, identityMatrixArray);
-
-                    // integrate the probe
-
-                    ContinuousOutputModel probeIntegration = new ContinuousOutputModel();
-
-                    EulerIntegrator integrator = new EulerIntegrator(
-                            (probeEndTime - probeStartTime) / 5
-                    );
-
-                    double[] state = identityMatrixArray.clone();
-
-                    integrator.addStepHandler(probeIntegration);
-                    integrator.integrate(this, probeEndTime, state, probeStartTime, state);
-                    integrator.clearStepHandlers();
-
-                    probeIntegration.setInterpolatedTime(probeStartTime);
-                    RealMatrix integrated = Utils.toMatrix(probeIntegration.getInterpolatedState(), parameterization.getNTypes());
-
-                    // perform taylor approximation
-
-                    RealMatrix initialDerivative = buildSystemMatrix(interval.end());
-                    RealMatrix taylorApproximation = identityMatrix.add(initialDerivative.scalarMultiply(probeStartTime - probeEndTime));
-
-                    // minimize the error
-
-                    RealMatrix approximationError = integrated.subtract(taylorApproximation);
-                    RealMatrix initialStateMatrix = Utils.computeRegularMinimizer(approximationError);
-
-                    double[] initialStateArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                    Utils.fillArray(initialStateMatrix, initialStateArray);
-
-                    arrays.add(initialStateArray);
-                }
-
-                yield arrays;
-            }
-            case "taylor_exp_heuristic" -> {
-                List<double[]> arrays = new ArrayList<>();
-
-                for (Interval interval : intervals) {
-                    double probeStartTime = interval.end() - (interval.end() - interval.start()) / 3;
-                    double probeEndTime = interval.end();
-
-                    double[] identityMatrixArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                    RealMatrix identityMatrix = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
-                    Utils.fillArray(identityMatrix, identityMatrixArray);
-
-                    // integrate a simple exponential
-
-                    RealMatrix initialDerivative = buildSystemMatrix(probeEndTime);
-                    RealMatrix expIntegrated = Utils.toMatrix(
-                            MatrixFunctions.expm(Utils.toMatrix(initialDerivative.scalarMultiply( probeStartTime - probeEndTime)))
-                    );
-
-                    // perform taylor approximation
-
-                    initialDerivative = buildSystemMatrix(interval.end());
-                    RealMatrix taylorApproximation = identityMatrix.add(initialDerivative.scalarMultiply(probeStartTime - probeEndTime));
-
-                    // minimize the error
-
-                    RealMatrix approximationError = expIntegrated.subtract(taylorApproximation);
-                    RealMatrix initialStateMatrix = Utils.computeRegularMinimizer(approximationError);
-
-                    double[] initialStateArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                    Utils.fillArray(initialStateMatrix, initialStateArray);
-
-                    arrays.add(initialStateArray);
-                }
-
-                yield arrays;
-            }
-            case "probe_heuristic" -> {
-                List<double[]> arrays = new ArrayList<>();
-
-                for (Interval interval : intervals) {
-                    double probeStartTime = interval.end() - (interval.end() - interval.start()) / 3;
-                    double probeEndTime = interval.end();
-
-                    double[] identityMatrixArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                    Utils.fillArray(MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes()), identityMatrixArray);
-
-                    // integrate the probe
-
-                    ContinuousOutputModel probeIntegration = new ContinuousOutputModel();
-
-                    EulerIntegrator integrator = new EulerIntegrator(
-                            (probeEndTime - probeStartTime) / 5
-                    );
-
-                    double[] state = identityMatrixArray.clone();
-
-                    integrator.addStepHandler(probeIntegration);
-                    integrator.integrate(this, probeEndTime, state, probeStartTime, state);
-                    integrator.clearStepHandlers();
-
-                    probeIntegration.setInterpolatedTime(probeStartTime);
-                    RealMatrix integrated = Utils.toMatrix(probeIntegration.getInterpolatedState(), parameterization.getNTypes());
-
-                    // integrate a simple exponential
-
-                    RealMatrix initialDerivative = buildSystemMatrix(probeEndTime);
-                    RealMatrix expIntegrated = Utils.toMatrix(
-                            MatrixFunctions.expm(Utils.toMatrix(initialDerivative.scalarMultiply( probeStartTime - probeEndTime)))
-                    );
-
-                    // minimize the error
-
-                    RealMatrix approximationError = expIntegrated.subtract(integrated);
-                    RealMatrix initialStateMatrix = Utils.computeRegularMinimizer(approximationError);
-
-                    double[] initialStateArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                    Utils.fillArray(initialStateMatrix, initialStateArray);
-
-                    arrays.add(initialStateArray);
-                }
-
-                yield arrays;
-            }
-            default -> {
+            case "identity" -> {
                 RealMatrix matrix = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
 
                 double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
@@ -322,6 +176,9 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
                 yield arrays;
             }
+            default -> throw new RuntimeException(
+                    "Error: initial state strategy not known. Valid strategies are 'random' and 'identity'."
+            );
         };
     }
 
@@ -346,29 +203,11 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 parallelize
         );
 
-        // log num integration steps taken
-
-//        int numIntegrationSteps = 0;
-//
-//        for (ContinuousOutputModel integrated : rawOutputs) {
-//            try {
-//                Field field = integrated.getClass().getDeclaredField("index");
-//                field.setAccessible(true);
-//                numIntegrationSteps += (Integer) field.get(integrated);
-//            } catch (Exception e) {
-//                throw new RuntimeException(e);
-//            }
-//        }
-//
-//        BenchmarkRun.addToMetric("num_steps", Double.valueOf(numIntegrationSteps));
-
-        Flow flow = new Flow(
+        return new Flow(
                 rawOutputs,
                 this.parameterization.getNTypes(),
                 initialStates,
                 resetInitialStateAtIntervalsBoundaries
         );
-
-        return flow;
     }
 }
