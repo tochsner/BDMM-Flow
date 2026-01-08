@@ -220,11 +220,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // check that we don't have birth events with two different birth types
 
-        if (this.parameterization.hasCrossBirthRates3()) {
-            throw new RuntimeException(
-                    "Error: BDMM-Flow does not support birth events with two different child types. Use BDMM-Prime instead."
-            );
-        }
+//        if (this.parameterization.hasCrossBirthRates3()) {
+//            throw new RuntimeException(
+//                    "Error: BDMM-Flow does not support birth events with two different child types. Use BDMM-Prime instead."
+//            );
+//        }
 
         // initialize utils
 
@@ -447,7 +447,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 for (int type2 = 0; type2 < parameterization.getNTypes(); type2++) {
                     double rate = type1 == type2
                             ? parameterization.getBirthRates()[startInterval][type1]
-                            : parameterization.getCrossBirthRates2()[startInterval][type1][type2];
+                            : parameterization.getCrossBirthRates()[startInterval][type1][type2];
 
                     conditionDensity += rate * this.startTypePriorProbs[type1]
                             * (1 - extinctionAtRoot[type1])
@@ -685,7 +685,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     continue;
                 }
 
-                likelihoodEdgeEnd[i] += 0.5 * this.parameterization.getCrossBirthRates2()[intervalEdgeEnd][i][j] * (
+                likelihoodEdgeEnd[i] += 0.5 * this.parameterization.getCrossBirthRates()[intervalEdgeEnd][i][j] * (
                         likelihoodChild1[i] * likelihoodChild2[j] + likelihoodChild1[j] * likelihoodChild2[i]
                 );
             }

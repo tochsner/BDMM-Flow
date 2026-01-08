@@ -42,7 +42,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         this.birthRates = this.parameterization.getBirthRates();
         this.deathRates = this.parameterization.getDeathRates();
         this.samplingRates = this.parameterization.getSamplingRates();
-        this.crossBirthRates = this.parameterization.getCrossBirthRates2();
+        this.crossBirthRates = this.parameterization.getCrossBirthRates();
         this.migrationRates = this.parameterization.getMigRates();
 
         this.timeInvariantSystemMatrices = new RealMatrix[this.parameterization.getTotalIntervalCount()];

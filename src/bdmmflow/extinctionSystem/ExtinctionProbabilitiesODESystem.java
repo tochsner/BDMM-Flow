@@ -23,7 +23,7 @@ public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
         this.birthRates = this.parameterization.getBirthRates();
         this.deathRates = this.parameterization.getDeathRates();
         this.samplingRates = this.parameterization.getSamplingRates();
-        this.crossBirthRates = this.parameterization.getCrossBirthRates2();
+        this.crossBirthRates = this.parameterization.getCrossBirthRates();
         this.migrationRates = this.parameterization.getMigRates();
     }
 
