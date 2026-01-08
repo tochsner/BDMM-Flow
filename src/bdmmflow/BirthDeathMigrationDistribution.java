@@ -106,7 +106,13 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Boolean> parallelizeInput = new Input<>(
             "parallelize",
             "Whether or not parallelize the computation.",
-            false
+            true
+    );
+
+    public Input<Integer> numIntervalsInput = new Input<>(
+            "numIntervals",
+            "The number of intervals to split up this computation.",
+            1
     );
 
     /* If a large number a cores is available (more than 8 or 10) the
@@ -212,7 +218,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // validate minNumIntervals
 
-        if (minNumIntervals < 1) {
+        this.minNumIntervals = this.numIntervalsInput.get();
+        if (this.minNumIntervals < 1) {
             throw new RuntimeException(
                     "Error: minNumIntervals must be at least 1."
             );
