@@ -30,6 +30,13 @@ public class IntervalUtils {
 
         while (currentParameterizationInterval < parameterization.getTotalIntervalCount()) {
             double currentParameterizationIntervalEndTime = parameterization.getIntervalEndTimes()[currentParameterizationInterval];
+
+            if (Utils.equalWithPrecision(currentParameterizationIntervalEndTime, currentStartTime) || currentParameterizationIntervalEndTime < currentStartTime) {
+                // the current interval is empty or ends before it starts. this can happen when the interval has a negative end time.
+                currentParameterizationInterval += 1;
+                continue;
+            }
+
             double currentMaxEndTime = currentStartTime + maxIntervalSize;
 
             if (currentParameterizationIntervalEndTime < currentMaxEndTime || Utils.equalWithPrecision(currentParameterizationIntervalEndTime, currentMaxEndTime)) {
