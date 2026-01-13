@@ -333,6 +333,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // turn the likelihood into log likelihood and correct for scaling
 
+        if (treeLikelihood <= 0) return Double.NEGATIVE_INFINITY;
+
         double logTreeLikelihood = Math.log(treeLikelihood) + this.logScalingFactors[root.getNr()];
 
         // convert from oriented to labeled tree likelihood
