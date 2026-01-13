@@ -10,6 +10,10 @@ import java.util.List;
 import java.util.Set;
 
 public class IntervalUtils {
+    public static List<Interval> getIntervals(Parameterization parameterization, double maxIntervalSize) {
+        return IntervalUtils.getIntervals(parameterization, maxIntervalSize, 0.0);
+    }
+
     /**
      * Returns a list of intervals that can be used to split up the entire process time. The intervals
      * are built such they don't exceed maxIntervalSize and that the boundaries of the parameterization
@@ -21,12 +25,12 @@ public class IntervalUtils {
      * @param maxIntervalSize  - the maximal length of the returned intervals.
      * @return a list of intervals.
      */
-    public static List<Interval> getIntervals(Parameterization parameterization, double maxIntervalSize) {
+    public static List<Interval> getIntervals(Parameterization parameterization, double maxIntervalSize, double rootTime) {
         List<Interval> intervals = new ArrayList<>();
 
         int currentParameterizationInterval = 0;
 
-        double currentStartTime = 0.0;
+        double currentStartTime = Math.min(0.0, Math.min(rootTime, parameterization.getIntervalEndTimes()[0]));
 
         while (currentParameterizationInterval < parameterization.getTotalIntervalCount()) {
             double currentParameterizationIntervalEndTime = parameterization.getIntervalEndTimes()[currentParameterizationInterval];

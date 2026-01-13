@@ -19,6 +19,7 @@ import org.apache.commons.math.special.Gamma;
 import org.apache.commons.math3.linear.SingularMatrixException;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Citation(value = "Kuehnert D, Stadler T, Vaughan TG, Drummond AJ. (2016). " +
@@ -314,7 +315,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             );
         } catch (SingularMatrixException exception) {
             Log.debug("A singular matrix was detected. Number of intervals gets increased.");
-            this.minNumIntervals = (int) Math.floor(1.5 * this.minNumIntervals);
+            this.minNumIntervals = (int) Math.ceil(1.5 * this.minNumIntervals);
             return this.calculateTreeLogLikelihood(dummyTree);
         }
 
@@ -352,7 +353,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         List<Interval> intervals = IntervalUtils.getIntervals(
                 this.parameterization,
-                this.parameterization.getTotalProcessLength() / this.minNumIntervals
+                this.parameterization.getTotalProcessLength() / this.minNumIntervals,
+                this.parameterization.getNodeTime(this.tree.getRoot(), this.finalSampleOffset)
         );
 
         IntervalODESystem system = new ExtinctionProbabilitiesODESystem(
@@ -391,7 +393,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     private IFlow calculateFlow(ExtinctionProbabilities extinctionProbabilities) {
         List<Interval> intervals = IntervalUtils.getIntervals(
                 this.parameterization,
-                this.parameterization.getTotalProcessLength() / this.minNumIntervals
+                this.parameterization.getTotalProcessLength() / this.minNumIntervals,
+                this.parameterization.getNodeTime(this.tree.getRoot(), this.finalSampleOffset)
         );
 
         boolean resetInitialStateAtIntervalBoundaries = 1 < this.minNumIntervals;

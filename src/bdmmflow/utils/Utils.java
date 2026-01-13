@@ -128,6 +128,8 @@ public class Utils {
     public static double rescale(double[] array, double previousLogFactor) {
         double max = Arrays.stream(array).max().orElse(1.0);
 
+        if (bdmmprime.util.Utils.equalWithPrecision(max, 0.0)) return previousLogFactor;
+
         for (int i = 0; i < array.length; i++) {
             array[i] /= max;
         }
