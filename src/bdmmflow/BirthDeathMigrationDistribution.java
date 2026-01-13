@@ -314,8 +314,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     extinctionProbabilities
             );
         } catch (SingularMatrixException exception) {
-            Log.debug("A singular matrix was detected. Number of intervals gets increased.");
             this.minNumIntervals = (int) Math.ceil(1.5 * this.minNumIntervals);
+            Log.debug("A singular matrix was detected. Number of intervals gets increased to " + this.minNumIntervals + ".");
             return this.calculateTreeLogLikelihood(dummyTree);
         }
 
