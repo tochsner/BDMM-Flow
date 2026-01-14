@@ -20,6 +20,7 @@ import org.apache.commons.math3.linear.SingularMatrixException;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 @Citation(value = "Kuehnert D, Stadler T, Vaughan TG, Drummond AJ. (2016). " +
@@ -152,6 +153,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     double relativeTolerance;
 
     int minNumIntervals = 1;
+    LinkedList<Integer> lastTenNumIntervals;
+
     boolean useInverseFlow;
     boolean useODESplitting;
     int seed;
@@ -192,6 +195,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.minimalSubtreeSizeForParallelization = minimalSubtreeSizeForParallelizationInput.get();
         this.useInverseFlow = this.useInverseFlowInput.get();
         this.useODESplitting = this.useODESplittingInput.get();
+        this.lastTenNumIntervals = new LinkedList<>();
 
         // validate type label
 
@@ -244,18 +248,18 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // initialize bdmm prime
 
-        this.bdmmPrime = new bdmmprime.distribution.BirthDeathMigrationDistribution();
-        this.bdmmPrime.initByName(
-                "tree", this.treeInput.get(),
-                "parameterization", this.parameterizationInput.get(),
-                "finalSampleOffset", this.finalSampleOffsetInput.get(),
-                "startTypePriorProbs", this.startTypePriorProbsInput.get(),
-                "typeTraitSet", this.typeTraitSetInput.get(),
-                "typeLabel", this.typeLabelInput.get(),
-                "conditionOnSurvival", this.conditionOnSurvivalInput.get(),
-                "conditionOnRoot", this.conditionOnRootInput.get(),
-                "conditionOnRoot", this.conditionOnRootInput.get()
-        );
+//        this.bdmmPrime = new bdmmprime.distribution.BirthDeathMigrationDistribution();
+//        this.bdmmPrime.initByName(
+//                "tree", this.treeInput.get(),
+//                "parameterization", this.parameterizationInput.get(),
+//                "finalSampleOffset", this.finalSampleOffsetInput.get(),
+//                "startTypePriorProbs", this.startTypePriorProbsInput.get(),
+//                "typeTraitSet", this.typeTraitSetInput.get(),
+//                "typeLabel", this.typeLabelInput.get(),
+//                "conditionOnSurvival", this.conditionOnSurvivalInput.get(),
+//                "conditionOnRoot", this.conditionOnRootInput.get(),
+//                "conditionOnRoot", this.conditionOnRootInput.get()
+//        );
     }
 
     /**
@@ -336,9 +340,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     flow,
                     extinctionProbabilities
             );
+            this.updateNumIntervals(false);
         } catch (SingularMatrixException exception) {
-            this.minNumIntervals = (int) Math.ceil(1.5 * this.minNumIntervals);
-            Log.debug("A singular matrix was detected. Number of intervals gets increased to " + this.minNumIntervals + ".");
+            this.updateNumIntervals(true);
             return this.calculateTreeLogLikelihood(dummyTree);
         }
 
@@ -371,11 +375,24 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 //        double deviation = Math.abs(Math.abs(logTreeLikelihood - bdmmPrimeLikelihood) / bdmmPrimeLikelihood);
 //
 //        if (deviation > 0.01 || (Double.isFinite(logTreeLikelihood) != Double.isFinite(bdmmPrimeLikelihood))) {
-//            Log.err("Deviation to BDMM Prime: " + bdmmPrimeLikelihood + " (Prime) vs " + logTreeLikelihood + " (Flow");
-//            throw new RuntimeException("Deviation to BDMM Prime: " + bdmmPrimeLikelihood + " (Prime) vs " + logTreeLikelihood + " (Flow");
+//            Log.err("Deviation to BDMM Prime: " + bdmmPrimeLikelihood + " (Prime) vs " + logTreeLikelihood + " (Flow)");
 //        }
 
         return logTreeLikelihood;
+    }
+
+    private void updateNumIntervals(boolean singularMatrixDetected) {
+        this.lastTenNumIntervals.add(this.minNumIntervals);
+
+        if (10 < this.lastTenNumIntervals.size()) {
+            this.lastTenNumIntervals.removeFirst();
+        }
+
+        if (singularMatrixDetected) {
+            this.minNumIntervals += 1;
+        } else if (this.lastTenNumIntervals.stream().distinct().count() == 1) {
+            this.minNumIntervals = Math.max(1, this.minNumIntervals - 1);
+        }
     }
 
     private boolean inputValuesHaveZeroDensity() {

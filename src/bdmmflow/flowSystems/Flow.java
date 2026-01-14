@@ -71,7 +71,7 @@ public class Flow implements IFlow {
 
         RealVector likelihoodVectorEnd = Utils.toVector(endState);
 
-        DecompositionSolver linearSolver = new QRDecomposition(flowMatrixEnd).getSolver();
+        DecompositionSolver linearSolver = new QRDecomposition(flowMatrixEnd, 1e-6).getSolver();
         RealVector solution = linearSolver.solve(likelihoodVectorEnd);
 
         RealVector likelihoodVectorStart = flowMatrixStart.operate(solution);
