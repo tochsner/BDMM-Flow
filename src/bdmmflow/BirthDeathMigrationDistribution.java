@@ -168,6 +168,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     int[] subtreeSizes;
     double parallelizeSubtreeSizeThreshold;
 
+    bdmmprime.distribution.BirthDeathMigrationDistribution bdmmPrime;
+
     @Override
     public void initAndValidate() {
         // unpack input values
@@ -239,6 +241,21 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.logScalingFactors = new double[this.tree.getNodeCount()];
         this.initializeIsRhoSampled();
         this.initializeSubtreeSizes();
+
+        // initialize bdmm prime
+
+        this.bdmmPrime = new bdmmprime.distribution.BirthDeathMigrationDistribution();
+        this.bdmmPrime.initByName(
+                "tree", this.treeInput.get(),
+                "parameterization", this.parameterizationInput.get(),
+                "finalSampleOffset", this.finalSampleOffsetInput.get(),
+                "startTypePriorProbs", this.startTypePriorProbsInput.get(),
+                "typeTraitSet", this.typeTraitSetInput.get(),
+                "typeLabel", this.typeLabelInput.get(),
+                "conditionOnSurvival", this.conditionOnSurvivalInput.get(),
+                "conditionOnRoot", this.conditionOnRootInput.get(),
+                "conditionOnRoot", this.conditionOnRootInput.get()
+        );
     }
 
     /**
@@ -295,6 +312,12 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      */
     @Override
     public double calculateTreeLogLikelihood(TreeInterface dummyTree) {
+        // validate input values
+
+        if (inputValuesHaveZeroDensity()) {
+            return Double.NEGATIVE_INFINITY;
+        }
+
         // integrate over the extinction probabilities ODE and the flow ODE
 
         ExtinctionProbabilities extinctionProbabilities = this.calculateExtinctionProbabilities();
@@ -342,7 +365,38 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         int internalNodeCount = tree.getLeafNodeCount() - ((Tree) tree).getDirectAncestorNodeCount() - 1;
         logTreeLikelihood += Math.log(2) * internalNodeCount - Gamma.logGamma(tree.getLeafNodeCount() + 1);
 
+        // compare with BDMMPrime
+
+//        double bdmmPrimeLikelihood = this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
+//        double deviation = Math.abs(Math.abs(logTreeLikelihood - bdmmPrimeLikelihood) / bdmmPrimeLikelihood);
+//
+//        if (deviation > 0.01 || (Double.isFinite(logTreeLikelihood) != Double.isFinite(bdmmPrimeLikelihood))) {
+//            Log.err("Deviation to BDMM Prime: " + bdmmPrimeLikelihood + " (Prime) vs " + logTreeLikelihood + " (Flow");
+//            throw new RuntimeException("Deviation to BDMM Prime: " + bdmmPrimeLikelihood + " (Prime) vs " + logTreeLikelihood + " (Flow");
+//        }
+
         return logTreeLikelihood;
+    }
+
+    private boolean inputValuesHaveZeroDensity() {
+        if (!this.parameterization.valuesAreValid()) {
+            return true;
+        }
+
+        if (bdmmprime.util.Utils.lessThanWithPrecision(parameterization.getNodeTime(tree.getRoot(),
+                this.finalSampleOffset), 0)) {
+            // tree MRCA older than the start of the process
+            return true;
+        }
+
+        if (conditionOnRootInput.get() && tree.getRoot().isFake()) {
+            // Tree root is a sampled ancestor but we're conditioning on a root birth.
+            return true;
+        }
+
+        // all good :)
+
+        return false;
     }
 
     /**
@@ -500,11 +554,22 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             likelihoodEdgeEnd = calculateInternalEdgeLikelihood(root, timeEdgeEnd, flow, extinctionProbabilities);
         }
 
-        return flow.integrateUsingFlow(
+        double[] likelihood = flow.integrateUsingFlow(
                 timeEdgeStart,
                 timeEdgeEnd,
                 likelihoodEdgeEnd
         );
+
+        if (Arrays.stream(likelihood).anyMatch(x -> x < 0)) {
+            // there is a negative likelihood due to numerical issues
+
+            for (int i = 0; i < likelihood.length; i++) {
+                if (0 <= likelihood[i]) continue;
+                likelihood[i] = 0;
+            }
+        }
+
+        return likelihood;
     }
 
     /**
