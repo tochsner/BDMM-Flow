@@ -60,8 +60,7 @@ public class InverseFlow implements IFlow {
         DecompositionSolver qr = this.decompositionCache.computeIfAbsent(
                 startKey,
                 k -> new QRDecomposition(
-                        this.flowCache.computeIfAbsent(startKey, k_ -> this.getFlow(timeStart, interval)),
-                        bdmmprime.util.Utils.globalPrecisionThreshold
+                        this.flowCache.computeIfAbsent(startKey, k_ -> this.getFlow(timeStart, interval))
                 ).getSolver()
         );
 
