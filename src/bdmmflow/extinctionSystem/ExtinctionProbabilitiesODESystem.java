@@ -64,4 +64,10 @@ public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
             state[type] *= (1.0 - parameterization.getRhoValues()[newInterval][type]);
         }
     }
+
+    @Override
+    protected IntervalODESystem constrainToInterval(Interval interval) {
+        // this class is thread-safe w.r.t different intervals by default
+        return this;
+    }
 }

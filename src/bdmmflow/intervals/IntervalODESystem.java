@@ -1,12 +1,12 @@
 package bdmmflow.intervals;
 
+import bdmmflow.flowSystems.FlowODESystem;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;
 import org.apache.commons.math3.ode.FirstOrderIntegrator;
 import org.apache.commons.math3.ode.nonstiff.*;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
@@ -30,12 +30,11 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     protected List<Interval> intervals;
     protected Set<Integer> parameterizationIntervalBoundaries;
     protected Parameterization parameterization;
-    protected FirstOrderIntegrator integrator;
 
-    double absoluteTolerance;
-    double relativeTolerance;
-    double integrationMinStep;
-    double integrationMaxStep;
+    protected double absoluteTolerance;
+    protected double relativeTolerance;
+    protected double integrationMinStep;
+    protected double integrationMaxStep;
 
     public IntervalODESystem(Parameterization parameterization, List<Interval> intervals, double absoluteTolerance, double relativeTolerance) {
         this.parameterization = parameterization;
@@ -48,10 +47,6 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
         integrationMaxStep = this.parameterization.getTotalProcessLength() / 5;
         this.absoluteTolerance = absoluteTolerance;
         this.relativeTolerance = relativeTolerance;
-
-        this.integrator = new DormandPrince853Integrator(
-                integrationMinStep, integrationMaxStep, absoluteTolerance, relativeTolerance
-        );
     }
 
     /**
@@ -72,7 +67,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
         if (alwaysStartAtInitialState) {
 
-            IntStream.range(0, intervals.size()).parallel().forEach(i -> {
+            IntStream.range(0, intervals.size()).forEach(i -> {
                 Interval interval = intervals.get(i);
                 double[] state = initialState.clone();
 
@@ -85,7 +80,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                     );
                 }
 
-                outputModels[interval.interval()] = this.integrate(state, interval.start(), interval.end());
+                outputModels[interval.interval()] = this.integrate(state, interval.start(), interval.end(), interval);
             });
 
         } else {
@@ -102,7 +97,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                     );
                 }
 
-                outputModels[interval.interval()] = this.integrate(state, interval.start(), interval.end());
+                outputModels[interval.interval()] = this.integrate(state, interval.start(), interval.end(), interval);
             }
 
         }
@@ -158,7 +153,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                 }
 
                 outputModels[intervals.size() - interval.interval() - 1] = this.integrate(
-                        state, interval.end(), interval.start()
+                        state, interval.end(), interval.start(), interval
                 );
             });
 
@@ -178,7 +173,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                 }
 
                 outputModels[intervals.size() - interval.interval() - 1] = this.integrate(
-                        state, interval.end(), interval.start()
+                        state, interval.end(), interval.start(), interval
                 );
             }
 
@@ -187,14 +182,17 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
         return outputModels;
     }
 
-    protected ContinuousOutputModel integrate(double[] initialState, double start, double end) {
+    /**
+     * Integrate the system along the given interval from start to end using the given initialState.
+     */
+    protected ContinuousOutputModel integrate(double[] initialState, double start, double end, Interval interval) {
         ContinuousOutputModel intervalResult = new ContinuousOutputModel();
 
         DormandPrince853Integrator integrator = new DormandPrince853Integrator(
-                integrationMinStep, integrationMaxStep, absoluteTolerance, relativeTolerance
+                this.integrationMinStep, this.integrationMaxStep, this.absoluteTolerance, this.relativeTolerance
         );
         integrator.addStepHandler(intervalResult);
-        integrator.integrate(this, start, initialState, end, initialState);
+        integrator.integrate(this.constrainToInterval(interval), start, initialState, end, initialState);
         integrator.clearStepHandlers();
 
         return intervalResult;
@@ -210,4 +208,10 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     public int getCurrentParameterizationInterval(double time) {
         return IntervalUtils.getInterval(time, this.intervals).parameterizationInterval();
     }
+
+    /**
+     * Returns the system constraint to the given interval. This is useful when we parallelize
+     * over the different intervals to acheive thread-safety.
+     */
+    abstract protected IntervalODESystem constrainToInterval(Interval interval);
 }

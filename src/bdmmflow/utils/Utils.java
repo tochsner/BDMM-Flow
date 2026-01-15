@@ -12,7 +12,7 @@ public class Utils {
      * Returns a random square matrix of the given dimension.
      */
     public static RealMatrix getRandomMatrix(int dimension) {
-        return getRandomMatrix(dimension, new Random().nextInt());
+        return getRandomMatrix(dimension, 763425);
     }
 
     /**

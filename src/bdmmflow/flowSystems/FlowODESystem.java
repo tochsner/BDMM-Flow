@@ -50,6 +50,17 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     }
 
     @Override
+    protected IntervalODESystem constrainToInterval(Interval interval) {
+        return new FlowODESystem(
+                this.parameterization,
+                this.extinctionProbabilities.constrainToInterval(interval),
+                this.intervals,
+                this.absoluteTolerance,
+                this.relativeTolerance
+        );
+    }
+
+    @Override
     public int getDimension() {
         return parameterization.getNTypes() * parameterization.getNTypes();
     }

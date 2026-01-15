@@ -73,9 +73,9 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
     }
 
     @Override
-    protected ContinuousOutputModel integrate(double[] initialState, double start, double end) {
+    protected ContinuousOutputModel integrate(double[] initialState, double start, double end, Interval currentInterval) {
         if (isNonDiagonalTimeHeterogeneous) {
-            return super.integrate(initialState, start, end);
+            return super.integrate(initialState, start, end, currentInterval);
         }
 
         int n = this.parameterization.getNTypes();

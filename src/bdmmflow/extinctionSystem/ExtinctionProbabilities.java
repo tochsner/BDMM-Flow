@@ -1,5 +1,6 @@
 package bdmmflow.extinctionSystem;
 
+import bdmmflow.intervals.Interval;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 /**
@@ -46,5 +47,14 @@ public class ExtinctionProbabilities {
         }
 
         return new ExtinctionProbabilities(clonedOutputModels);
+    }
+
+    /**
+     * Returns a wrapper constraint to the given interval.
+     */
+    public ExtinctionProbabilities constrainToInterval(Interval interval) {
+        return new ExtinctionProbabilities(new ContinuousOutputModel[] {
+                this.outputModels[this.outputModels.length - interval.interval() - 1]
+        });
     }
 }
