@@ -114,7 +114,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Integer> numIntervalsInput = new Input<>(
             "numIntervals",
             "The number of intervals to split up this computation.",
-            1
+            8
     );
 
     /* If a large number a cores is available (more than 8 or 10) the
@@ -170,6 +170,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     int[] subtreeSizes;
     double parallelizeSubtreeSizeThreshold;
+
+    int totalNumEvaluations = 0;
+    int totalNumFailedEvaluations = 0;
 
     bdmmprime.distribution.BirthDeathMigrationDistribution bdmmPrime;
 
@@ -248,18 +251,18 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // initialize bdmm prime
 
-//        this.bdmmPrime = new bdmmprime.distribution.BirthDeathMigrationDistribution();
-//        this.bdmmPrime.initByName(
-//                "tree", this.treeInput.get(),
-//                "parameterization", this.parameterizationInput.get(),
-//                "finalSampleOffset", this.finalSampleOffsetInput.get(),
-//                "startTypePriorProbs", this.startTypePriorProbsInput.get(),
-//                "typeTraitSet", this.typeTraitSetInput.get(),
-//                "typeLabel", this.typeLabelInput.get(),
-//                "conditionOnSurvival", this.conditionOnSurvivalInput.get(),
-//                "conditionOnRoot", this.conditionOnRootInput.get(),
-//                "conditionOnRoot", this.conditionOnRootInput.get()
-//        );
+        this.bdmmPrime = new bdmmprime.distribution.BirthDeathMigrationDistribution();
+        this.bdmmPrime.initByName(
+                "tree", this.treeInput.get(),
+                "parameterization", this.parameterizationInput.get(),
+                "finalSampleOffset", this.finalSampleOffsetInput.get(),
+                "startTypePriorProbs", this.startTypePriorProbsInput.get(),
+                "typeTraitSet", this.typeTraitSetInput.get(),
+                "typeLabel", this.typeLabelInput.get(),
+                "conditionOnSurvival", this.conditionOnSurvivalInput.get(),
+                "conditionOnRoot", this.conditionOnRootInput.get(),
+                "conditionOnRoot", this.conditionOnRootInput.get()
+        );
     }
 
     /**
@@ -333,6 +336,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         double[] rootLikelihoodPerState;
 
         try {
+            this.totalNumEvaluations++;
             rootLikelihoodPerState = this.calculateSubTreeLikelihood(
                     root,
                     0,
@@ -340,10 +344,15 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     flow,
                     extinctionProbabilities
             );
-            this.updateNumIntervals(false);
         } catch (SingularMatrixException exception) {
-            this.updateNumIntervals(true);
-            return this.calculateTreeLogLikelihood(dummyTree);
+            this.totalNumFailedEvaluations++;
+
+            double failedFraction = 1.0 * this.totalNumFailedEvaluations / this.totalNumEvaluations;
+            if (5_000 < this.totalNumEvaluations && 0.1 < failedFraction) {
+                Log.warning("BDMM-Flow encounters numerical issues. Please increase minIntervals to a higher number (currently it is " + this.minNumIntervals + ")");
+            }
+
+            return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
         }
 
         // get tree likelihood by a weighted average of the root likelihood per state
@@ -374,25 +383,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 //        double bdmmPrimeLikelihood = this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
 //        double deviation = Math.abs(Math.abs(logTreeLikelihood - bdmmPrimeLikelihood) / bdmmPrimeLikelihood);
 //
-//        if (deviation > 0.01 || (Double.isFinite(logTreeLikelihood) != Double.isFinite(bdmmPrimeLikelihood))) {
-//            Log.err("Deviation to BDMM Prime: " + bdmmPrimeLikelihood + " (Prime) vs " + logTreeLikelihood + " (Flow)");
+//        if (deviation > 0.000001 || (Double.isFinite(logTreeLikelihood) != Double.isFinite(bdmmPrimeLikelihood))) {
+//             Log.err("Deviation to BDMM Prime: " + bdmmPrimeLikelihood + " (Prime) vs " + logTreeLikelihood + " (Flow)");
 //        }
 
         return logTreeLikelihood;
-    }
-
-    private void updateNumIntervals(boolean singularMatrixDetected) {
-        this.lastTenNumIntervals.add(this.minNumIntervals);
-
-        if (10 < this.lastTenNumIntervals.size()) {
-            this.lastTenNumIntervals.removeFirst();
-        }
-
-        if (singularMatrixDetected) {
-            this.minNumIntervals += 1;
-        } else if (this.lastTenNumIntervals.stream().distinct().count() == 1) {
-            this.minNumIntervals = Math.max(1, this.minNumIntervals - 1);
-        }
     }
 
     private boolean inputValuesHaveZeroDensity() {
@@ -407,7 +402,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         }
 
         if (conditionOnRootInput.get() && tree.getRoot().isFake()) {
-            // Tree root is a sampled ancestor but we're conditioning on a root birth.
+            // Tree root is a sampled ancestor, but we're conditioning on a root birth.
             return true;
         }
 

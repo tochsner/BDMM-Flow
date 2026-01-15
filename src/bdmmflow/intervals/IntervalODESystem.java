@@ -67,7 +67,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
         if (alwaysStartAtInitialState) {
 
-            IntStream.range(0, intervals.size()).forEach(i -> {
+            IntStream.range(0, intervals.size()).parallel().forEach(i -> {
                 Interval interval = intervals.get(i);
                 double[] state = initialState.clone();
 
@@ -211,7 +211,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
     /**
      * Returns the system constraint to the given interval. This is useful when we parallelize
-     * over the different intervals to acheive thread-safety.
+     * over the different intervals to achieve thread-safety.
      */
     abstract protected IntervalODESystem constrainToInterval(Interval interval);
 }
