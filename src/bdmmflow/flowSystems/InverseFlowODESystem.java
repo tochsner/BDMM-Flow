@@ -27,6 +27,8 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
     final double[][][] crossBirthRates;
     final double[][][] migrationRates;
 
+    int seed;
+
     static LRUCache<Double, DecompositionSolver> cache = new LRUCache<>(16);
 
     public InverseFlowODESystem(
@@ -34,7 +36,8 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
             ExtinctionProbabilities extinctionProbabilities,
             List<Interval> intervals,
             double absoluteTolerance,
-            double relativeTolerance
+            double relativeTolerance,
+            int seed
     ) {
         super(parameterization, intervals, absoluteTolerance, relativeTolerance);
         this.extinctionProbabilities = extinctionProbabilities;
@@ -44,6 +47,8 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         this.samplingRates = this.parameterization.getSamplingRates();
         this.crossBirthRates = this.parameterization.getCrossBirthRates();
         this.migrationRates = this.parameterization.getMigRates();
+
+        this.seed = seed;
 
         this.timeInvariantSystemMatrices = new RealMatrix[this.parameterization.getTotalIntervalCount()];
 
@@ -61,7 +66,8 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
                 this.extinctionProbabilities.constrainToInterval(interval),
                 this.intervals,
                 this.absoluteTolerance,
-                this.relativeTolerance
+                this.relativeTolerance,
+                this.seed
         );
     }
 
@@ -168,7 +174,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
     RealMatrix getInitialState(String initialMatrixStrategy) {
         return switch (initialMatrixStrategy) {
-            case "random" -> Utils.getRandomMatrix(this.parameterization.getNTypes(), 0);
+            case "random" -> Utils.getRandomMatrix(this.parameterization.getNTypes(), this.seed);
             case "heuristic" -> MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
             default -> MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
         };

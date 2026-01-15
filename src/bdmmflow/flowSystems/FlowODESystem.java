@@ -26,12 +26,15 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     final double[][][] crossBirthRates;
     final double[][][] migrationRates;
 
+    int seed;
+
     public FlowODESystem(
             Parameterization parameterization,
             ExtinctionProbabilities extinctionProbabilities,
             List<Interval> intervals,
             double absoluteTolerance,
-            double relativeTolerance
+            double relativeTolerance,
+            int seed
     ) {
         super(parameterization, intervals, absoluteTolerance, relativeTolerance);
         this.extinctionProbabilities = extinctionProbabilities;
@@ -41,6 +44,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
         this.samplingRates = this.parameterization.getSamplingRates();
         this.crossBirthRates = this.parameterization.getCrossBirthRates();
         this.migrationRates = this.parameterization.getMigRates();
+        this.seed = seed;
 
         this.timeInvariantSystemMatrices = new RealMatrix[this.parameterization.getTotalIntervalCount()];
 
@@ -56,7 +60,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 this.extinctionProbabilities.constrainToInterval(interval),
                 this.intervals,
                 this.absoluteTolerance,
-                this.relativeTolerance
+                this.relativeTolerance,
+                this.seed
         );
     }
 
@@ -163,7 +168,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     List<double[]> getInitialStates(String initialMatrixStrategy, List<Interval> intervals) {
         return switch (initialMatrixStrategy) {
             case "random" -> {
-                RealMatrix matrix = Utils.getRandomMatrix(this.parameterization.getNTypes());
+                RealMatrix matrix = Utils.getRandomMatrix(this.parameterization.getNTypes(), this.seed);
 
                 List<double[]> arrays = new ArrayList<>();
                 for (Interval ignored : intervals) {

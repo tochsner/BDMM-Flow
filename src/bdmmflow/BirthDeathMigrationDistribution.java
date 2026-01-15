@@ -475,7 +475,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     extinctionProbabilities,
                     intervals,
                     this.absoluteTolerance,
-                    this.relativeTolerance
+                    this.relativeTolerance,
+                    this.seed
             );
         } else if (this.useODESplitting) {
             system = new DiagonalIPFlowODESystem(
@@ -491,7 +492,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     extinctionProbabilities,
                     intervals,
                     this.absoluteTolerance,
-                    this.relativeTolerance
+                    this.relativeTolerance,
+                    this.seed
             );
         }
 
