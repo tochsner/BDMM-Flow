@@ -1,14 +1,13 @@
 package bdmmflow.intervals;
 
-import bdmmflow.flowSystems.FlowODESystem;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;
-import org.apache.commons.math3.ode.FirstOrderIntegrator;
 import org.apache.commons.math3.ode.nonstiff.*;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.IntStream;
 
 
@@ -18,12 +17,12 @@ import java.util.stream.IntStream;
  * There are two reasons why a time is split into intervals:
  * <p>
  * -    The parameterization of the BDMM model can specify parameterization intervals, where the ODE
- *      boundary conditions change at the parameterization interval boundaries.
- *      A concrete implementation of this class can inherit the handleParameterizationIntervalBoundary method
- *      to specify these changes.
+ * boundary conditions change at the parameterization interval boundaries.
+ * A concrete implementation of this class can inherit the handleParameterizationIntervalBoundary method
+ * to specify these changes.
  * <p>
  * -    For numerical stability, it can be useful to split up the time even more fine-grained and to restart
- *      integration in each interval.
+ * integration in each interval.
  */
 public abstract class IntervalODESystem implements FirstOrderDifferentialEquations {
 
@@ -55,9 +54,9 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
      * The parameterization interval boundaries are handled automatically
      * by calling handleParameterizationIntervalBoundary at the boundaries.
      *
-     * @param initialState the initial state at time 0.
-     * @param intervals the list of intervals where integration is restarted. Should include the parameterization intervals.
-     *                  Use IntervalUtils.getIntervals to generate these.
+     * @param initialState              the initial state at time 0.
+     * @param intervals                 the list of intervals where integration is restarted. Should include the parameterization intervals.
+     *                                  Use IntervalUtils.getIntervals to generate these.
      * @param alwaysStartAtInitialState if the integration should be restarted at the initial state at the interval boundaries.
      *                                  this can increase numerical stability.
      * @return the integration result.
@@ -67,21 +66,30 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
         if (alwaysStartAtInitialState) {
 
-            IntStream.range(0, intervals.size()).parallel().forEach(i -> {
-                Interval interval = intervals.get(i);
-                double[] state = initialState.clone();
+            ForkJoinPool pool = new ForkJoinPool();
+            try {
+                pool.submit(() ->
+                        IntStream.range(0, intervals.size()).parallel().forEach(i -> {
+                            Interval interval = intervals.get(i);
+                            double[] state = initialState.clone();
 
-                if (this.parameterizationIntervalBoundaries.contains(interval.interval())) {
-                    this.handleParameterizationIntervalBoundary(
-                            interval.start(),
-                            interval.parameterizationInterval() - 1,
-                            interval.parameterizationInterval(),
-                            state
-                    );
-                }
+                            if (this.parameterizationIntervalBoundaries.contains(interval.interval())) {
+                                this.handleParameterizationIntervalBoundary(
+                                        interval.start(),
+                                        interval.parameterizationInterval() - 1,
+                                        interval.parameterizationInterval(),
+                                        state
+                                );
+                            }
 
-                outputModels[interval.interval()] = this.integrate(state, interval.start(), interval.end(), interval);
-            });
+                            outputModels[interval.interval()] = this.integrate(state, interval.start(), interval.end(), interval);
+                        })
+                ).join();
+            } finally {
+                // shutdown all threads in case of an exception
+                // the exception is automatically passed upwards to the caller
+                pool.shutdownNow();
+            }
 
         } else {
 
@@ -111,9 +119,9 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
      * The parameterization interval boundaries are handled automatically
      * by calling handleParameterizationIntervalBoundary at the boundaries.
      *
-     * @param initialStates the initial states at the interval ends.
-     * @param intervals the list of intervals where integration is restarted. Should include the parameterization intervals.
-     *                  Use IntervalUtils.getIntervals to generate these.
+     * @param initialStates             the initial states at the interval ends.
+     * @param intervals                 the list of intervals where integration is restarted. Should include the parameterization intervals.
+     *                                  Use IntervalUtils.getIntervals to generate these.
      * @param alwaysStartAtInitialState if the integration should be restarted at the initial state at the interval boundaries.
      *                                  this can increase numerical stability.
      * @return the integration result.
@@ -123,23 +131,32 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
         if (alwaysStartAtInitialState) {
 
-            IntStream.range(0, intervals.size()).parallel().forEach(i -> {
-                Interval interval = intervals.get(i);
-                double[] state = initialStates.get(i).clone();
+            ForkJoinPool pool = new ForkJoinPool();
+            try {
+                pool.submit(() ->
+                        IntStream.range(0, intervals.size()).parallel().forEach(i -> {
+                            Interval interval = intervals.get(i);
+                            double[] state = initialStates.get(i).clone();
 
-                if (this.parameterizationIntervalBoundaries.contains(interval.interval() + 1)) {
-                    this.handleParameterizationIntervalBoundary(
-                            interval.end(),
-                            interval.parameterizationInterval() + 1,
-                            interval.parameterizationInterval(),
-                            state
-                    );
-                }
+                            if (this.parameterizationIntervalBoundaries.contains(interval.interval() + 1)) {
+                                this.handleParameterizationIntervalBoundary(
+                                        interval.end(),
+                                        interval.parameterizationInterval() + 1,
+                                        interval.parameterizationInterval(),
+                                        state
+                                );
+                            }
 
-                outputModels[intervals.size() - interval.interval() - 1] = this.integrate(
-                        state, interval.end(), interval.start(), interval
-                );
-            });
+                            outputModels[intervals.size() - interval.interval() - 1] = this.integrate(
+                                    state, interval.end(), interval.start(), interval
+                            );
+                        })
+                ).join();
+            } finally {
+                // shutdown all threads in case of an exception
+                // the exception is automatically passed upwards to the caller
+                pool.shutdownNow();
+            }
 
         } else {
 

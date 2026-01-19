@@ -22,6 +22,7 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
 
 @Citation(value = "Kuehnert D, Stadler T, Vaughan TG, Drummond AJ. (2016). " +
         "A General and Efficient Algorithm for the Likelihood of Diversification and Discrete-Trait Evolutionary Models, \n" +
@@ -298,6 +299,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 this.minimalSubtreeSizeForParallelization
         );
     }
+
     /**
      * Initialized the `subtreeSizes` array with the number of nodes in the subtree of
      * `node`.
@@ -746,17 +748,28 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 && subtreeSizes[child1.getNr()] > parallelizeSubtreeSizeThreshold
                 && subtreeSizes[child2.getNr()] > parallelizeSubtreeSizeThreshold
         ) {
-            List<double[]> likelihoodChildren = node.getChildren().parallelStream().map(
-                    child -> this.calculateSubTreeLikelihood(
-                            child,
-                            timeEdgeEnd,
-                            this.parameterization.getNodeTime(child, this.finalSampleOffset),
-                            flow.copy(),
-                            extinctionProbabilities.copy()
-                    )
-            ).toList();
-            likelihoodChild1 = likelihoodChildren.get(0);
-            likelihoodChild2 = likelihoodChildren.get(1);
+            ForkJoinPool pool = new ForkJoinPool();
+
+            try {
+                List<double[]> likelihoodChildren = pool.submit(() ->
+                        node.getChildren().parallelStream().map(
+                                child -> this.calculateSubTreeLikelihood(
+                                        child,
+                                        timeEdgeEnd,
+                                        this.parameterization.getNodeTime(child, this.finalSampleOffset),
+                                        flow.copy(),
+                                        extinctionProbabilities.copy()
+                                )
+                        ).toList()
+                ).join();
+                likelihoodChild1 = likelihoodChildren.get(0);
+                likelihoodChild2 = likelihoodChildren.get(1);
+            } finally {
+                // shutdown all threads in case of an exception
+                // the exception is automatically passed upwards to the caller
+                pool.shutdownNow();
+            }
+
         } else {
             likelihoodChild1 = this.calculateSubTreeLikelihood(
                     child1,
@@ -803,6 +816,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     /**
      * Returns the type of the given node.
+     *
      * @param node the node to return the type of.
      * @return the type of the node.
      */
