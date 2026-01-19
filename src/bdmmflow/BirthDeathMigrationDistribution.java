@@ -114,7 +114,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Integer> numIntervalsInput = new Input<>(
             "numIntervals",
             "The number of intervals to split up this computation.",
-            8
+            2
     );
 
     /* If a large number a cores is available (more than 8 or 10) the
@@ -152,7 +152,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     double absoluteTolerance;
     double relativeTolerance;
 
-    int minNumIntervals = 1;
+    int numIntervals = 1;
     LinkedList<Integer> lastTenNumIntervals;
 
     boolean useInverseFlow;
@@ -228,8 +228,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // validate minNumIntervals
 
-        this.minNumIntervals = this.numIntervalsInput.get();
-        if (this.minNumIntervals < 1) {
+        this.numIntervals = this.numIntervalsInput.get();
+        if (this.numIntervals < 1) {
             throw new RuntimeException(
                     "Error: minNumIntervals must be at least 1."
             );
@@ -327,7 +327,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // set up intervals
 
-        double maxIntervalSize = this.parameterization.getTotalProcessLength() / this.minNumIntervals;
+        double maxIntervalSize = this.parameterization.getTotalProcessLength() / this.numIntervals;
         double rootTime = this.parameterization.getNodeTime(this.tree.getRoot(), this.finalSampleOffset);
         List<Interval> intervals = IntervalUtils.getIntervals(
                 this.parameterization,
@@ -345,6 +345,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         Node root = this.tree.getRoot();
         double[] rootLikelihoodPerState;
 
+        updateNumIntervalsIfNecessary();
+
         try {
             this.totalNumEvaluations++;
             rootLikelihoodPerState = this.calculateSubTreeLikelihood(
@@ -356,12 +358,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             );
         } catch (SingularMatrixException exception) {
             this.totalNumFailedEvaluations++;
-
-            double failedFraction = 1.0 * this.totalNumFailedEvaluations / this.totalNumEvaluations;
-            if (5_000 < this.totalNumEvaluations && 0.1 < failedFraction) {
-                Log.warning("BDMM-Flow encounters numerical issues. Please increase minIntervals to a higher number (currently it is " + this.minNumIntervals + ")");
-            }
-
             return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
         }
 
@@ -398,6 +394,18 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 //        }
 
         return logTreeLikelihood;
+    }
+
+    private void updateNumIntervalsIfNecessary() {
+        // we only update the values every 1000 iterations
+        if (this.totalNumEvaluations % 1000 != 0) return;
+
+        double failureRate = 1.0 * this.totalNumFailedEvaluations / this.totalNumEvaluations;
+
+        if (0.1 < failureRate) {
+            this.numIntervals += 1;
+            Log.warning("Changed minNumIntervals to " + this.numIntervals + " (failure rate was " + failureRate + ")");
+        }
     }
 
     private boolean inputValuesHaveZeroDensity() {
@@ -468,7 +476,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      * @return a wrapper class that allows to query the flow at any given time.
      */
     private IFlow calculateFlow(List<Interval> intervals, ExtinctionProbabilities extinctionProbabilities) {
-        boolean resetInitialStateAtIntervalBoundaries = 1 < this.minNumIntervals;
+        boolean resetInitialStateAtIntervalBoundaries = 1 < this.numIntervals;
 
         IFlowODESystem system;
 

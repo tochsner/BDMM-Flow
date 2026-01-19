@@ -24,11 +24,6 @@ public class Flow implements IFlow {
     LRUCache<Pair<Double, Integer>, RealMatrix> cache = new LRUCache<>(16);
     RealMatrix[][] accumulatedFlowCache;
 
-    public Flow(ContinuousOutputModel[] flows, int n) {
-        assert false;
-        // this(flows, n, List.of(MatrixUtils.createRealIdentityMatrix(n)), false);
-    }
-
     public Flow(ContinuousOutputModel[] outputModels, int n, List<double[]> initialStateArrays, boolean wasInitialStateResetAtEachInterval) {
         this.outputModels = outputModels;
         this.n = n;
@@ -71,7 +66,7 @@ public class Flow implements IFlow {
 
         RealVector likelihoodVectorEnd = Utils.toVector(endState);
 
-        DecompositionSolver linearSolver = new QRDecomposition(flowMatrixEnd).getSolver();
+        DecompositionSolver linearSolver = new QRDecomposition(flowMatrixEnd, 1e-12).getSolver();
         RealVector solution = linearSolver.solve(likelihoodVectorEnd);
 
         RealVector likelihoodVectorStart = flowMatrixStart.operate(solution);
