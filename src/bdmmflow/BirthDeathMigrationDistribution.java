@@ -325,10 +325,20 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             return Double.NEGATIVE_INFINITY;
         }
 
+        // set up intervals
+
+        double maxIntervalSize = this.parameterization.getTotalProcessLength() / this.minNumIntervals;
+        double rootTime = this.parameterization.getNodeTime(this.tree.getRoot(), this.finalSampleOffset);
+        List<Interval> intervals = IntervalUtils.getIntervals(
+                this.parameterization,
+                maxIntervalSize,
+                rootTime
+        );
+
         // integrate over the extinction probabilities ODE and the flow ODE
 
-        ExtinctionProbabilities extinctionProbabilities = this.calculateExtinctionProbabilities();
-        IFlow flow = this.calculateFlow(extinctionProbabilities);
+        ExtinctionProbabilities extinctionProbabilities = this.calculateExtinctionProbabilities(intervals);
+        IFlow flow = this.calculateFlow(intervals, extinctionProbabilities);
 
         // recursively traverse the tree to calculate the root likelihood per state
 
@@ -391,18 +401,22 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     }
 
     private boolean inputValuesHaveZeroDensity() {
+        // force update of parameterization if needed
+        this.parameterization.getIntervalEndTimes();
+
         if (!this.parameterization.valuesAreValid()) {
             return true;
         }
 
-        if (bdmmprime.util.Utils.lessThanWithPrecision(parameterization.getNodeTime(tree.getRoot(),
-                this.finalSampleOffset), 0)) {
+        if (bdmmprime.util.Utils.lessThanWithPrecision(
+                parameterization.getNodeTime(tree.getRoot(), this.finalSampleOffset),
+                0)) {
             // tree MRCA older than the start of the process
             return true;
         }
 
         if (conditionOnRootInput.get() && tree.getRoot().isFake()) {
-            // Tree root is a sampled ancestor, but we're conditioning on a root birth.
+            // tree root is a sampled ancestor, but we're conditioning on a root birth.
             return true;
         }
 
@@ -416,14 +430,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      *
      * @return a wrapper class that allows to query the extinction probabilities at any given time.
      */
-    private ExtinctionProbabilities calculateExtinctionProbabilities() {
-        // create intervals
-
-        List<Interval> intervals = IntervalUtils.getIntervals(
-                this.parameterization,
-                this.parameterization.getTotalProcessLength() / this.minNumIntervals,
-                this.parameterization.getNodeTime(this.tree.getRoot(), this.finalSampleOffset)
-        );
+    private ExtinctionProbabilities calculateExtinctionProbabilities(List<Interval> intervals) {
+        // initialize ODE system
 
         IntervalODESystem system = new ExtinctionProbabilitiesODESystem(
                 this.parameterization,
@@ -455,16 +463,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     /**
      * Precomputes the flow ODE.
      *
+     * @param intervals
      * @param extinctionProbabilities the precomputed extinction probabilities.
      * @return a wrapper class that allows to query the flow at any given time.
      */
-    private IFlow calculateFlow(ExtinctionProbabilities extinctionProbabilities) {
-        List<Interval> intervals = IntervalUtils.getIntervals(
-                this.parameterization,
-                this.parameterization.getTotalProcessLength() / this.minNumIntervals,
-                this.parameterization.getNodeTime(this.tree.getRoot(), this.finalSampleOffset)
-        );
-
+    private IFlow calculateFlow(List<Interval> intervals, ExtinctionProbabilities extinctionProbabilities) {
         boolean resetInitialStateAtIntervalBoundaries = 1 < this.minNumIntervals;
 
         IFlowODESystem system;

@@ -106,22 +106,6 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     }
 
     /**
-     * Integrates over the system backwards in time. The parameterization interval boundaries are handled automatically
-     * by calling handleParameterizationIntervalBoundary at the boundaries.
-     *
-     * @param initialState the initial state at time totalProcessLength.
-     * @return the integration result.
-     */
-    public ContinuousOutputModel[] integrateBackwards(double[] initialState) {
-        return this.integrateBackwards(
-                List.of(initialState),
-                IntervalUtils.getIntervals(this.parameterization, this.parameterization.getTotalProcessLength()),
-                false,
-                false
-        );
-    }
-
-    /**
      * Integrates over the system backwards in time. Integration is restarted at the given intervals.
      * <p>
      * The parameterization interval boundaries are handled automatically
