@@ -401,6 +401,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     }
 
     private void updateNumIntervalsIfNecessary() {
+        if (this.totalNumEvaluations < 1_000) return;
+
         // we only update the values every 10_000 iterations except in the very beginning
         if (this.totalNumEvaluations % 1_000 != 0 || (10_000 < this.totalNumEvaluations && this.totalNumEvaluations % 10_000 != 0))
             return;
@@ -409,11 +411,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         // if the error rate is over the threshold, we multiplicatively increase
         // the number of intervals. if not, we additively decrease it
 
-        double failureRateThreshold = 0.1;
+        double failureRateThreshold = 0.05;
         double failureRate = 1.0 * this.numFailedEvaluationsSinceReset / this.numEvaluationsSinceReset;
 
         if (failureRateThreshold < failureRate) {
-            this.numIntervals = (int) Math.ceil(this.numIntervals * 1.5);
+            this.numIntervals = (int) Math.ceil(2.0 * this.numIntervals);
             Log.warning("Increased minNumIntervals to " + this.numIntervals + " (failure rate was " + failureRate + ")");
         } else {
             this.numIntervals = Math.max(1, this.numIntervals - 1);
