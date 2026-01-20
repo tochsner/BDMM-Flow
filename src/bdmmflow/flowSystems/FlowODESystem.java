@@ -238,7 +238,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     public List<Interval> splitUpIntervals() {
         List<Interval> newIntervals = new ArrayList<>();
 
-        double maxConditionNumber = 1e6;
+        double maxConditionNumber = 1e12;
         double logMaxConditionNumber = Math.log(maxConditionNumber);
 
         int currentOldIntervalIdx = this.intervals.size() - 1;
