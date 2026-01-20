@@ -399,15 +399,29 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     }
 
     private void updateNumIntervalsIfNecessary() {
-        // we only update the values every 1000 iterations
-        if (this.totalNumEvaluations % 1000 != 0) return;
+        // we only update the values every 10_000 iterations except in the very beginning
+        if (this.totalNumEvaluations % 10_000 != 0 || (this.totalNumEvaluations < 10_000 && this.totalNumFailedEvaluations % 1_000 != 0))
+            return;
 
+        // we use a procedure similar to AIMD:
+        // if the error rate is over the threshold, we multiplicatively increase
+        // the number of intervals. if not, we additively decrease it
+
+        double failureRateThreshold = 0.1;
         double failureRate = 1.0 * this.totalNumFailedEvaluations / this.totalNumEvaluations;
 
-        if (0.1 < failureRate) {
-            this.numIntervals += 1;
-            Log.warning("Changed minNumIntervals to " + this.numIntervals + " (failure rate was " + failureRate + ")");
+        if (failureRateThreshold < failureRate) {
+            this.numIntervals = (int) Math.ceil(this.numIntervals * 1.5);
+            Log.warning("Increased minNumIntervals to " + this.numIntervals + " (failure rate was " + failureRate + ")");
+        } else {
+            this.numIntervals = Math.max(1, this.numIntervals - 1);
+            Log.warning("Decreased minNumIntervals to " + this.numIntervals + " (failure rate was " + failureRate + ")");
         }
+
+        // reset counters
+
+        this.totalNumFailedEvaluations = 0;
+        this.totalNumEvaluations = 0;
     }
 
     private boolean inputValuesHaveZeroDensity() {
