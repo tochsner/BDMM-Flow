@@ -88,6 +88,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
             } finally {
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
+                pool.shutdown();
                 pool.shutdownNow();
             }
 
@@ -155,6 +156,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
             } finally {
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
+                pool.shutdown();
                 pool.shutdownNow();
             }
 

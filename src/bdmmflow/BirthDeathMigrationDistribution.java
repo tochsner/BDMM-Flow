@@ -118,6 +118,12 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             1
     );
 
+    public Input<Double> maxConditioningNumberInput = new Input<>(
+            "maxConditioningNumber",
+            "The maximal conditioning number to reach until an interval is split.",
+            1e14
+    );
+
     /* If a large number a cores is available (more than 8 or 10) the
     calculation speed can be increased by diminishing the parallelization
     factor. On the contrary, if only 2-4 cores are available, a slightly
@@ -154,7 +160,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     double relativeTolerance;
 
     int numIntervals = 1;
-    LinkedList<Integer> lastTenNumIntervals;
+    double maxConditioningNumber;
 
     boolean useInverseFlow;
     boolean useODESplitting;
@@ -200,7 +206,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.minimalSubtreeSizeForParallelization = minimalSubtreeSizeForParallelizationInput.get();
         this.useInverseFlow = this.useInverseFlowInput.get();
         this.useODESplitting = this.useODESplittingInput.get();
-        this.lastTenNumIntervals = new LinkedList<>();
+        this.numIntervals = this.numIntervalsInput.get();
+        this.maxConditioningNumber = this.maxConditioningNumberInput.get();
 
         // validate type label
 
@@ -230,7 +237,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // validate minNumIntervals
 
-        this.numIntervals = this.numIntervalsInput.get();
         if (this.numIntervals < 1) {
             throw new RuntimeException(
                     "Error: minNumIntervals must be at least 1."
@@ -511,7 +517,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     intervals,
                     this.absoluteTolerance,
                     this.relativeTolerance,
-                    this.seed
+                    this.seed,
+                    this.maxConditioningNumber
             );
         }
 
@@ -776,6 +783,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             } finally {
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
+                pool.shutdown();
                 pool.shutdownNow();
             }
 

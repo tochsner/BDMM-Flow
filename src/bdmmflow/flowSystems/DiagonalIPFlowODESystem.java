@@ -31,7 +31,7 @@ public class DiagonalIPFlowODESystem extends FlowODESystem {
     private final Map<ExponentialCacheKey, RealMatrix> nonDiagonalExpCache = new HashMap<>();
 
     public DiagonalIPFlowODESystem(Parameterization parameterization, ExtinctionProbabilities extinctionProbabilities, List<Interval> intervals, double absoluteTolerance, double relativeTolerance) {
-        super(parameterization, extinctionProbabilities, intervals, absoluteTolerance, relativeTolerance, 0);
+        super(parameterization, extinctionProbabilities, intervals, absoluteTolerance, relativeTolerance, 0, 1e14);
         isNonDiagonalTimeHeterogeneous = isNonDiagonalTimeHeterogeneous();
     }
 

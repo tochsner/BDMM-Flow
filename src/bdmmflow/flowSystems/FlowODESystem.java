@@ -28,6 +28,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     final double[][][] migrationRates;
 
     int seed;
+    double maxConditionNumber;
 
     public FlowODESystem(
             Parameterization parameterization,
@@ -35,7 +36,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
             List<Interval> intervals,
             double absoluteTolerance,
             double relativeTolerance,
-            int seed
+            int seed,
+            double maxConditionNumber
     ) {
         super(parameterization, intervals, absoluteTolerance, relativeTolerance);
         this.extinctionProbabilities = extinctionProbabilities;
@@ -46,6 +48,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
         this.crossBirthRates = this.parameterization.getCrossBirthRates();
         this.migrationRates = this.parameterization.getMigRates();
         this.seed = seed;
+        this.maxConditionNumber = maxConditionNumber;
 
         this.timeInvariantSystemMatrices = new RealMatrix[this.parameterization.getTotalIntervalCount()];
 
@@ -62,7 +65,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 this.intervals,
                 this.absoluteTolerance,
                 this.relativeTolerance,
-                this.seed
+                this.seed,
+                this.maxConditionNumber
         );
     }
 
@@ -238,8 +242,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     public List<Interval> splitUpIntervals() {
         List<Interval> newIntervals = new ArrayList<>();
 
-        double maxConditionNumber = 1e12;
-        double logMaxConditionNumber = Math.log(maxConditionNumber);
+        double logMaxConditionNumber = Math.log(this.maxConditionNumber);
 
         int currentOldIntervalIdx = this.intervals.size() - 1;
         double currentIntervalEnd = this.intervals.get(this.intervals.size() - 1).end();
