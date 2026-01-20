@@ -173,7 +173,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     double parallelizeSubtreeSizeThreshold;
 
     int totalNumEvaluations = 0;
-    int totalNumFailedEvaluations = 0;
+    int numEvaluationsSinceReset = 0;
+    int numFailedEvaluationsSinceReset = 0;
 
     bdmmprime.distribution.BirthDeathMigrationDistribution bdmmPrime;
 
@@ -348,9 +349,10 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         double[] rootLikelihoodPerState;
 
         updateNumIntervalsIfNecessary();
+        this.numEvaluationsSinceReset++;
+        this.totalNumEvaluations++;
 
         try {
-            this.totalNumEvaluations++;
             rootLikelihoodPerState = this.calculateSubTreeLikelihood(
                     root,
                     0,
@@ -359,7 +361,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     extinctionProbabilities
             );
         } catch (SingularMatrixException exception) {
-            this.totalNumFailedEvaluations++;
+            this.numFailedEvaluationsSinceReset++;
             return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
         }
 
@@ -400,7 +402,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     private void updateNumIntervalsIfNecessary() {
         // we only update the values every 10_000 iterations except in the very beginning
-        if (this.totalNumEvaluations % 10_000 != 0 || (this.totalNumEvaluations < 10_000 && this.totalNumFailedEvaluations % 1_000 != 0))
+        if (this.totalNumEvaluations % 1_000 != 0 || (10_000 < this.totalNumEvaluations && this.totalNumEvaluations % 10_000 != 0))
             return;
 
         // we use a procedure similar to AIMD:
@@ -408,7 +410,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         // the number of intervals. if not, we additively decrease it
 
         double failureRateThreshold = 0.1;
-        double failureRate = 1.0 * this.totalNumFailedEvaluations / this.totalNumEvaluations;
+        double failureRate = 1.0 * this.numFailedEvaluationsSinceReset / this.numEvaluationsSinceReset;
 
         if (failureRateThreshold < failureRate) {
             this.numIntervals = (int) Math.ceil(this.numIntervals * 1.5);
@@ -420,8 +422,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // reset counters
 
-        this.totalNumFailedEvaluations = 0;
-        this.totalNumEvaluations = 0;
+        this.numFailedEvaluationsSinceReset = 0;
+        this.numEvaluationsSinceReset = 0;
     }
 
     private boolean inputValuesHaveZeroDensity() {
