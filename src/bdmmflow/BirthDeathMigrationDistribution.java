@@ -20,7 +20,6 @@ import org.apache.commons.math3.linear.SingularMatrixException;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 
@@ -121,7 +120,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
-            1e14
+            1e100
     );
 
     /* If a large number a cores is available (more than 8 or 10) the
@@ -257,7 +256,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.initializeIsRhoSampled();
         this.initializeSubtreeSizes();
 
-        // initialize bdmm prime
+        // initialize bdmm prime as a fallback if we detect numerical issues
 
         this.bdmmPrime = new bdmmprime.distribution.BirthDeathMigrationDistribution();
         this.bdmmPrime.initByName(
@@ -527,7 +526,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         boolean resetInitialStateAtIntervalBoundaries = true;
         return system.calculateFlowIntegral(
-                splitUpIntervals,
+                intervals,
                 initialMatrixStrategy,
                 resetInitialStateAtIntervalBoundaries,
                 parallelize
