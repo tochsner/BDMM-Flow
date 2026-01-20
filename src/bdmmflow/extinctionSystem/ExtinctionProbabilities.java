@@ -1,7 +1,11 @@
 package bdmmflow.extinctionSystem;
 
 import bdmmflow.intervals.Interval;
+import bdmmprime.util.Utils;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class is a lightweight wrapper of the integration output of ExtinctionProbabilitiesODESystem. It allows
@@ -56,5 +60,21 @@ public class ExtinctionProbabilities {
         return new ExtinctionProbabilities(new ContinuousOutputModel[] {
                 this.outputModels[this.outputModels.length - interval.interval() - 1]
         });
+    }
+
+    public void updateIntervals(List<Interval> splitUpIntervals) {
+        List<ContinuousOutputModel> newOutputModels = new ArrayList<>();
+
+        int i = this.outputModels.length - 1;
+        for (Interval newInterval : splitUpIntervals) {
+            ContinuousOutputModel outputModel = this.outputModels[i];
+            newOutputModels.add(0, outputModel);
+
+            if (Utils.equalWithPrecision(outputModel.getInitialTime(), newInterval.end())) {
+                i--;
+            }
+        }
+
+        this.outputModels = newOutputModels.toArray(new ContinuousOutputModel[0]);
     }
 }

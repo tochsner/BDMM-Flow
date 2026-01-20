@@ -211,4 +211,9 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
                 resetInitialStateAtIntervalsBoundaries
         );
     }
+
+    @Override
+    public List<Interval> splitUpIntervals() {
+        return this.intervals;
+    }
 }

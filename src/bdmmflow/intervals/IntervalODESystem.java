@@ -69,7 +69,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
             ForkJoinPool pool = new ForkJoinPool();
             try {
                 pool.submit(() ->
-                        IntStream.range(0, intervals.size()).parallel().forEach(i -> {
+                        IntStream.range(0, intervals.size()).forEach(i -> {
                             Interval interval = intervals.get(i);
                             double[] state = initialState.clone();
 
@@ -134,7 +134,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
             ForkJoinPool pool = new ForkJoinPool();
             try {
                 pool.submit(() ->
-                        IntStream.range(0, intervals.size()).parallel().forEach(i -> {
+                        IntStream.range(0, intervals.size()).forEach(i -> {
                             Interval interval = intervals.get(i);
                             double[] state = initialStates.get(i).clone();
 

@@ -12,4 +12,5 @@ public interface IFlowODESystem {
             boolean resetInitialStateAtIntervalsBoundaries,
             boolean parallelize
     );
+    List<Interval> splitUpIntervals();
 }

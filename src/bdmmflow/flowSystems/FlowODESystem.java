@@ -10,6 +10,7 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -200,6 +201,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
     /**
      * Calculates the flow integral using the given intervals.
+     *
      * @param intervals the intervals to use when integrating over the flow.
      * @return the calculated flow.
      */
@@ -225,5 +227,57 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 initialStates,
                 resetInitialStateAtIntervalsBoundaries
         );
+    }
+
+    /**
+     * Splits up the stored intervals if numerical issues are expected.
+     *
+     * @return the new list of intervals.
+     */
+    @Override
+    public List<Interval> splitUpIntervals() {
+        List<Interval> newIntervals = new ArrayList<>();
+
+        double maxConditionNumber = 1e6;
+        double logMaxConditionNumber = Math.log(maxConditionNumber);
+
+        int currentOldIntervalIdx = this.intervals.size() - 1;
+        double currentIntervalEnd = this.intervals.get(this.intervals.size() - 1).end();
+
+        while (0 <= currentOldIntervalIdx) {
+            Interval currentOldInterval = this.intervals.get(currentOldIntervalIdx);
+
+            RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(currentIntervalEnd);
+            SingularValueDecomposition decomposition = new SingularValueDecomposition(currentEndSystemMatrix);
+            double maxSingularValue = Arrays.stream(decomposition.getSingularValues()).max().orElseThrow();
+            double maxIntervalSize = logMaxConditionNumber / (2.0 * maxSingularValue);
+
+            double newIntervalStart = Math.max(currentIntervalEnd - maxIntervalSize, currentOldInterval.start());
+
+            Interval newInterval = new Interval(
+                newIntervals.size(),  currentOldInterval.parameterizationInterval(), newIntervalStart, currentIntervalEnd
+            );
+            newIntervals.add(0, newInterval);
+
+            if (bdmmprime.util.Utils.equalWithPrecision(newIntervalStart, currentOldInterval.start())) {
+                // we reached the end of the current old interval
+                // let's go to the next one
+                currentOldIntervalIdx--;
+            }
+            currentIntervalEnd = newIntervalStart;
+        }
+
+        // update interval indices
+
+        for (int i = 0; i < newIntervals.size(); i++) {
+            Interval interval = newIntervals.get(i);
+            Interval intervalWithCorrectIdx = new Interval(
+                    i, interval.parameterizationInterval(), interval.start(), interval.end()
+            );
+            newIntervals.set(i, intervalWithCorrectIdx);
+        }
+        this.intervals = newIntervals;
+
+        return this.intervals;
     }
 }

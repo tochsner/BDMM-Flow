@@ -115,7 +115,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Integer> numIntervalsInput = new Input<>(
             "numIntervals",
             "The number of intervals to split up this computation.",
-            2
+            1
     );
 
     /* If a large number a cores is available (more than 8 or 10) the
@@ -407,20 +407,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         if (this.totalNumEvaluations % 1_000 != 0 || (10_000 < this.totalNumEvaluations && this.totalNumEvaluations % 10_000 != 0))
             return;
 
-        // we use a procedure similar to AIMD:
-        // if the error rate is over the threshold, we multiplicatively increase
-        // the number of intervals. if not, we additively decrease it
-
-        double failureRateThreshold = 0.05;
         double failureRate = 1.0 * this.numFailedEvaluationsSinceReset / this.numEvaluationsSinceReset;
 
-        if (failureRateThreshold < failureRate) {
-            this.numIntervals = (int) Math.ceil(2.0 * this.numIntervals);
-            Log.warning("Increased minNumIntervals to " + this.numIntervals + " (failure rate was " + failureRate + ")");
-        } else {
-            this.numIntervals = Math.max(1, this.numIntervals - 1);
-            Log.warning("Decreased minNumIntervals to " + this.numIntervals + " (failure rate was " + failureRate + ")");
-        }
+        Log.warning("Failure rate was " + failureRate);
 
         // reset counters
 
@@ -496,8 +485,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      * @return a wrapper class that allows to query the flow at any given time.
      */
     private IFlow calculateFlow(List<Interval> intervals, ExtinctionProbabilities extinctionProbabilities) {
-        boolean resetInitialStateAtIntervalBoundaries = 1 < this.numIntervals;
-
         IFlowODESystem system;
 
         if (this.useInverseFlow) {
@@ -528,8 +515,12 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             );
         }
 
+        List<Interval> splitUpIntervals = system.splitUpIntervals();
+        extinctionProbabilities.updateIntervals(splitUpIntervals);
+
+        boolean resetInitialStateAtIntervalBoundaries = true;
         return system.calculateFlowIntegral(
-                intervals,
+                splitUpIntervals,
                 initialMatrixStrategy,
                 resetInitialStateAtIntervalBoundaries,
                 parallelize
