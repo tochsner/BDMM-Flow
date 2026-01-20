@@ -174,7 +174,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
     RealMatrix getInitialState(String initialMatrixStrategy) {
         return switch (initialMatrixStrategy) {
-            case "random" -> Utils.getRandomMatrix(this.parameterization.getNTypes(), this.seed);
+            case "random" -> Utils.getRandomMatrix(this.parameterization.getNTypes());
             case "heuristic" -> MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
             default -> MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
         };

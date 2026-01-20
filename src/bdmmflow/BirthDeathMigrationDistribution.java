@@ -120,7 +120,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
-            1e100
+            1e12
     );
 
     /* If a large number a cores is available (more than 8 or 10) the
@@ -138,7 +138,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             "the minimal absolute size the two children " +
                     "subtrees of a node must have to start parallel " +
                     "calculations on the children. ",
-            16);
+            512);
 
 
     private Parameterization parameterization;

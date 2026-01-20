@@ -99,7 +99,7 @@ public class Benchmark {
                 "initialMatrixStrategy", initialStateStrategy,
                 "useInverseFlow", useInverseFlow,
                 "useODESplitting", useSplitting,
-                "parallelize", true
+                "parallelize", false
         );
         density.initAndValidate();
 
@@ -117,7 +117,7 @@ public class Benchmark {
                 "tree", tree,
                 "startTypePriorProbs", startTypePriorProbs,
                 "typeLabel", "type",
-                "parallelize", true
+                "parallelize", false
         );
         density.initAndValidate();
 

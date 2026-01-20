@@ -64,7 +64,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     public ContinuousOutputModel[] integrateForwards(double[] initialState, List<Interval> intervals, boolean alwaysStartAtInitialState, boolean parallelize) {
         ContinuousOutputModel[] outputModels = new ContinuousOutputModel[intervals.size()];
 
-        if (alwaysStartAtInitialState) {
+        if (alwaysStartAtInitialState && 8 < intervals.size()) {
 
             ForkJoinPool pool = new ForkJoinPool();
             try {
@@ -85,11 +85,13 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                             outputModels[interval.interval()] = this.integrate(state, interval.start(), interval.end(), interval);
                         })
                 ).join();
-            } finally {
+            } catch (Exception exception) {
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
                 pool.shutdown();
                 pool.shutdownNow();
+
+                throw exception;
             }
 
         } else {
@@ -97,6 +99,10 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
             double[] state = initialState.clone();
 
             for (Interval interval : intervals) {
+                if (alwaysStartAtInitialState) {
+                    state = initialState.clone();
+                }
+
                 if (this.parameterizationIntervalBoundaries.contains(interval.interval())) {
                     this.handleParameterizationIntervalBoundary(
                             interval.start(),
@@ -130,7 +136,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     public ContinuousOutputModel[] integrateBackwards(List<double[]> initialStates, List<Interval> intervals, boolean alwaysStartAtInitialState, boolean parallelize) {
         ContinuousOutputModel[] outputModels = new ContinuousOutputModel[intervals.size()];
 
-        if (alwaysStartAtInitialState) {
+        if (alwaysStartAtInitialState && 8 < intervals.size()) {
 
             ForkJoinPool pool = new ForkJoinPool();
             try {
@@ -153,11 +159,13 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                             );
                         })
                 ).join();
-            } finally {
+            } catch (Exception exception) {
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
                 pool.shutdown();
                 pool.shutdownNow();
+
+                throw exception;
             }
 
         } else {
@@ -165,6 +173,10 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
             double[] state = initialStates.get(initialStates.size() - 1).clone();
             for (int i = intervals.size() - 1; i >= 0; i--) {
                 Interval interval = intervals.get(i);
+
+                if (alwaysStartAtInitialState) {
+                    state = initialStates.get(i).clone();
+                }
 
                 if (this.parameterizationIntervalBoundaries.contains(interval.interval() + 1)) {
                     this.handleParameterizationIntervalBoundary(
