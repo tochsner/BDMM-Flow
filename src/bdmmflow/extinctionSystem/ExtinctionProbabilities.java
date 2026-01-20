@@ -68,7 +68,10 @@ public class ExtinctionProbabilities {
         int i = this.outputModels.length - 1;
         for (Interval newInterval : splitUpIntervals) {
             ContinuousOutputModel outputModel = this.outputModels[i];
-            newOutputModels.add(0, outputModel);
+            ContinuousOutputModel newOutputModel = new ContinuousOutputModel();
+            newOutputModel.append(outputModel);
+
+            newOutputModels.add(0, newOutputModel);
 
             if (Utils.equalWithPrecision(outputModel.getInitialTime(), newInterval.end())) {
                 i--;
