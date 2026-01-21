@@ -21,6 +21,7 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
@@ -910,6 +911,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public void restore() {
         this.currentExtinctionProbabilities = this.storedExtinctionProbabilities;
         this.currentFlow = this.storedFlow;
+    }
+
+    @Override
+    public boolean isStochastic() {
+        return Objects.equals(this.initialMatrixStrategy, "random");
     }
 
 }
