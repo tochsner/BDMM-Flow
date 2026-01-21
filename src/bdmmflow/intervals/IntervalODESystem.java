@@ -65,7 +65,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     public ContinuousOutputModel[] integrateForwards(double[] initialState, List<Interval> intervals, boolean alwaysStartAtInitialState, boolean parallelize) {
         ContinuousOutputModel[] outputModels = new ContinuousOutputModel[intervals.size()];
 
-        if (alwaysStartAtInitialState && 8 < intervals.size()) {
+        if (alwaysStartAtInitialState && parallelize) {
 
             ForkJoinPool pool = new ForkJoinPool();
             try {
@@ -142,9 +142,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     public ContinuousOutputModel[] integrateBackwards(List<double[]> initialStates, List<Interval> intervals, boolean alwaysStartAtInitialState, boolean parallelize) {
         ContinuousOutputModel[] outputModels = new ContinuousOutputModel[intervals.size()];
 
-        if (alwaysStartAtInitialState && 8 < intervals.size()) {
-
-
+        if (alwaysStartAtInitialState && parallelize) {
 
             ForkJoinPool pool = new ForkJoinPool();
             try {

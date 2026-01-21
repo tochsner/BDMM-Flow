@@ -21,7 +21,7 @@ public class ExtinctionProbabilities {
     double[] getProbability(ContinuousOutputModel output, double time) {
         synchronized (output) {
             output.setInterpolatedTime(time);
-            return output.getInterpolatedState();
+            return output.getInterpolatedState().clone();
         }
     }
 

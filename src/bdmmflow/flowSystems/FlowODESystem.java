@@ -98,7 +98,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
      */
     void addTimeVaryingSystemMatrix(double t, RealMatrix system) {
         double[] extinctProbabilities = this.extinctionProbabilities.getProbability(t);
-        int interval = getCurrentParameterizationInterval(t);
+        int interval = this.getCurrentParameterizationInterval(t);
 
         for (int i = 0; i < parameterization.getNTypes(); i++) {
             system.addToEntry(
@@ -121,6 +121,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 );
             }
         }
+
     }
 
     /**
@@ -139,7 +140,6 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
         RealMatrix yMatrix = Utils.toMatrix(y, numTypes);
         RealMatrix systemMatrix = this.buildSystemMatrix(t);
-
         RealMatrix yDotMatrix = systemMatrix.multiply(yMatrix);
         Utils.fillArray(yDotMatrix, yDot);
     }

@@ -354,7 +354,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         Node root = this.tree.getRoot();
         double[] rootLikelihoodPerState;
 
-        updateNumIntervalsIfNecessary();
+        warnAboutNumericalIssuesIfNecessary();
         this.numEvaluationsSinceReset++;
         this.totalNumEvaluations++;
 
@@ -406,7 +406,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         return logTreeLikelihood;
     }
 
-    private void updateNumIntervalsIfNecessary() {
+    private void warnAboutNumericalIssuesIfNecessary() {
         if (this.totalNumEvaluations < 1_000) return;
 
         // we only update the values every 10_000 iterations except in the very beginning
@@ -533,7 +533,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 splitUpIntervals,
                 initialMatrixStrategy,
                 resetInitialStateAtIntervalBoundaries,
-                parallelize
+                this.parallelize && 4 < splitUpIntervals.size()
         );
     }
 
@@ -763,7 +763,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         double[] likelihoodChild1;
         double[] likelihoodChild2;
 
-        if (parallelize
+        if (this.parallelize
                 && subtreeSizes[child1.getNr()] > parallelizeSubtreeSizeThreshold
                 && subtreeSizes[child2.getNr()] > parallelizeSubtreeSizeThreshold
         ) {
