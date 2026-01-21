@@ -21,6 +21,7 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.DoubleStream;
@@ -133,7 +134,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             "parallelizationFactor",
             "the minimal relative size the two children " +
                     "subtrees of a node must have to start parallel " +
-                    "calculations on the children. (default: 1/10). ",
+                    "calculations on the children.. ",
             1.0 / 10);
     public Input<Integer> minimalSubtreeSizeForParallelizationInput = new Input<>(
             "minimalSubtreeSizeForParallelization",
@@ -177,6 +178,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     int[] subtreeSizes;
     double parallelizeSubtreeSizeThreshold;
+
+    ForkJoinPool forkJoinPool = new ForkJoinPool();
 
     int totalNumEvaluations = 0;
     int numEvaluationsSinceReset = 0;
@@ -764,37 +767,40 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         double[] likelihoodChild2;
 
         if (this.parallelize
-                && subtreeSizes[child1.getNr()] > parallelizeSubtreeSizeThreshold
-                && subtreeSizes[child2.getNr()] > parallelizeSubtreeSizeThreshold
+                && subtreeSizes[child1.getNr()] > this.parallelizeSubtreeSizeThreshold
+                && subtreeSizes[child2.getNr()] > this.parallelizeSubtreeSizeThreshold
         ) {
-            ForkJoinPool pool = new ForkJoinPool();
-
             try {
-                List<double[]> likelihoodChildren = pool.submit(() ->
-                        node.getChildren().parallelStream().map(
-                                child -> this.calculateSubTreeLikelihood(
-                                        child,
-                                        timeEdgeEnd,
-                                        this.parameterization.getNodeTime(child, this.finalSampleOffset),
-                                        flow.copy(),
-                                        extinctionProbabilities.copy()
-                                )
-                        ).toList()
-                ).join();
-                likelihoodChild1 = likelihoodChildren.get(0);
-                likelihoodChild2 = likelihoodChildren.get(1);
-            } catch (Exception exception) {
+                // run second subtree on its own thread
+                CompletableFuture<double[]> futureLikelihoodChild2 = CompletableFuture.supplyAsync(() ->
+                        this.calculateSubTreeLikelihood(
+                                child2,
+                                timeEdgeEnd,
+                                this.parameterization.getNodeTime(child2, this.finalSampleOffset),
+                                flow.copy(),
+                                extinctionProbabilities
+                        ), this.forkJoinPool);
+
+                likelihoodChild1 = this.calculateSubTreeLikelihood(
+                        child1,
+                        timeEdgeEnd,
+                        this.parameterization.getNodeTime(child1, this.finalSampleOffset),
+                        flow,
+                        extinctionProbabilities
+                );
+                likelihoodChild2 = futureLikelihoodChild2.get();
+            } catch (SingularMatrixException exception) {
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
                 try {
-                    pool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                    this.forkJoinPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
 
                 throw exception;
-            } finally {
-                pool.shutdown();
+            } catch (Exception exception) {
+                throw new RuntimeException(exception);
             }
 
         } else {

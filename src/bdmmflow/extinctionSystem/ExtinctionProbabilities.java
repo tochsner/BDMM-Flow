@@ -1,11 +1,6 @@
 package bdmmflow.extinctionSystem;
 
-import bdmmflow.intervals.Interval;
-import bdmmprime.util.Utils;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * This class is a lightweight wrapper of the integration output of ExtinctionProbabilitiesODESystem. It allows
@@ -42,13 +37,6 @@ public class ExtinctionProbabilities {
         }
 
         return this.getProbability(this.outputModels[this.outputModels.length - 1], time);
-    }
-
-    public ExtinctionProbabilities copy() {
-        ContinuousOutputModel[] clonedOutputModels = new ContinuousOutputModel[this.outputModels.length];
-        System.arraycopy(this.outputModels, 0, clonedOutputModels, 0, this.outputModels.length);
-
-        return new ExtinctionProbabilities(clonedOutputModels);
     }
 
 }
