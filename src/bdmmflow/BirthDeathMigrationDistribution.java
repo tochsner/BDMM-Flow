@@ -187,6 +187,12 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     bdmmprime.distribution.BirthDeathMigrationDistribution bdmmPrime;
 
+    IFlow storedFlow;
+    ExtinctionProbabilities storedExtinctionProbabilities;
+
+    IFlow currentFlow;
+    ExtinctionProbabilities currentExtinctionProbabilities;
+
     @Override
     public void initAndValidate() {
         // unpack input values
@@ -457,6 +463,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      * @return a wrapper class that allows to query the extinction probabilities at any given time.
      */
     private ExtinctionProbabilities calculateExtinctionProbabilities(List<Interval> intervals) {
+        if (!this.parameterization.isDirtyCalculation() && this.currentExtinctionProbabilities != null) {
+            // the parameterization hasn't changed, which means the extinction probabilities are still the same
+            return this.currentExtinctionProbabilities;
+        }
+
         // initialize ODE system
 
         IntervalODESystem system = new ExtinctionProbabilitiesODESystem(
@@ -483,7 +494,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 initialStates, intervals, false, parallelize
         );
 
-        return new ExtinctionProbabilities(integrationResults);
+        ExtinctionProbabilities extinctionProbabilities = new ExtinctionProbabilities(integrationResults);
+        this.currentExtinctionProbabilities = extinctionProbabilities;
+        return extinctionProbabilities;
     }
 
     /**
@@ -494,6 +507,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      * @return a wrapper class that allows to query the flow at any given time.
      */
     private IFlow calculateFlow(List<Interval> intervals, ExtinctionProbabilities extinctionProbabilities) {
+        if (!this.parameterization.isDirtyCalculation() && this.currentFlow != null) {
+            // the parameterization hasn't changed, which means the flow is still the same
+            return this.currentFlow;
+        }
+
         IFlowODESystem system;
 
         // we use the sum of heights as seed, this makes it deterministic for identical trees
@@ -532,12 +550,15 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         List<Interval> splitUpIntervals = system.splitUpIntervals();
 
         boolean resetInitialStateAtIntervalBoundaries = 1 < splitUpIntervals.size();
-        return system.calculateFlowIntegral(
+        IFlow flow = system.calculateFlowIntegral(
                 splitUpIntervals,
                 initialMatrixStrategy,
                 resetInitialStateAtIntervalBoundaries,
                 this.parallelize && 4 < splitUpIntervals.size()
         );
+
+        this.currentFlow = flow;
+        return flow;
     }
 
     /**
@@ -878,4 +899,17 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public boolean requiresRecalculation() {
         return true;
     }
+
+    @Override
+    public void accept() {
+        this.storedExtinctionProbabilities = this.currentExtinctionProbabilities;
+        this.storedFlow = this.currentFlow;
+    }
+
+    @Override
+    public void restore() {
+        this.currentExtinctionProbabilities = this.storedExtinctionProbabilities;
+        this.currentFlow = this.storedFlow;
+    }
+
 }
