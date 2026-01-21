@@ -8,6 +8,7 @@ import org.apache.commons.math3.ode.nonstiff.*;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 
@@ -88,10 +89,15 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
             } catch (Exception exception) {
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
-                pool.shutdown();
-                pool.shutdownNow();
+                try {
+                    pool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
 
                 throw exception;
+            } finally {
+                pool.shutdown();
             }
 
         } else {
@@ -138,34 +144,39 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
         if (alwaysStartAtInitialState && 8 < intervals.size()) {
 
+
+
             ForkJoinPool pool = new ForkJoinPool();
             try {
-                pool.submit(() ->
-                        IntStream.range(0, intervals.size()).parallel().forEach(i -> {
-                            Interval interval = intervals.get(i);
-                            double[] state = initialStates.get(i).clone();
+                    IntStream.range(0, intervals.size()).parallel().forEach(i -> {
+                        Interval interval = intervals.get(i);
+                        double[] state = initialStates.get(i).clone();
 
-                            if (this.parameterizationIntervalBoundaries.contains(interval.interval() + 1)) {
-                                this.handleParameterizationIntervalBoundary(
-                                        interval.end(),
-                                        interval.parameterizationInterval() + 1,
-                                        interval.parameterizationInterval(),
-                                        state
-                                );
-                            }
-
-                            outputModels[intervals.size() - interval.interval() - 1] = this.integrate(
-                                    state, interval.end(), interval.start(), interval
+                        if (this.parameterizationIntervalBoundaries.contains(interval.interval() + 1)) {
+                            this.handleParameterizationIntervalBoundary(
+                                    interval.end(),
+                                    interval.parameterizationInterval() + 1,
+                                    interval.parameterizationInterval(),
+                                    state
                             );
-                        })
-                ).join();
+                        }
+
+                        outputModels[intervals.size() - interval.interval() - 1] = this.integrate(
+                                state, interval.end(), interval.start(), interval
+                        );
+                    });
             } catch (Exception exception) {
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
-                pool.shutdown();
-                pool.shutdownNow();
+                try {
+                    pool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
 
                 throw exception;
+            } finally {
+                pool.shutdown();
             }
 
         } else {
@@ -207,7 +218,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                 this.integrationMinStep, this.integrationMaxStep, this.absoluteTolerance, this.relativeTolerance
         );
         integrator.addStepHandler(intervalResult);
-        integrator.integrate(this.constrainToInterval(interval), start, initialState, end, initialState);
+        integrator.integrate(this, start, initialState, end, initialState);
         integrator.clearStepHandlers();
 
         return intervalResult;
@@ -223,10 +234,4 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     public int getCurrentParameterizationInterval(double time) {
         return IntervalUtils.getInterval(time, this.intervals).parameterizationInterval();
     }
-
-    /**
-     * Returns the system constraint to the given interval. This is useful when we parallelize
-     * over the different intervals to achieve thread-safety.
-     */
-    abstract protected IntervalODESystem constrainToInterval(Interval interval);
 }

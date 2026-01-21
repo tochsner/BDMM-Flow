@@ -110,8 +110,10 @@ public class Flow implements IFlow {
     }
 
     RealMatrix getFlow(ContinuousOutputModel output, double time) {
-        output.setInterpolatedTime(time);
-        return Utils.toMatrix(output.getInterpolatedState(), this.n);
+        synchronized (output) {
+            output.setInterpolatedTime(time);
+            return Utils.toMatrix(output.getInterpolatedState(), this.n);
+        }
     }
 
     /**
@@ -145,8 +147,7 @@ public class Flow implements IFlow {
             if (outputModel instanceof DiagonalIPFlowODESystem.ContinuousModel) {
                 clonedOutputModels[i] = ((DiagonalIPFlowODESystem.ContinuousModel) outputModel).copy();
             } else {
-                clonedOutputModels[i] = new ContinuousOutputModel();
-                clonedOutputModels[i].append(this.outputModels[i]);
+                clonedOutputModels[i] = this.outputModels[i];
             }
         }
 

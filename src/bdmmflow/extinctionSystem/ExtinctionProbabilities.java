@@ -19,8 +19,10 @@ public class ExtinctionProbabilities {
     }
 
     double[] getProbability(ContinuousOutputModel output, double time) {
-        output.setInterpolatedTime(time);
-        return output.getInterpolatedState();
+        synchronized (output) {
+            output.setInterpolatedTime(time);
+            return output.getInterpolatedState();
+        }
     }
 
     /**
@@ -44,40 +46,9 @@ public class ExtinctionProbabilities {
 
     public ExtinctionProbabilities copy() {
         ContinuousOutputModel[] clonedOutputModels = new ContinuousOutputModel[this.outputModels.length];
-
-        for (int i = 0; i < this.outputModels.length; i++) {
-            clonedOutputModels[i] = new ContinuousOutputModel();
-            clonedOutputModels[i].append(this.outputModels[i]);
-        }
+        System.arraycopy(this.outputModels, 0, clonedOutputModels, 0, this.outputModels.length);
 
         return new ExtinctionProbabilities(clonedOutputModels);
     }
 
-    /**
-     * Returns a wrapper constraint to the given interval.
-     */
-    public ExtinctionProbabilities constrainToInterval(Interval interval) {
-        return new ExtinctionProbabilities(new ContinuousOutputModel[] {
-                this.outputModels[this.outputModels.length - interval.interval() - 1]
-        });
-    }
-
-    public void updateIntervals(List<Interval> splitUpIntervals) {
-        List<ContinuousOutputModel> newOutputModels = new ArrayList<>();
-
-        int i = this.outputModels.length - 1;
-        for (Interval newInterval : splitUpIntervals) {
-            ContinuousOutputModel outputModel = this.outputModels[i];
-            ContinuousOutputModel newOutputModel = new ContinuousOutputModel();
-            newOutputModel.append(outputModel);
-
-            newOutputModels.add(0, newOutputModel);
-
-            if (Utils.equalWithPrecision(outputModel.getInitialTime(), newInterval.end())) {
-                i--;
-            }
-        }
-
-        this.outputModels = newOutputModels.toArray(new ContinuousOutputModel[0]);
-    }
 }

@@ -22,6 +22,8 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.DoubleStream;
 
 @Citation(value = "Kuehnert D, Stadler T, Vaughan TG, Drummond AJ. (2016). " +
         "A General and Efficient Algorithm for the Likelihood of Diversification and Discrete-Trait Evolutionary Models, \n" +
@@ -138,8 +140,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             "the minimal absolute size the two children " +
                     "subtrees of a node must have to start parallel " +
                     "calculations on the children. ",
-            512);
-
+            1024);
 
     private Parameterization parameterization;
 
@@ -492,6 +493,10 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     private IFlow calculateFlow(List<Interval> intervals, ExtinctionProbabilities extinctionProbabilities) {
         IFlowODESystem system;
 
+        // we use the sum of heights as seed, this makes it deterministic for identical trees
+        DoubleStream heights = Arrays.stream(this.tree.getNodesAsArray()).mapToDouble(node -> node.getHeight());
+        int heightSum = (int) Math.floor(10_000 * heights.sum());
+
         if (this.useInverseFlow) {
             system = new InverseFlowODESystem(
                     this.parameterization,
@@ -499,7 +504,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     intervals,
                     this.absoluteTolerance,
                     this.relativeTolerance,
-                    this.seed
+                    heightSum
             );
         } else if (this.useODESplitting) {
             system = new DiagonalIPFlowODESystem(
@@ -516,17 +521,16 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     intervals,
                     this.absoluteTolerance,
                     this.relativeTolerance,
-                    this.seed,
+                    heightSum,
                     this.maxConditioningNumber
             );
         }
 
         List<Interval> splitUpIntervals = system.splitUpIntervals();
-        extinctionProbabilities.updateIntervals(splitUpIntervals);
 
-        boolean resetInitialStateAtIntervalBoundaries = true;
+        boolean resetInitialStateAtIntervalBoundaries = 1 < splitUpIntervals.size();
         return system.calculateFlowIntegral(
-                intervals,
+                splitUpIntervals,
                 initialMatrixStrategy,
                 resetInitialStateAtIntervalBoundaries,
                 parallelize
@@ -779,11 +783,18 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 ).join();
                 likelihoodChild1 = likelihoodChildren.get(0);
                 likelihoodChild2 = likelihoodChildren.get(1);
-            } finally {
+            } catch (Exception exception) {
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
+                try {
+                    pool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
+                throw exception;
+            } finally {
                 pool.shutdown();
-                pool.shutdownNow();
             }
 
         } else {

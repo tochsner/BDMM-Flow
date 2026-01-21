@@ -65,9 +65,4 @@ public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
         }
     }
 
-    @Override
-    protected IntervalODESystem constrainToInterval(Interval interval) {
-        // this class is thread-safe w.r.t different intervals by default
-        return this;
-    }
 }

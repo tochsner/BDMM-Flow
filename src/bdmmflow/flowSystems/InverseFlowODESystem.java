@@ -60,18 +60,6 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
     }
 
     @Override
-    protected IntervalODESystem constrainToInterval(Interval interval) {
-        return new InverseFlowODESystem(
-                this.parameterization,
-                this.extinctionProbabilities.constrainToInterval(interval),
-                this.intervals,
-                this.absoluteTolerance,
-                this.relativeTolerance,
-                this.seed
-        );
-    }
-
-    @Override
     public int getDimension() {
         return parameterization.getNTypes() * parameterization.getNTypes();
     }
@@ -174,7 +162,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
     RealMatrix getInitialState(String initialMatrixStrategy) {
         return switch (initialMatrixStrategy) {
-            case "random" -> Utils.getRandomMatrix(this.parameterization.getNTypes());
+            case "random" -> Utils.getRandomMatrix(this.parameterization.getNTypes(), this.seed);
             case "heuristic" -> MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
             default -> MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
         };
