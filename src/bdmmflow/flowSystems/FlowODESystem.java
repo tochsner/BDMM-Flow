@@ -47,6 +47,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
         this.samplingRates = this.parameterization.getSamplingRates();
         this.crossBirthRates = this.parameterization.getCrossBirthRates();
         this.migrationRates = this.parameterization.getMigRates();
+
         this.seed = seed;
         this.maxConditionNumber = maxConditionNumber;
 
