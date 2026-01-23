@@ -61,10 +61,10 @@ public class Utils {
      */
     public static RealMatrix toMatrix(double[] array, int n) {
         RealMatrix matrix = new BlockRealMatrix(n, n);
+        double[] column = new double[n];
         for (int j = 0; j < n; j++) {
-            for (int i = 0; i < n; i++) {
-                matrix.setEntry(i, j, array[i + n * j]);
-            }
+            System.arraycopy(array, j * n, column, 0, n);
+            matrix.setColumn(j, column);
         }
         return matrix;
     }
@@ -93,10 +93,10 @@ public class Utils {
      * Fills the given array with the values in the given matrix in column-major order.
      */
     public static void fillArray(RealMatrix matrix, double[] array) {
-        for (int i = 0; i < matrix.getRowDimension(); i++) {
-            for (int j = 0; j < matrix.getColumnDimension(); j++) {
-                array[i + matrix.getRowDimension() * j] = matrix.getEntry(i, j);
-            }
+        int rows = matrix.getRowDimension();
+        int cols = matrix.getColumnDimension();
+        for (int j = 0; j < cols; j++) {
+            System.arraycopy(matrix.getColumn(j), 0, array, j * rows, rows);
         }
     }
 

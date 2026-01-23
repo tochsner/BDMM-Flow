@@ -124,7 +124,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
-            1e12
+            1e15
     );
 
     /* If a large number a cores is available (more than 8 or 10) the
@@ -218,6 +218,13 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.useODESplitting = this.useODESplittingInput.get();
         this.numIntervals = this.numIntervalsInput.get();
         this.maxConditioningNumber = this.maxConditioningNumberInput.get();
+
+        // reset cache
+
+        this.storedExtinctionProbabilities = null;
+        this.currentExtinctionProbabilities = null;
+        this.storedFlow = null;
+        this.currentFlow = null;
 
         // validate type label
 
@@ -405,7 +412,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         logTreeLikelihood += Math.log(2) * internalNodeCount - Gamma.logGamma(tree.getLeafNodeCount() + 1);
 
         // compare with BDMMPrime
-
+//
 //        double bdmmPrimeLikelihood = this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
 //        double deviation = Math.abs(Math.abs(logTreeLikelihood - bdmmPrimeLikelihood) / bdmmPrimeLikelihood);
 //
