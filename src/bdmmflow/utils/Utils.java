@@ -60,11 +60,35 @@ public class Utils {
      * Returns a RealMatrix matrix filled with the values in the array in column-major order.
      */
     public static RealMatrix toMatrix(double[] array, int n) {
+        return Utils.toMatrix(array, n, 0);
+    }
+
+    /**
+     * Returns a RealMatrix matrix filled with the values in the array in column-major order.
+     */
+    public static RealMatrix toMatrix(double[] array, int n, int offset) {
         RealMatrix matrix = new BlockRealMatrix(n, n);
         double[] column = new double[n];
         for (int j = 0; j < n; j++) {
-            System.arraycopy(array, j * n, column, 0, n);
+            System.arraycopy(array, j * n + offset, column, 0, n);
             matrix.setColumn(j, column);
+        }
+        return matrix;
+    }
+
+    /**
+     * Converts a packed 1D array of upper triangular elements into a full n x n RealMatrix.
+     */
+    public static RealMatrix toUpperTriangularMatrix(double[] array, int offset, int n) {
+        RealMatrix matrix = new BlockRealMatrix(n, n);
+        int index = 0;
+
+        for (int i = 0; i < n; i++) {
+            for (int j = i; j < n; j++) {
+                // Fill only the upper triangle (j >= i)
+                matrix.setEntry(i, j, array[offset + index++]);
+            }
+            // Note: Lower triangle (i > j) remains 0.0 by default in BlockRealMatrix
         }
         return matrix;
     }
@@ -93,10 +117,17 @@ public class Utils {
      * Fills the given array with the values in the given matrix in column-major order.
      */
     public static void fillArray(RealMatrix matrix, double[] array) {
+        Utils.fillArray(matrix, array, 0);
+    }
+
+    /**
+     * Fills the given array with the values in the given matrix in column-major order.
+     */
+    public static void fillArray(RealMatrix matrix, double[] array, int offset) {
         int rows = matrix.getRowDimension();
         int cols = matrix.getColumnDimension();
         for (int j = 0; j < cols; j++) {
-            System.arraycopy(matrix.getColumn(j), 0, array, j * rows, rows);
+            System.arraycopy(matrix.getColumn(j), 0, array, j * rows + offset, rows);
         }
     }
 
