@@ -16,6 +16,8 @@ public class BenchmarkResult {
     boolean useInverseFlow;
     boolean useSplitting;
     String initialStateStrategy;
+    int minNumInterval;
+    boolean parallelized;
 
     List<String> flowMetricNames;
     List<String> bdmmMetricNames;
@@ -28,7 +30,9 @@ public class BenchmarkResult {
             BenchmarkRun bdmmRun,
             boolean useInverseFlow,
             boolean useSplitting,
-            String initialStateStrategy
+            String initialStateStrategy,
+            int minNumInterval,
+            boolean parallelized
     ) {
         this.trial = trial;
         this.parameterization = parameterization;
@@ -38,6 +42,8 @@ public class BenchmarkResult {
         this.useInverseFlow = useInverseFlow;
         this.useSplitting = useSplitting;
         this.initialStateStrategy = initialStateStrategy;
+        this.minNumInterval = minNumInterval;
+        this.parallelized = parallelized;
 
         this.flowMetricNames = new ArrayList<>(this.flowRun.loggedMetrics.keySet());
         this.bdmmMetricNames = new ArrayList<>(this.bdmmRun.loggedMetrics.keySet());
@@ -64,6 +70,8 @@ public class BenchmarkResult {
         joiner.add(Boolean.toString(this.useInverseFlow));
         joiner.add(Boolean.toString(this.useSplitting));
         joiner.add(this.initialStateStrategy);
+        joiner.add(Integer.toString(this.minNumInterval));
+        joiner.add(Boolean.toString(this.parallelized));
 
         for (String metricName : this.flowMetricNames) {
             joiner.add(this.flowRun.loggedMetrics.get(metricName));
@@ -95,6 +103,8 @@ public class BenchmarkResult {
         joiner.add("use_inverse_flow");
         joiner.add("use_splitting");
         joiner.add("initial_state_strategy");
+        joiner.add("min_num_intervals");
+        joiner.add("parallelized");
 
         for (String metricName : this.flowMetricNames) {
             joiner.add("flow_" + metricName);

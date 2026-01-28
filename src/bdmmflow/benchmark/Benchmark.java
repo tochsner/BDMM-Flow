@@ -26,39 +26,33 @@ public class Benchmark {
         List<BenchmarkResult> results = new LinkedList<>();
 
         for (int i = 0; i < numTrials; i++) {
-            Parameterization parameterization = sampler.sampleParameterization();
-            RealParameter startTypePriorProbs = sampler.sampleStartTypePriorProbs(parameterization);
-            Tree tree = simulateTree(parameterization, startTypePriorProbs);
-
-            BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, startTypePriorProbs);
-
             String[] initialStateStrategies = new String[]{
                     "identity",
                     "random",
             };
+            Boolean[] choices = new Boolean[]{
+                    false, true
+            };
 
-            for (String strategy : initialStateStrategies) {
-                boolean useSplitting = false;
-                boolean useInverseFlow = true;
-                BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy);
-                BenchmarkResult result = new BenchmarkResult(
-                        i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy
-                );
-                results.add(result);
+            for (Boolean parallel : choices) {
+                    for (Boolean useInverseFlow : choices) {
+                        for (String strategy : initialStateStrategies) {
+                            for (Boolean useSplitting : choices) {
+                            Parameterization parameterization = sampler.sampleParameterization();
+                            RealParameter startTypePriorProbs = sampler.sampleStartTypePriorProbs(parameterization);
+                            Tree tree = simulateTree(parameterization, startTypePriorProbs);
+                            int minNumIntervals = sampler.sampleMinIntervals();
 
-                useInverseFlow = false;
-                flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy);
-                result = new BenchmarkResult(
-                        i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy
-                );
-                results.add(result);
+                            BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, startTypePriorProbs);
 
-                useSplitting = true;
-                flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy);
-                result = new BenchmarkResult(
-                        i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy
-                );
-                results.add(result);
+                            BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy, minNumIntervals, parallel);
+                            BenchmarkResult result = new BenchmarkResult(
+                                    i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals, parallel
+                            );
+                            results.add(result);
+                        }
+                    }
+                }
             }
 
             if (i % 100 == 0) {
@@ -88,7 +82,9 @@ public class Benchmark {
             RealParameter startTypePriorProbs,
             boolean useInverseFlow,
             boolean useSplitting,
-            String initialStateStrategy
+            String initialStateStrategy,
+            int minNumIntervals,
+            boolean parallelized
     ) {
         BirthDeathMigrationDistribution density = new BirthDeathMigrationDistribution();
         density.initByName(
@@ -99,7 +95,8 @@ public class Benchmark {
                 "initialMatrixStrategy", initialStateStrategy,
                 "useInverseFlow", useInverseFlow,
                 "useODESplitting", useSplitting,
-                "parallelize", true
+                "numIntervals", minNumIntervals,
+                "parallelize", parallelized
         );
         density.initAndValidate();
 
@@ -117,7 +114,7 @@ public class Benchmark {
                 "tree", tree,
                 "startTypePriorProbs", startTypePriorProbs,
                 "typeLabel", "type",
-                "parallelize", true
+                "parallelize", false
         );
         density.initAndValidate();
 

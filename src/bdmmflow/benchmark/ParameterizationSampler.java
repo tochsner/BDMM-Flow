@@ -75,6 +75,10 @@ public class ParameterizationSampler {
         return this.random.doubles(numValues, lower, upper).toArray();
     }
 
+    int sampleMinIntervals() {
+        return 8 * this.random.nextInt(3) + 1;
+    }
+
     String buildParameterString(double[] parameters) {
         StringJoiner joiner = new StringJoiner(" ");
         for (double value : parameters) {

@@ -1,5 +1,6 @@
 package bdmmflow.utils;
 
+import com.flag4j.Matrix;
 import org.apache.commons.math3.linear.*;
 import org.jblas.DoubleMatrix;
 
@@ -76,23 +77,6 @@ public class Utils {
         return matrix;
     }
 
-    /**
-     * Converts a packed 1D array of upper triangular elements into a full n x n RealMatrix.
-     */
-    public static RealMatrix toUpperTriangularMatrix(double[] array, int offset, int n) {
-        RealMatrix matrix = new BlockRealMatrix(n, n);
-        int index = 0;
-
-        for (int i = 0; i < n; i++) {
-            for (int j = i; j < n; j++) {
-                // Fill only the upper triangle (j >= i)
-                matrix.setEntry(i, j, array[offset + index++]);
-            }
-            // Note: Lower triangle (i > j) remains 0.0 by default in BlockRealMatrix
-        }
-        return matrix;
-    }
-
     public static RealMatrix toMatrix(DoubleMatrix source) {
         RealMatrix destination = new BlockRealMatrix(source.rows, source.columns);
         for (int i = 0; i < source.rows; i++) {
@@ -108,6 +92,26 @@ public class Utils {
         for (int i = 0; i < source.getRowDimension(); i++) {
             for (int j = 0; j < source.getColumnDimension(); j++) {
                 destination.put(i, j, source.getEntry(i, j));
+            }
+        }
+        return destination;
+    }
+
+    public static Matrix toFlag4JMatrix(RealMatrix source) {
+        Matrix destination = new Matrix(source.getRowDimension(), source.getColumnDimension());
+        for (int i = 0; i < source.getRowDimension(); i++) {
+            for (int j = 0; j < source.getColumnDimension(); j++) {
+                destination.set(source.getEntry(i, j), i, j);
+            }
+        }
+        return destination;
+    }
+
+    public static RealMatrix toMatrix(Matrix source) {
+        RealMatrix destination = new BlockRealMatrix(source.numRows(), source.numCols());
+        for (int i = 0; i < source.numRows(); i++) {
+            for (int j = 0; j < source.numCols(); j++) {
+                destination.setEntry(i, j, source.get(i, j));
             }
         }
         return destination;
