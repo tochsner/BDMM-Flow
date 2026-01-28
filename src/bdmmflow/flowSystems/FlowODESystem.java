@@ -245,8 +245,20 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
             double newIntervalStart = Math.max(currentIntervalEnd - maxIntervalSize, currentOldInterval.start());
 
+            // find containing parameterization interval ends
+            List<Integer> containingParameterizationIntervalEnds = new ArrayList<>();
+            for (int j = 0; j < parameterization.getTotalIntervalCount(); j++) {
+                double parameterizationIntervalEndTime = parameterization.getIntervalEndTimes()[j];
+                if (
+                        bdmmprime.util.Utils.lessThanWithPrecision(newIntervalStart, parameterizationIntervalEndTime) &&
+                                bdmmprime.util.Utils.lessThanWithPrecision(parameterizationIntervalEndTime, currentIntervalEnd)
+                ) {
+                    containingParameterizationIntervalEnds.add(j);
+                }
+            }
+
             Interval newInterval = new Interval(
-                newIntervals.size(),  currentOldInterval.parameterizationInterval(), newIntervalStart, currentIntervalEnd
+                newIntervals.size(), containingParameterizationIntervalEnds, newIntervalStart, currentIntervalEnd
             );
             newIntervals.add(0, newInterval);
 
@@ -263,7 +275,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
         for (int i = 0; i < newIntervals.size(); i++) {
             Interval interval = newIntervals.get(i);
             Interval intervalWithCorrectIdx = new Interval(
-                    i, interval.parameterizationInterval(), interval.start(), interval.end()
+                    i, interval.parameterizationIntervals(), interval.start(), interval.end()
             );
             newIntervals.set(i, intervalWithCorrectIdx);
         }

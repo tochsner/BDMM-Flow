@@ -118,7 +118,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Integer> numIntervalsInput = new Input<>(
             "numIntervals",
             "The number of intervals to split up this computation.",
-            1
+            Runtime.getRuntime().availableProcessors()
     );
 
     public Input<Double> maxConditioningNumberInput = new Input<>(

@@ -98,9 +98,8 @@ public class Flow implements IFlow {
             for (int i = startingAtInterval; i < timeInterval; i++) {
                 RealMatrix flowEnd = this.getFlow(this.outputModels[i], this.outputModels[i].getFinalTime());
                 accumulatedFlow = this.inverseInitialStates.get(this.inverseInitialStates.size() - i - 2).multiply(flowEnd.multiply(accumulatedFlow));
+                this.accumulatedFlowCache[startingAtInterval][i + 1] = accumulatedFlow;
             }
-
-            this.accumulatedFlowCache[startingAtInterval][timeInterval] = accumulatedFlow;
         }
 
         return (
