@@ -34,24 +34,20 @@ public class Benchmark {
                     false, true
             };
 
-            for (Boolean parallel : choices) {
-                    for (Boolean useInverseFlow : choices) {
-                        for (String strategy : initialStateStrategies) {
-                            for (Boolean useSplitting : choices) {
-                            Parameterization parameterization = sampler.sampleParameterization();
-                            RealParameter startTypePriorProbs = sampler.sampleStartTypePriorProbs(parameterization);
-                            Tree tree = simulateTree(parameterization, startTypePriorProbs);
-                            int minNumIntervals = sampler.sampleMinIntervals();
+            Parameterization parameterization = sampler.sampleParameterization();
+            RealParameter startTypePriorProbs = sampler.sampleStartTypePriorProbs(parameterization);
+            Tree tree = simulateTree(parameterization, startTypePriorProbs);
+            int minNumIntervals = sampler.sampleMinIntervals();
 
-                            BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, startTypePriorProbs);
+            for (Boolean useInverseFlow : choices) {
+                for (String strategy : initialStateStrategies) {
+                    BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, startTypePriorProbs);
 
-                            BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, useSplitting, strategy, minNumIntervals, parallel);
-                            BenchmarkResult result = new BenchmarkResult(
-                                    i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, useSplitting, strategy, minNumIntervals, parallel
-                            );
-                            results.add(result);
-                        }
-                    }
+                    BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, false, strategy, minNumIntervals, true);
+                    BenchmarkResult result = new BenchmarkResult(
+                            i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, false, strategy, minNumIntervals, true
+                    );
+                    results.add(result);
                 }
             }
 

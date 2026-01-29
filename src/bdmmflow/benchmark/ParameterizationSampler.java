@@ -76,7 +76,7 @@ public class ParameterizationSampler {
     }
 
     int sampleMinIntervals() {
-        return 8 * this.random.nextInt(3) + 1;
+        return 1 ; //Runtime.getRuntime().availableProcessors();
     }
 
     String buildParameterString(double[] parameters) {

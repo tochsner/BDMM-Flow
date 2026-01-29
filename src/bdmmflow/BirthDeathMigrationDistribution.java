@@ -185,6 +185,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     int totalNumEvaluations = 0;
     int numEvaluationsSinceReset = 0;
     int numFailedEvaluationsSinceReset = 0;
+    int numDeviations = 0;
+    double sumDeviation = 0;
 
     bdmmprime.distribution.BirthDeathMigrationDistribution bdmmPrime;
 
@@ -411,16 +413,30 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         int internalNodeCount = tree.getLeafNodeCount() - ((Tree) tree).getDirectAncestorNodeCount() - 1;
         logTreeLikelihood += Math.log(2) * internalNodeCount - Gamma.logGamma(tree.getLeafNodeCount() + 1);
 
-        // compare with BDMMPrime
-//
-//        double bdmmPrimeLikelihood = this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
-//        double deviation = Math.abs(Math.abs(logTreeLikelihood - bdmmPrimeLikelihood) / bdmmPrimeLikelihood);
-//
-//        if (deviation > 0.000001 || (Double.isFinite(logTreeLikelihood) != Double.isFinite(bdmmPrimeLikelihood))) {
-//             Log.err("Deviation to BDMM Prime: " + bdmmPrimeLikelihood + " (Prime) vs " + logTreeLikelihood + " (Flow)");
-//        }
+        // periodically compare with BDMMPrime
+
+        periodicallyCompareToBDMMPrime(dummyTree, logTreeLikelihood);
 
         return logTreeLikelihood;
+    }
+
+    private void periodicallyCompareToBDMMPrime(TreeInterface dummyTree, double bdmmFlowLikelihood) {
+        if (this.totalNumEvaluations < 1_000) return;
+        if (this.totalNumEvaluations % 1_000 != 0) return;
+
+        double bdmmPrimeLikelihood = this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
+        double deviation = Math.abs(Math.abs(bdmmFlowLikelihood - bdmmPrimeLikelihood) / bdmmPrimeLikelihood);
+
+        if (Double.isFinite(deviation)) {
+            this.sumDeviation += deviation;
+            this.numDeviations++;
+        }
+
+        // we log the deviation every 10_000 steps
+        if (this.totalNumEvaluations % 10_000 == 0) {
+            double meanDeviation = this.sumDeviation / this.numDeviations;
+            Log.warning("Mean deviation was " + meanDeviation);
+        }
     }
 
     private void warnAboutNumericalIssuesIfNecessary() {
@@ -438,6 +454,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         this.numFailedEvaluationsSinceReset = 0;
         this.numEvaluationsSinceReset = 0;
+        this.sumDeviation = 0;
+        this.numDeviations = 0;
     }
 
     private boolean inputValuesHaveZeroDensity() {
