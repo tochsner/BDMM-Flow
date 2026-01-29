@@ -142,7 +142,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             "the minimal absolute size the two children " +
                     "subtrees of a node must have to start parallel " +
                     "calculations on the children. ",
-            1024);
+            256);
 
     private Parameterization parameterization;
 
