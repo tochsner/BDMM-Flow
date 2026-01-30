@@ -68,53 +68,36 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
         if (alwaysStartAtInitialState && parallelize) {
 
-            ForkJoinPool pool = new ForkJoinPool();
-            try {
-                pool.submit(() ->
-                        IntStream.range(0, intervals.size()).parallel().forEach(i -> {
-                            Interval interval = intervals.get(i);
-                            double[] state = initialState.clone();
+            IntStream.range(0, intervals.size()).parallel().forEach(i -> {
+                Interval interval = intervals.get(i);
+                double[] state = initialState.clone();
 
-                            ContinuousOutputModel outputModel = new ContinuousOutputModel();
+                ContinuousOutputModel outputModel = new ContinuousOutputModel();
 
-                            // this interval might contain multiple parameterization intervals
-                            // we loop through the containing parameterization intervals and
-                            // integrate them piece-by-piece
+                // this interval might contain multiple parameterization intervals
+                // we loop through the containing parameterization intervals and
+                // integrate them piece-by-piece
 
-                            double currentStart = interval.start();
-                            for (int parameterizationInterval : interval.parameterizationIntervals()) {
-                                this.handleParameterizationIntervalBoundaryIfNecessary(currentStart, state);
+                double currentStart = interval.start();
+                for (int parameterizationInterval : interval.parameterizationIntervals()) {
+                    this.handleParameterizationIntervalBoundaryIfNecessary(currentStart, state);
 
-                                double parameterizationEnd = this.parameterization.getIntervalEndTimes()[parameterizationInterval];
-                                outputModel.append(
-                                        this.integrate(state, currentStart, parameterizationEnd, interval)
-                                );
+                    double parameterizationEnd = this.parameterization.getIntervalEndTimes()[parameterizationInterval];
+                    outputModel.append(
+                            this.integrate(state, currentStart, parameterizationEnd, interval)
+                    );
 
-                                currentStart = parameterizationEnd;
-                            }
-
-                            this.handleParameterizationIntervalBoundaryIfNecessary(currentStart, state);
-
-                            outputModel.append(
-                                    this.integrate(state, currentStart, interval.end(), interval)
-                            );
-
-                            outputModels[interval.interval()] = outputModel;
-                        })
-                ).join();
-            } catch (Exception exception) {
-                // shutdown all threads in case of an exception
-                // the exception is automatically passed upwards to the caller
-                try {
-                    pool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                    currentStart = parameterizationEnd;
                 }
 
-                throw exception;
-            } finally {
-                pool.shutdown();
-            }
+                this.handleParameterizationIntervalBoundaryIfNecessary(currentStart, state);
+
+                outputModel.append(
+                        this.integrate(state, currentStart, interval.end(), interval)
+                );
+
+                outputModels[interval.interval()] = outputModel;
+            });
 
         } else {
 
@@ -175,52 +158,37 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
         if (alwaysStartAtInitialState && parallelize) {
 
-            ForkJoinPool pool = new ForkJoinPool();
-            try {
-                    IntStream.range(0, intervals.size()).parallel().forEach(i -> {
-                        Interval interval = intervals.get(i);
-                        double[] state = initialStates.get(i).clone();
+            IntStream.range(0, intervals.size()).parallel().forEach(i -> {
+                Interval interval = intervals.get(i);
+                double[] state = initialStates.get(i).clone();
 
-                        ContinuousOutputModel outputModel = new ContinuousOutputModel();
+                ContinuousOutputModel outputModel = new ContinuousOutputModel();
 
-                        // this interval might contain multiple parameterization intervals
-                        // we loop through the containing parameterization intervals and
-                        // integrate them piece-by-piece
+                // this interval might contain multiple parameterization intervals
+                // we loop through the containing parameterization intervals and
+                // integrate them piece-by-piece
 
-                        double currentEnd = interval.end();
-                        for (int j = interval.parameterizationIntervals().size() - 1; j >= 0; j--) {
-                            this.handleParameterizationIntervalBoundaryIfNecessary(currentEnd, state);
+                double currentEnd = interval.end();
+                for (int j = interval.parameterizationIntervals().size() - 1; j >= 0; j--) {
+                    this.handleParameterizationIntervalBoundaryIfNecessary(currentEnd, state);
 
-                            int parameterizationInterval = interval.parameterizationIntervals().get(j);
-                            double parameterizationEnd = this.parameterization.getIntervalEndTimes()[parameterizationInterval];
-                            outputModel.append(
-                                    this.integrate(state, currentEnd, parameterizationEnd, interval)
-                            );
+                    int parameterizationInterval = interval.parameterizationIntervals().get(j);
+                    double parameterizationEnd = this.parameterization.getIntervalEndTimes()[parameterizationInterval];
+                    outputModel.append(
+                            this.integrate(state, currentEnd, parameterizationEnd, interval)
+                    );
 
-                            currentEnd = parameterizationEnd;
-                        }
-
-                        this.handleParameterizationIntervalBoundaryIfNecessary(currentEnd, state);
-
-                        outputModel.append(
-                                this.integrate(state, currentEnd, interval.start(), interval)
-                        );
-
-                        outputModels[intervals.size() - interval.interval() - 1] = outputModel;
-                    });
-            } catch (Exception exception) {
-                // shutdown all threads in case of an exception
-                // the exception is automatically passed upwards to the caller
-                try {
-                    pool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                    currentEnd = parameterizationEnd;
                 }
 
-                throw exception;
-            } finally {
-                pool.shutdown();
-            }
+                this.handleParameterizationIntervalBoundaryIfNecessary(currentEnd, state);
+
+                outputModel.append(
+                        this.integrate(state, currentEnd, interval.start(), interval)
+                );
+
+                outputModels[intervals.size() - interval.interval() - 1] = outputModel;
+            });
 
         } else {
 
@@ -271,7 +239,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     protected ContinuousOutputModel integrate(double[] initialState, double start, double end, Interval interval) {
         ContinuousOutputModel intervalResult = new ContinuousOutputModel();
 
-        DormandPrince853Integrator integrator = new DormandPrince853Integrator(
+        DormandPrince54Integrator integrator = new DormandPrince54Integrator(
                 this.integrationMinStep, this.integrationMaxStep, this.absoluteTolerance, this.relativeTolerance
         );
         integrator.addStepHandler(intervalResult);

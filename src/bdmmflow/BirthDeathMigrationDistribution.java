@@ -27,6 +27,8 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.DoubleStream;
 
+import static java.lang.System.exit;
+
 @Citation(value = "Kuehnert D, Stadler T, Vaughan TG, Drummond AJ. (2016). " +
         "A General and Efficient Algorithm for the Likelihood of Diversification and Discrete-Trait Evolutionary Models, \n" +
         "Systematic Biology, Volume 69, Issue 3, May 2020, Pages 545–556."
@@ -180,7 +182,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     int[] subtreeSizes;
     double parallelizeSubtreeSizeThreshold;
 
-    ForkJoinPool forkJoinPool = new ForkJoinPool();
+    ForkJoinPool forkJoinPool;
 
     int totalNumEvaluations = 0;
     int numEvaluationsSinceReset = 0;
@@ -353,6 +355,10 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             return Double.NEGATIVE_INFINITY;
         }
 
+        // set up fork join pool
+
+        this.forkJoinPool = new ForkJoinPool();
+
         // set up intervals
 
         double maxIntervalSize = this.parameterization.getTotalProcessLength() / this.numIntervals;
@@ -388,6 +394,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         } catch (SingularMatrixException exception) {
             this.numFailedEvaluationsSinceReset++;
             return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
+        } finally {
+            this.forkJoinPool.shutdown();
         }
 
         // get tree likelihood by a weighted average of the root likelihood per state

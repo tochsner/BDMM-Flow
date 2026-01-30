@@ -98,28 +98,32 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
      * time step.
      */
     void addTimeVaryingSystemMatrix(double t, RealMatrix system) {
-        double[] extinctProbabilities = this.extinctionProbabilities.getProbability(t);
-        int interval = this.getCurrentParameterizationInterval(t);
+        ContinuousOutputModel extinctionOutputModel = this.extinctionProbabilities.getOutputModel(t);
 
-        for (int i = 0; i < parameterization.getNTypes(); i++) {
-            system.addToEntry(
-                    i,
-                    i,
-                    -2 * this.birthRates[interval][i] * extinctProbabilities[i]
-            );
+        synchronized (extinctionOutputModel) {
+            double[] extinctProbabilities = this.extinctionProbabilities.unsafeGetProbability(extinctionOutputModel, t);
+            int interval = this.getCurrentParameterizationInterval(t);
 
-            for (int j = 0; j < parameterization.getNTypes(); j++) {
+            for (int i = 0; i < parameterization.getNTypes(); i++) {
                 system.addToEntry(
                         i,
                         i,
-                        -this.crossBirthRates[interval][i][j] * extinctProbabilities[j]
+                        -2 * this.birthRates[interval][i] * extinctProbabilities[i]
                 );
 
-                system.addToEntry(
-                        i,
-                        j,
-                        -this.crossBirthRates[interval][i][j] * extinctProbabilities[i]
-                );
+                for (int j = 0; j < parameterization.getNTypes(); j++) {
+                    system.addToEntry(
+                            i,
+                            i,
+                            -this.crossBirthRates[interval][i][j] * extinctProbabilities[j]
+                    );
+
+                    system.addToEntry(
+                            i,
+                            j,
+                            -this.crossBirthRates[interval][i][j] * extinctProbabilities[i]
+                    );
+                }
             }
         }
 

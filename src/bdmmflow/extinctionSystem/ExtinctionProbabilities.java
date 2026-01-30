@@ -13,11 +13,16 @@ public class ExtinctionProbabilities {
         this.outputModels = outputModels;
     }
 
-    double[] getProbability(ContinuousOutputModel output, double time) {
+    public double[] getProbability(ContinuousOutputModel output, double time) {
         synchronized (output) {
             output.setInterpolatedTime(time);
             return output.getInterpolatedState().clone();
         }
+    }
+
+    public double[] unsafeGetProbability(ContinuousOutputModel output, double time) {
+        output.setInterpolatedTime(time);
+        return output.getInterpolatedState();
     }
 
     /**
@@ -26,17 +31,24 @@ public class ExtinctionProbabilities {
      * @return the extinction probability at the given time.
      */
     public double[] getProbability(double time) {
+        return this.getProbability(this.getOutputModel(time), time);
+    }
+
+    /**
+     * Returns the continuous output model for the given time.
+     */
+    public ContinuousOutputModel getOutputModel(double time) {
         if (time > this.outputModels[0].getInitialTime()) {
-            return this.getProbability(this.outputModels[0], time);
+            return this.outputModels[0];
         }
 
         for (ContinuousOutputModel model : this.outputModels) {
             if (model.getInitialTime() >= time && time > model.getFinalTime()) {
-                return this.getProbability(model, time);
+                return model;
             }
         }
 
-        return this.getProbability(this.outputModels[this.outputModels.length - 1], time);
+        return this.outputModels[this.outputModels.length - 1];
     }
 
 }
