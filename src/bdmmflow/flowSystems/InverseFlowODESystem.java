@@ -9,6 +9,8 @@ import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static bdmmflow.utils.Utils.*;
@@ -28,8 +30,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
     final double[][][] migrationRates;
 
     int seed;
-
-    static LRUCache<Double, DecompositionSolver> cache = new LRUCache<>(16);
+    double maxConditionNumber;
 
     public InverseFlowODESystem(
             Parameterization parameterization,
@@ -37,7 +38,8 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
             List<Interval> intervals,
             double absoluteTolerance,
             double relativeTolerance,
-            int seed
+            int seed,
+            double maxConditionNumber
     ) {
         super(parameterization, intervals, absoluteTolerance, relativeTolerance);
         this.extinctionProbabilities = extinctionProbabilities;
@@ -49,14 +51,13 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         this.migrationRates = this.parameterization.getMigRates();
 
         this.seed = seed;
+        this.maxConditionNumber = maxConditionNumber;
 
         this.timeInvariantSystemMatrices = new RealMatrix[this.parameterization.getTotalIntervalCount()];
 
         for (int i = 0; i < this.parameterization.getTotalIntervalCount(); i++) {
             this.timeInvariantSystemMatrices[i] = this.buildTimeInvariantSystemMatrix(i);
         }
-
-        cache.clear();
     }
 
     @Override
@@ -99,28 +100,32 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
      * time step.
      */
     void addTimeVaryingSystemMatrix(double t, RealMatrix system) {
-        double[] extinctProbabilities = this.extinctionProbabilities.getProbability(t);
-        int interval = getCurrentParameterizationInterval(t);
+        ContinuousOutputModel extinctionOutputModel = this.extinctionProbabilities.getOutputModel(t);
 
-        for (int i = 0; i < parameterization.getNTypes(); i++) {
-            system.addToEntry(
-                    i,
-                    i,
-                    2 * this.birthRates[interval][i] * extinctProbabilities[i]
-            );
+        synchronized (extinctionOutputModel) {
+            double[] extinctProbabilities = this.extinctionProbabilities.unsafeGetProbability(extinctionOutputModel, t);
+            int interval = getCurrentParameterizationInterval(t);
 
-            for (int j = 0; j < parameterization.getNTypes(); j++) {
+            for (int i = 0; i < parameterization.getNTypes(); i++) {
                 system.addToEntry(
                         i,
                         i,
-                        this.crossBirthRates[interval][i][j] * extinctProbabilities[j]
+                        2 * this.birthRates[interval][i] * extinctProbabilities[i]
                 );
 
-                system.addToEntry(
-                        i,
-                        j,
-                        this.crossBirthRates[interval][i][j] * extinctProbabilities[i]
-                );
+                for (int j = 0; j < parameterization.getNTypes(); j++) {
+                    system.addToEntry(
+                            i,
+                            i,
+                            this.crossBirthRates[interval][i][j] * extinctProbabilities[j]
+                    );
+
+                    system.addToEntry(
+                            i,
+                            j,
+                            this.crossBirthRates[interval][i][j] * extinctProbabilities[i]
+                    );
+                }
             }
         }
     }
@@ -202,6 +207,50 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
     @Override
     public List<Interval> splitUpIntervals() {
+        List<Interval> newIntervals = new ArrayList<>();
+
+        double logMaxConditionNumber = Math.log(this.maxConditionNumber);
+
+        int currentOldIntervalIdx = 0;
+        double currentIntervalStart = this.intervals.get(0).start();
+
+        while (currentOldIntervalIdx < this.intervals.size()) {
+            Interval currentOldInterval = this.intervals.get(currentOldIntervalIdx);
+
+            RealMatrix currentStartSystemMatrix = this.buildSystemMatrix(currentIntervalStart);
+            SingularValueDecomposition decomposition = new SingularValueDecomposition(currentStartSystemMatrix);
+            double maxSingularValue = Arrays.stream(decomposition.getSingularValues()).max().orElseThrow();
+            double maxIntervalSize = logMaxConditionNumber / (2.0 * maxSingularValue);
+
+            double currentIntervalEnd = Math.min(currentIntervalStart + maxIntervalSize, currentOldInterval.end());
+
+            // find containing parameterization interval ends
+            List<Integer> containingParameterizationIntervalEnds = new ArrayList<>();
+            for (int j = 0; j < parameterization.getTotalIntervalCount(); j++) {
+                double parameterizationIntervalEndTime = parameterization.getIntervalEndTimes()[j];
+                if (
+                        bdmmprime.util.Utils.lessThanWithPrecision(currentIntervalStart, parameterizationIntervalEndTime) &&
+                                bdmmprime.util.Utils.lessThanWithPrecision(parameterizationIntervalEndTime, currentIntervalEnd)
+                ) {
+                    containingParameterizationIntervalEnds.add(j);
+                }
+            }
+
+            Interval newInterval = new Interval(
+                    newIntervals.size(), containingParameterizationIntervalEnds, currentIntervalStart, currentIntervalEnd
+            );
+            newIntervals.add(newInterval);
+
+            if (bdmmprime.util.Utils.equalWithPrecision(currentIntervalEnd, currentOldInterval.end())) {
+                // we reached the end of the current old interval
+                // let's go to the next one
+                currentOldIntervalIdx++;
+            }
+            currentIntervalStart = currentIntervalEnd;
+        }
+
+        this.intervals = newIntervals;
+
         return this.intervals;
     }
 }

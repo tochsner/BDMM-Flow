@@ -56,15 +56,21 @@ public class InverseFlow implements IFlow {
         );
         RealVector likelihoodVectorEnd = new ArrayRealVector(endState);
 
-        Pair<Double, Integer> startKey = new Pair<>(timeStart, interval);
-        DecompositionSolver qr = this.decompositionCache.computeIfAbsent(
-                startKey,
-                k -> new QRDecomposition(
-                        this.flowCache.computeIfAbsent(startKey, k_ -> this.getFlow(timeStart, interval))
-                ).getSolver()
-        );
-
-        RealVector likelihoodVectorStart = qr.solve(flowMatrixEnd.operate(likelihoodVectorEnd));
+        RealVector likelihoodVectorStart = null;
+        try {
+            Pair<Double, Integer> startKey = new Pair<>(timeStart, interval);
+            DecompositionSolver qr = this.decompositionCache.computeIfAbsent(
+                    startKey,
+                    k -> new QRDecomposition(
+                            this.flowCache.computeIfAbsent(startKey, k_ -> this.getFlow(timeStart, interval)), 1e-12
+                    ).getSolver()
+            );
+            likelihoodVectorStart = qr.solve(flowMatrixEnd.operate(likelihoodVectorEnd));
+        } catch (SingularMatrixException e) {
+            // we fall back to SVD in case of nearly-singular matrices
+            DecompositionSolver svd = new SingularValueDecomposition(flowMatrixEnd).getSolver();
+            likelihoodVectorStart = svd.solve(flowMatrixEnd.operate(likelihoodVectorEnd));
+        }
 
         return likelihoodVectorStart.toArray();
     }
@@ -92,10 +98,9 @@ public class InverseFlow implements IFlow {
 
             for (int i = startingAtInterval; i < timeInterval; i++) {
                 RealMatrix flowEnd = this.getFlow(this.outputModels[i], this.outputModels[i].getFinalTime());
-                accumulatedFlow = accumulatedFlow.multiply(flowEnd.multiply(this.inverseInitialState));
+                accumulatedFlow = accumulatedFlow.multiply(flowEnd).multiply(this.inverseInitialState);
+                this.accumulatedFlowCache[startingAtInterval][i + 1] = accumulatedFlow;
             }
-
-            this.accumulatedFlowCache[startingAtInterval][timeInterval] = accumulatedFlow;
         }
 
         return (
@@ -105,8 +110,10 @@ public class InverseFlow implements IFlow {
     }
 
     RealMatrix getFlow(ContinuousOutputModel output, double time) {
-        output.setInterpolatedTime(time);
-        return Utils.toMatrix(output.getInterpolatedState(), this.n);
+        synchronized (output) {
+            output.setInterpolatedTime(time);
+            return Utils.toMatrix(output.getInterpolatedState(), this.n);
+        }
     }
 
     /**

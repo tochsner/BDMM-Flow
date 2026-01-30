@@ -126,7 +126,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
-            1e15
+            1e8
     );
 
     /* If a large number a cores is available (more than 8 or 10) the
@@ -559,7 +559,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     intervals,
                     this.absoluteTolerance,
                     this.relativeTolerance,
-                    heightSum
+                    heightSum,
+                    this.maxConditioningNumber
             );
         } else if (this.useODESplitting) {
             system = new DiagonalIPFlowODESystem(
