@@ -118,7 +118,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Integer> numIntervalsInput = new Input<>(
             "numIntervals",
             "The number of intervals to split up this computation.",
-            1 //Runtime.getRuntime().availableProcessors()
+            Runtime.getRuntime().availableProcessors()
     );
 
     public Input<Double> maxConditioningNumberInput = new Input<>(
@@ -211,7 +211,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.absoluteTolerance = this.absoluteToleranceInput.get();
         this.relativeTolerance = this.relativeToleranceInput.get();
         this.numTypes = this.parameterization.getNTypes();
-        this.initialMatrixStrategy = "identity"; // this.initialMatrixStrategyInput.get();
+        this.initialMatrixStrategy = this.initialMatrixStrategyInput.get();
         this.seed = this.seedInput.get();
         this.parallelize = this.parallelizeInput.get();
         this.minimalProportionForParallelization = minimalProportionForParallelizationInput.get();
@@ -551,7 +551,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         int heightSum = (int) Math.floor(10_000 * heights.sum());
 
         if (this.useInverseFlow) {
-            system = new IPFlowODESystem(
+            system = new InverseFlowODESystem(
                     this.parameterization,
                     extinctionProbabilities,
                     intervals,
@@ -580,7 +580,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             );
         }
 
-        List<Interval> splitUpIntervals = intervals; // system.splitUpIntervals();
+        List<Interval> splitUpIntervals = system.splitUpIntervals();
 
         boolean resetInitialStateAtIntervalBoundaries = 1 < splitUpIntervals.size();
         IFlow flow = system.calculateFlowIntegral(
