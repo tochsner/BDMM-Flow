@@ -22,32 +22,81 @@ public class IntervalUtils {
      * @param maxIntervalSize  - the maximal length of the returned intervals.
      * @return a list of intervals.
      */
+//    public static List<Interval> getIntervals(Parameterization parameterization, double maxIntervalSize, double rootTime) {
+//        List<Interval> intervals = new ArrayList<>();
+//
+//        double currentStartTime = Math.min(0.0, Math.min(rootTime, parameterization.getIntervalEndTimes()[0]));
+//        double endTime = parameterization.getTotalProcessLength();
+//        double numIntervals = (int) Math.max(1, Math.ceil((endTime - currentStartTime) / maxIntervalSize));
+//
+//        for (int i = 0; i < numIntervals; i++) {
+//            double currentEndTime = currentStartTime + maxIntervalSize;
+//
+//            // find containing parameterization interval ends
+//            List<Integer> containingParameterizationIntervalEnds = new ArrayList<>();
+//            for (int j = 0; j < parameterization.getTotalIntervalCount(); j++) {
+//                double parameterizationIntervalEndTime = parameterization.getIntervalEndTimes()[j];
+//                if (
+//                        Utils.lessThanWithPrecision(currentStartTime, parameterizationIntervalEndTime) &&
+//                                Utils.lessThanWithPrecision(parameterizationIntervalEndTime, currentEndTime)
+//                    ) {
+//                    containingParameterizationIntervalEnds.add(j);
+//                }
+//            }
+//
+//
+//            Interval interval = new Interval(i, containingParameterizationIntervalEnds, currentStartTime, currentEndTime);
+//            intervals.add(interval);
+//            currentStartTime += maxIntervalSize;
+//        }
+//
+//        return intervals;
+//    }
+
     public static List<Interval> getIntervals(Parameterization parameterization, double maxIntervalSize, double rootTime) {
         List<Interval> intervals = new ArrayList<>();
 
+        int currentParameterizationInterval = 0;
+
         double currentStartTime = Math.min(0.0, Math.min(rootTime, parameterization.getIntervalEndTimes()[0]));
-        double endTime = parameterization.getTotalProcessLength();
-        double numIntervals = (int) Math.max(1, Math.ceil((endTime - currentStartTime) / maxIntervalSize));
 
-        for (int i = 0; i < numIntervals; i++) {
-            double currentEndTime = currentStartTime + maxIntervalSize;
+        while (currentParameterizationInterval < parameterization.getTotalIntervalCount()) {
+            double currentParameterizationIntervalEndTime = parameterization.getIntervalEndTimes()[currentParameterizationInterval];
 
-            // find containing parameterization interval ends
-            List<Integer> containingParameterizationIntervalEnds = new ArrayList<>();
-            for (int j = 0; j < parameterization.getTotalIntervalCount(); j++) {
-                double parameterizationIntervalEndTime = parameterization.getIntervalEndTimes()[j];
-                if (
-                        Utils.lessThanWithPrecision(currentStartTime, parameterizationIntervalEndTime) &&
-                                Utils.lessThanWithPrecision(parameterizationIntervalEndTime, currentEndTime)
-                    ) {
-                    containingParameterizationIntervalEnds.add(j);
-                }
+            if (Utils.equalWithPrecision(currentParameterizationIntervalEndTime, currentStartTime) || currentParameterizationIntervalEndTime < currentStartTime) {
+                // the current interval is empty or ends before it starts. this can happen when the interval has a negative end time.
+                currentParameterizationInterval += 1;
+                continue;
             }
 
+            double currentMaxEndTime = currentStartTime + maxIntervalSize;
 
-            Interval interval = new Interval(i, containingParameterizationIntervalEnds, currentStartTime, currentEndTime);
-            intervals.add(interval);
-            currentStartTime += maxIntervalSize;
+            if (currentParameterizationIntervalEndTime < currentMaxEndTime || Utils.equalWithPrecision(currentParameterizationIntervalEndTime, currentMaxEndTime)) {
+                // the current interval goes until the end of the parameterization interval
+                intervals.add(
+                        new Interval(
+                                intervals.size(),
+                                List.of(),
+                                currentStartTime,
+                                currentParameterizationIntervalEndTime
+                        )
+                );
+
+                currentStartTime = currentParameterizationIntervalEndTime;
+                currentParameterizationInterval += 1;
+            } else {
+                // the current interval is shorter than the current parameterization interval
+                intervals.add(
+                        new Interval(
+                                intervals.size(),
+                                List.of(),
+                                currentStartTime,
+                                currentMaxEndTime
+                        )
+                );
+
+                currentStartTime = currentMaxEndTime;
+            }
         }
 
         return intervals;

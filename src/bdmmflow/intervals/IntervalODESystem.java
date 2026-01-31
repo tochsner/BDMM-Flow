@@ -8,8 +8,6 @@ import org.apache.commons.math3.ode.nonstiff.*;
 
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 
@@ -239,7 +237,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     protected ContinuousOutputModel integrate(double[] initialState, double start, double end, Interval interval) {
         ContinuousOutputModel intervalResult = new ContinuousOutputModel();
 
-        DormandPrince54Integrator integrator = new DormandPrince54Integrator(
+        DormandPrince853Integrator integrator = new DormandPrince853Integrator(
                 this.integrationMinStep, this.integrationMaxStep, this.absoluteTolerance, this.relativeTolerance
         );
         integrator.addStepHandler(intervalResult);

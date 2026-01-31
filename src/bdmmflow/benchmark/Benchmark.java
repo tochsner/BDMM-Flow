@@ -42,7 +42,6 @@ public class Benchmark {
             for (Boolean useInverseFlow : choices) {
                 for (String strategy : initialStateStrategies) {
                     BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, startTypePriorProbs);
-
                     BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, false, strategy, minNumIntervals, true);
                     BenchmarkResult result = new BenchmarkResult(
                             i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, false, strategy, minNumIntervals, true

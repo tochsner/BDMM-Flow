@@ -137,7 +137,6 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         int interval = this.parameterization.getIntervalIndex(t);
         RealMatrix systemMatrix = this.timeInvariantSystemMatrices[interval].copy();
         this.addTimeVaryingSystemMatrix(t, systemMatrix);
-
         return systemMatrix;
     }
 

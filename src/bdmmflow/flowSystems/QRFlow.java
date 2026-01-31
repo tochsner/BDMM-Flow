@@ -88,10 +88,6 @@ public class QRFlow extends Flow {
             // R[i,i] in column-major: yState[rOffset + i*n + i]
             double rDiag = yState[rOffset + i * n + i];
 
-            if (FastMath.abs(rDiag) < 1e-18) {
-                throw new SingularMatrixException();
-            }
-
             x[i] = (y[i] - sum) / rDiag;
         }
 

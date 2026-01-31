@@ -27,8 +27,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.DoubleStream;
 
-import static java.lang.System.exit;
-
 @Citation(value = "Kuehnert D, Stadler T, Vaughan TG, Drummond AJ. (2016). " +
         "A General and Efficient Algorithm for the Likelihood of Diversification and Discrete-Trait Evolutionary Models, \n" +
         "Systematic Biology, Volume 69, Issue 3, May 2020, Pages 545–556."
@@ -120,7 +118,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Integer> numIntervalsInput = new Input<>(
             "numIntervals",
             "The number of intervals to split up this computation.",
-            Runtime.getRuntime().availableProcessors()
+            1 //Runtime.getRuntime().availableProcessors()
     );
 
     public Input<Double> maxConditioningNumberInput = new Input<>(
@@ -213,7 +211,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.absoluteTolerance = this.absoluteToleranceInput.get();
         this.relativeTolerance = this.relativeToleranceInput.get();
         this.numTypes = this.parameterization.getNTypes();
-        this.initialMatrixStrategy = this.initialMatrixStrategyInput.get();
+        this.initialMatrixStrategy = "identity"; // this.initialMatrixStrategyInput.get();
         this.seed = this.seedInput.get();
         this.parallelize = this.parallelizeInput.get();
         this.minimalProportionForParallelization = minimalProportionForParallelizationInput.get();
@@ -553,7 +551,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         int heightSum = (int) Math.floor(10_000 * heights.sum());
 
         if (this.useInverseFlow) {
-            system = new InverseFlowODESystem(
+            system = new IPFlowODESystem(
                     this.parameterization,
                     extinctionProbabilities,
                     intervals,
@@ -582,7 +580,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             );
         }
 
-        List<Interval> splitUpIntervals = system.splitUpIntervals();
+        List<Interval> splitUpIntervals = intervals; // system.splitUpIntervals();
 
         boolean resetInitialStateAtIntervalBoundaries = 1 < splitUpIntervals.size();
         IFlow flow = system.calculateFlowIntegral(
