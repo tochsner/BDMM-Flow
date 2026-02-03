@@ -7,7 +7,6 @@ import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
-import org.jblas.MatrixFunctions;
 
 
 import java.util.ArrayList;
@@ -190,25 +189,6 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
                 yield arrays;
             }
-            case "quarter_inverse" -> {
-                List<double[]> arrays = new ArrayList<>();
-
-                for (Interval interval : intervals) {
-                    RealMatrix startA = this.buildSystemMatrix(interval.start());
-                    RealMatrix endA = this.buildSystemMatrix(interval.end());
-                    double h = interval.end() - interval.start();
-
-                    RealMatrix negMidA = endA.scalarMultiply(7).add(startA).scalarMultiply(h / 32);
-                    RealMatrix invMidX = Utils.toMatrix(MatrixFunctions.expm(Utils.toMatrix(negMidA)));
-
-                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                    Utils.fillArray(invMidX, array);
-
-                    arrays.add(array);
-                }
-
-                yield arrays;
-            }
             case "mid_inverse" -> {
                 List<double[]> arrays = new ArrayList<>();
 
@@ -218,7 +198,26 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     double h = interval.end() - interval.start();
 
                     RealMatrix negMidA = endA.scalarMultiply(3).add(startA).scalarMultiply(3*h / 8);
-                    RealMatrix invMidX = Utils.toMatrix(MatrixFunctions.expm(Utils.toMatrix(negMidA)));
+                    RealMatrix invMidX = Utils.expm(negMidA);
+
+                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    Utils.fillArray(invMidX, array);
+
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
+            case "quarter_inverse" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    RealMatrix startA = this.buildSystemMatrix(interval.start());
+                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    double h = interval.end() - interval.start();
+
+                    RealMatrix negMidA = endA.scalarMultiply(7).add(startA).scalarMultiply(h / 32);
+                    RealMatrix invMidX = Utils.expm(negMidA);
 
                     double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
                     Utils.fillArray(invMidX, array);
@@ -237,7 +236,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                     double h = interval.end() - interval.start();
 
                     RealMatrix negMidA = endA.add(startA).scalarMultiply(h / 2);
-                    RealMatrix invMidX = Utils.toMatrix(MatrixFunctions.expm(Utils.toMatrix(negMidA)));
+                    RealMatrix invMidX = Utils.expm(negMidA);
 
                     double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
                     Utils.fillArray(invMidX, array);

@@ -7,6 +7,8 @@ import org.jblas.DoubleMatrix;
 import java.util.Arrays;
 import java.util.Random;
 
+import org.hipparchus.linear.SchurTransformer;
+
 public class Utils {
 
     /**
@@ -85,6 +87,14 @@ public class Utils {
             }
         }
         return destination;
+    }
+
+    public static RealMatrix toMatrix(org.hipparchus.linear.RealMatrix source) {
+        return new BlockRealMatrix(source.getData());
+    }
+
+    public static org.hipparchus.linear.RealMatrix toHipparchusMatrix(RealMatrix source) {
+        return new org.hipparchus.linear.BlockRealMatrix(source.getData());
     }
 
     public static DoubleMatrix toMatrix(RealMatrix source) {
@@ -171,4 +181,54 @@ public class Utils {
 
         return Math.log(max) + previousLogFactor;
     }
+
+    public static RealMatrix expm(RealMatrix A) {
+        SchurTransformer schur = new SchurTransformer(Utils.toHipparchusMatrix(A));
+        RealMatrix Q = Utils.toMatrix(schur.getP());
+        RealMatrix T = Utils.toMatrix(schur.getT());
+
+        RealMatrix expT = expmUpperTriangular(T);
+
+        return Q.multiply(expT).multiply(Q.transpose());
+    }
+
+    private static RealMatrix expmUpperTriangular(RealMatrix T) {
+        int n = T.getRowDimension();
+        RealMatrix F = MatrixUtils.createRealMatrix(n, n);
+
+        // Diagonal: exp(lambda)
+        for (int i = 0; i < n; i++) {
+            F.setEntry(i, i, Math.exp(T.getEntry(i, i)));
+        }
+
+        // Parlett recurrence
+        for (int p = 1; p < n; p++) {
+            for (int i = 0; i < n - p; i++) {
+                int j = i + p;
+
+                double sum = 0.0;
+                for (int k = i + 1; k < j; k++) {
+                    sum += T.getEntry(i, k) * F.getEntry(k, j)
+                            - F.getEntry(i, k) * T.getEntry(k, j);
+                }
+
+                double tii = T.getEntry(i, i);
+                double tjj = T.getEntry(j, j);
+
+                if (Math.abs(tii - tjj) < 1e-12) {
+                    // repeated eigenvalue
+                    F.setEntry(i, j,
+                            T.getEntry(i, j) * F.getEntry(i, i) + sum);
+                } else {
+                    F.setEntry(i, j,
+                            (T.getEntry(i, j) * (F.getEntry(j, j) - F.getEntry(i, i)) + sum)
+                                    / (tjj - tii));
+                }
+            }
+        }
+
+        return F;
+    }
+
+
 }
