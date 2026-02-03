@@ -164,14 +164,132 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         }
     }
 
-    RealMatrix getInitialState(String initialMatrixStrategy) {
+    List<double[]> getInitialStates(String initialMatrixStrategy, List<Interval> intervals) {
         return switch (initialMatrixStrategy) {
-            case "random" -> Utils.getRandomMatrix(this.parameterization.getNTypes(), this.seed);
-            case "heuristic" -> MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
-            default -> MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
+            case "random" -> {
+                RealMatrix matrix = Utils.getRandomMatrix(this.parameterization.getNTypes(), this.seed);
+
+                List<double[]> arrays = new ArrayList<>();
+                for (Interval ignored : intervals) {
+                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    Utils.fillArray(matrix, array);
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
+            case "identity" -> {
+                RealMatrix matrix = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
+
+                double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                Utils.fillArray(matrix, array);
+
+                List<double[]> arrays = new ArrayList<>();
+                for (Interval ignored : intervals) {
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
+            case "mid_inverse" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    RealMatrix startA = this.buildSystemMatrix(interval.start());
+                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    double h = interval.end() - interval.start();
+
+                    RealMatrix negMidA = endA.scalarMultiply(3).add(startA).scalarMultiply(-3*h / 8);
+                    RealMatrix invMidX = Utils.expm(negMidA);
+
+                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    Utils.fillArray(invMidX, array);
+
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
+            case "quarter_inverse" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    RealMatrix startA = this.buildSystemMatrix(interval.start());
+                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    double h = interval.end() - interval.start();
+
+                    RealMatrix negMidA = endA.scalarMultiply(7).add(startA).scalarMultiply(-h / 32);
+                    RealMatrix invMidX = Utils.expm(negMidA);
+
+                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    Utils.fillArray(invMidX, array);
+
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
+            case "end_inverse" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    RealMatrix startA = this.buildSystemMatrix(interval.start());
+                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    double h = interval.end() - interval.start();
+
+                    RealMatrix negMidA = endA.add(startA).scalarMultiply(-h / 2);
+                    RealMatrix invMidX = Utils.expm(negMidA);
+
+                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    Utils.fillArray(invMidX, array);
+
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
+            case "qr" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    RealMatrix startA = this.buildSystemMatrix(interval.start());
+                    RealMatrix R = new QRDecomposition(startA).getR();
+                    RealMatrix Rinv = MatrixUtils.inverse(R);
+
+                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    Utils.fillArray(Rinv, array);
+
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
+            case "ed" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    RealMatrix startA = this.buildSystemMatrix(interval.start());
+                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    double h = interval.end() - interval.start();
+
+                    RealMatrix midA = endA.scalarMultiply(7).add(startA).scalarMultiply(h / 32);
+                    RealMatrix midX = Utils.expm(midA);
+
+                    RealMatrix V = new EigenDecomposition(midX).getV();
+
+                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    Utils.fillArray(V, array);
+
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
+            default -> throw new RuntimeException(
+                    "Error: initial state strategy not known. Valid strategies are 'random' and 'identity'."
+            );
         };
     }
-
     /**
      * Calculates the flow integral using the given intervals.
      * @param intervals the intervals to use when integrating over the flow.
@@ -184,14 +302,10 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
             boolean resetInitialStateAtIntervalsBoundaries,
             boolean parallelize
     ) {
-        RealMatrix initialState = this.getInitialState(initialMatrixStrategy);
-        double[] initialStateArray = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-        Utils.fillArray(initialState, initialStateArray);
-
-        RealMatrix  inverseInitialState = MatrixUtils.inverse(initialState);
+        List<double[]> initialStates = this.getInitialStates(initialMatrixStrategy, intervals);
 
         ContinuousOutputModel[] rawOutputs = this.integrateForwards(
-                initialStateArray,
+                initialStates,
                 intervals,
                 resetInitialStateAtIntervalsBoundaries,
                 parallelize
@@ -199,7 +313,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         return new InverseFlow(
                 rawOutputs,
                 this.parameterization.getNTypes(),
-                inverseInitialState,
+                initialStates,
                 resetInitialStateAtIntervalsBoundaries
         );
     }

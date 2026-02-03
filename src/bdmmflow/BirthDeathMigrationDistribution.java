@@ -16,6 +16,7 @@ import beast.base.evolution.tree.Tree;
 import beast.base.evolution.tree.TreeInterface;
 import beast.base.inference.parameter.RealParameter;
 import org.apache.commons.math.special.Gamma;
+import org.apache.commons.math3.exception.NumberIsTooSmallException;
 import org.apache.commons.math3.linear.SingularMatrixException;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
@@ -369,8 +370,15 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // integrate over the extinction probabilities ODE and the flow ODE
 
-        ExtinctionProbabilities extinctionProbabilities = this.calculateExtinctionProbabilities(intervals);
-        IFlow flow = this.calculateFlow(intervals, extinctionProbabilities);
+        ExtinctionProbabilities extinctionProbabilities = null;
+        IFlow flow = null;
+        try {
+            extinctionProbabilities = this.calculateExtinctionProbabilities(intervals);
+            flow = this.calculateFlow(intervals, extinctionProbabilities);
+        } catch (NumberIsTooSmallException e) {
+            this.numFailedEvaluationsSinceReset++;
+            return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
+        }
 
         // recursively traverse the tree to calculate the root likelihood per state
 

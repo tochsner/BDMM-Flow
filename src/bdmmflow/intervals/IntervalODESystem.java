@@ -42,7 +42,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                 this.intervals
         );
 
-        integrationMinStep = this.parameterization.getTotalProcessLength() * 1e-100;
+        integrationMinStep = this.parameterization.getTotalProcessLength() * 1e-18;
         integrationMaxStep = this.parameterization.getTotalProcessLength() / 5;
         this.absoluteTolerance = absoluteTolerance;
         this.relativeTolerance = relativeTolerance;
@@ -54,21 +54,21 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
      * The parameterization interval boundaries are handled automatically
      * by calling handleParameterizationIntervalBoundary at the boundaries.
      *
-     * @param initialState              the initial state at time 0.
+     * @param initialStates             the initial states at the interval starts-
      * @param intervals                 the list of intervals where integration is restarted. Should include the parameterization intervals.
      *                                  Use IntervalUtils.getIntervals to generate these.
      * @param alwaysStartAtInitialState if the integration should be restarted at the initial state at the interval boundaries.
      *                                  this can increase numerical stability.
      * @return the integration result.
      */
-    public ContinuousOutputModel[] integrateForwards(double[] initialState, List<Interval> intervals, boolean alwaysStartAtInitialState, boolean parallelize) {
+    public ContinuousOutputModel[] integrateForwards(List<double[]> initialStates, List<Interval> intervals, boolean alwaysStartAtInitialState, boolean parallelize) {
         ContinuousOutputModel[] outputModels = new ContinuousOutputModel[intervals.size()];
 
         if (alwaysStartAtInitialState && parallelize) {
 
             IntStream.range(0, intervals.size()).parallel().forEach(i -> {
                 Interval interval = intervals.get(i);
-                double[] state = initialState.clone();
+                double[] state = initialStates.get(i).clone();
 
                 ContinuousOutputModel outputModel = new ContinuousOutputModel();
 
@@ -99,11 +99,13 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
         } else {
 
-            double[] state = initialState.clone();
+            double[] state = initialStates.get(0).clone();
 
-            for (Interval interval : intervals) {
+            for (int i = 0; i < intervals.size(); i++) {
+                Interval interval = intervals.get(i);
+
                 if (alwaysStartAtInitialState) {
-                    state = initialState.clone();
+                    state = initialStates.get(i).clone();
                 }
 
                 ContinuousOutputModel outputModel = new ContinuousOutputModel();
@@ -274,5 +276,9 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
             if (Utils.equalWithPrecision(endTime, time)) return true;
         }
         return false;
+    }
+
+    protected IntervalODESystem copy() {
+        return this;
     }
 }

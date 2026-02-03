@@ -6,6 +6,7 @@ import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.util.Pair;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,7 +21,7 @@ import java.util.List;
 public class InverseFlow implements IFlow {
     ContinuousOutputModel[] outputModels;
 
-    RealMatrix inverseInitialState;
+    List<RealMatrix> inverseInitialStates;
     boolean wasInitialStateResetAtEachInterval;
     int n;
 
@@ -28,20 +29,26 @@ public class InverseFlow implements IFlow {
     LRUCache<Pair<Double, Integer>, DecompositionSolver> decompositionCache = new LRUCache<>(16);
     RealMatrix[][] accumulatedFlowCache;
 
-    public InverseFlow(ContinuousOutputModel[] outputModels, int n, RealMatrix inverseInitialState, boolean useIntervals) {
+    public InverseFlow(ContinuousOutputModel[] outputModels, int n, List<double[]> initialStateArrays, boolean useIntervals) {
         this.outputModels = outputModels;
 
         this.n = n;
-        this.inverseInitialState = inverseInitialState;
         this.wasInitialStateResetAtEachInterval = useIntervals;
         this.accumulatedFlowCache = new RealMatrix[outputModels.length][outputModels.length];
+
+        this.inverseInitialStates = new ArrayList<>();
+        for (double[] initialStateArray : initialStateArrays) {
+            RealMatrix initialStateMatrix = Utils.toMatrix(initialStateArray, this.n);
+            RealMatrix inverseInitialStateMatrix = MatrixUtils.inverse(initialStateMatrix);
+            this.inverseInitialStates.add(inverseInitialStateMatrix);
+        }
     }
 
-    private InverseFlow(ContinuousOutputModel[] outputModels, int n, boolean wasInitialStateResetAtEachInterval, RealMatrix inverseInitialState) {
+    private InverseFlow(ContinuousOutputModel[] outputModels, int n, boolean wasInitialStateResetAtEachInterval, List<RealMatrix> inverseInitialStates) {
         this.outputModels = outputModels;
         this.n = n;
         this.wasInitialStateResetAtEachInterval = wasInitialStateResetAtEachInterval;
-        this.inverseInitialState = inverseInitialState;
+        this.inverseInitialStates = inverseInitialStates;
         this.accumulatedFlowCache = new RealMatrix[outputModels.length][outputModels.length];
     }
 
@@ -98,7 +105,7 @@ public class InverseFlow implements IFlow {
 
             for (int i = startingAtInterval; i < timeInterval; i++) {
                 RealMatrix flowEnd = this.getFlow(this.outputModels[i], this.outputModels[i].getFinalTime());
-                accumulatedFlow = accumulatedFlow.multiply(flowEnd).multiply(this.inverseInitialState);
+                accumulatedFlow = accumulatedFlow.multiply(flowEnd).multiply(this.inverseInitialStates.get(i + 1));
                 this.accumulatedFlowCache[startingAtInterval][i + 1] = accumulatedFlow;
             }
         }
@@ -147,7 +154,7 @@ public class InverseFlow implements IFlow {
         }
 
         return new InverseFlow(
-                clonedOutputModels, this.n, this.wasInitialStateResetAtEachInterval, this.inverseInitialState
+                clonedOutputModels, this.n, this.wasInitialStateResetAtEachInterval, this.inverseInitialStates
         );
     }
 }
