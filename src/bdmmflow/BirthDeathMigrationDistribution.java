@@ -439,7 +439,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         }
 
         // we log the deviation every 10_000 steps
-        if (this.totalNumEvaluations % 10_000 == 0) {
+        if (this.numDeviations % 10 == 0) {
             double meanDeviation = this.sumDeviation / this.numDeviations;
             Log.warning("Mean deviation was " + meanDeviation);
         }
@@ -460,8 +460,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         this.numFailedEvaluationsSinceReset = 0;
         this.numEvaluationsSinceReset = 0;
-        this.sumDeviation = 0;
-        this.numDeviations = 0;
     }
 
     private boolean inputValuesHaveZeroDensity() {

@@ -29,6 +29,9 @@ public class Benchmark {
             String[] initialStateStrategies = new String[]{
                     "identity",
                     "random",
+                    "quarter_inverse",
+                    "mid_inverse",
+                    "end_inverse"
             };
             Boolean[] choices = new Boolean[]{
                     false, true
