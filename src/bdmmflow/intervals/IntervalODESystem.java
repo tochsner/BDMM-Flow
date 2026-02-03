@@ -2,12 +2,17 @@ package bdmmflow.intervals;
 
 import bdmmprime.parameterization.Parameterization;
 import bdmmprime.util.Utils;
+import org.apache.commons.math3.exception.MathIllegalArgumentException;
+import org.apache.commons.math3.exception.NumberIsTooSmallException;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;
 import org.apache.commons.math3.ode.nonstiff.*;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 
@@ -42,7 +47,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                 this.intervals
         );
 
-        integrationMinStep = this.parameterization.getTotalProcessLength() * 1e-18;
+        integrationMinStep = this.parameterization.getTotalProcessLength() * 1e-15;
         integrationMaxStep = this.parameterization.getTotalProcessLength() / 5;
         this.absoluteTolerance = absoluteTolerance;
         this.relativeTolerance = relativeTolerance;
@@ -66,36 +71,53 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
         if (alwaysStartAtInitialState && parallelize) {
 
-            IntStream.range(0, intervals.size()).parallel().forEach(i -> {
-                Interval interval = intervals.get(i);
-                double[] state = initialStates.get(i).clone();
+            ForkJoinPool forkJoinPool = new ForkJoinPool();
 
-                ContinuousOutputModel outputModel = new ContinuousOutputModel();
+            try {
+                forkJoinPool.submit(() ->
+                    IntStream.range(0, intervals.size()).parallel().forEach(i -> {
+                        Interval interval = intervals.get(i);
+                        double[] state = initialStates.get(i).clone();
 
-                // this interval might contain multiple parameterization intervals
-                // we loop through the containing parameterization intervals and
-                // integrate them piece-by-piece
+                        ContinuousOutputModel outputModel = new ContinuousOutputModel();
 
-                double currentStart = interval.start();
-                for (int parameterizationInterval : interval.parameterizationIntervals()) {
-                    this.handleParameterizationIntervalBoundaryIfNecessary(currentStart, state);
+                        // this interval might contain multiple parameterization intervals
+                        // we loop through the containing parameterization intervals and
+                        // integrate them piece-by-piece
 
-                    double parameterizationEnd = this.parameterization.getIntervalEndTimes()[parameterizationInterval];
-                    outputModel.append(
-                            this.integrate(state, currentStart, parameterizationEnd, interval)
-                    );
+                        double currentStart = interval.start();
+                        for (int parameterizationInterval : interval.parameterizationIntervals()) {
+                            this.handleParameterizationIntervalBoundaryIfNecessary(currentStart, state);
 
-                    currentStart = parameterizationEnd;
+                            double parameterizationEnd = this.parameterization.getIntervalEndTimes()[parameterizationInterval];
+                            outputModel.append(
+                                    this.integrate(state, currentStart, parameterizationEnd, interval)
+                            );
+
+                            currentStart = parameterizationEnd;
+                        }
+
+                        this.handleParameterizationIntervalBoundaryIfNecessary(currentStart, state);
+
+                        outputModel.append(
+                                this.integrate(state, currentStart, interval.end(), interval)
+                        );
+
+                        outputModels[interval.interval()] = outputModel;
+                    })).join();
+            } catch (NumberIsTooSmallException exception) {
+                // shutdown all threads in case of an exception
+                // the exception is automatically passed upwards to the caller
+                try {
+                    forkJoinPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
 
-                this.handleParameterizationIntervalBoundaryIfNecessary(currentStart, state);
-
-                outputModel.append(
-                        this.integrate(state, currentStart, interval.end(), interval)
-                );
-
-                outputModels[interval.interval()] = outputModel;
-            });
+                throw exception;
+            } finally {
+                forkJoinPool.shutdown();
+            }
 
         } else {
 
@@ -158,37 +180,54 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
         if (alwaysStartAtInitialState && parallelize) {
 
-            IntStream.range(0, intervals.size()).parallel().forEach(i -> {
-                Interval interval = intervals.get(i);
-                double[] state = initialStates.get(i).clone();
+            ForkJoinPool forkJoinPool = new ForkJoinPool();
 
-                ContinuousOutputModel outputModel = new ContinuousOutputModel();
+            try {
+                forkJoinPool.submit(() ->
+                    IntStream.range(0, intervals.size()).parallel().forEach(i -> {
+                    Interval interval = intervals.get(i);
+                    double[] state = initialStates.get(i).clone();
 
-                // this interval might contain multiple parameterization intervals
-                // we loop through the containing parameterization intervals and
-                // integrate them piece-by-piece
+                    ContinuousOutputModel outputModel = new ContinuousOutputModel();
 
-                double currentEnd = interval.end();
-                for (int j = interval.parameterizationIntervals().size() - 1; j >= 0; j--) {
+                    // this interval might contain multiple parameterization intervals
+                    // we loop through the containing parameterization intervals and
+                    // integrate them piece-by-piece
+
+                    double currentEnd = interval.end();
+                    for (int j = interval.parameterizationIntervals().size() - 1; j >= 0; j--) {
+                        this.handleParameterizationIntervalBoundaryIfNecessary(currentEnd, state);
+
+                        int parameterizationInterval = interval.parameterizationIntervals().get(j);
+                        double parameterizationEnd = this.parameterization.getIntervalEndTimes()[parameterizationInterval];
+                        outputModel.append(
+                                this.integrate(state, currentEnd, parameterizationEnd, interval)
+                        );
+
+                        currentEnd = parameterizationEnd;
+                    }
+
                     this.handleParameterizationIntervalBoundaryIfNecessary(currentEnd, state);
 
-                    int parameterizationInterval = interval.parameterizationIntervals().get(j);
-                    double parameterizationEnd = this.parameterization.getIntervalEndTimes()[parameterizationInterval];
                     outputModel.append(
-                            this.integrate(state, currentEnd, parameterizationEnd, interval)
+                            this.integrate(state, currentEnd, interval.start(), interval)
                     );
 
-                    currentEnd = parameterizationEnd;
+                    outputModels[intervals.size() - interval.interval() - 1] = outputModel;
+                })).join();
+            } catch (NumberIsTooSmallException exception) {
+                // shutdown all threads in case of an exception
+                // the exception is automatically passed upwards to the caller
+                try {
+                    forkJoinPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
 
-                this.handleParameterizationIntervalBoundaryIfNecessary(currentEnd, state);
-
-                outputModel.append(
-                        this.integrate(state, currentEnd, interval.start(), interval)
-                );
-
-                outputModels[intervals.size() - interval.interval() - 1] = outputModel;
-            });
+                throw exception;
+            } finally {
+                forkJoinPool.shutdown();
+            }
 
         } else {
 
