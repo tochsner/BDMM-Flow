@@ -246,6 +246,43 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
                 yield arrays;
             }
+            case "qr" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    RealMatrix R = new QRDecomposition(endA).getR();
+                    RealMatrix Rinv = MatrixUtils.inverse(R);
+
+                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    Utils.fillArray(Rinv, array);
+
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
+            case "ed" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    RealMatrix startA = this.buildSystemMatrix(interval.start());
+                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    double h = interval.end() - interval.start();
+
+                    RealMatrix midA = endA.scalarMultiply(7).add(startA).scalarMultiply(-h / 32);
+                    RealMatrix midX = Utils.expm(midA);
+
+                    RealMatrix V = new EigenDecomposition(midX).getV();
+
+                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    Utils.fillArray(V, array);
+
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
             default -> throw new RuntimeException(
                     "Error: initial state strategy not known. Valid strategies are 'random' and 'identity'."
             );

@@ -31,7 +31,9 @@ public class Benchmark {
                     "random",
                     "quarter_inverse",
                     "mid_inverse",
-                    "end_inverse"
+                    "end_inverse",
+                    "qr",
+                    "ed"
             };
             Boolean[] choices = new Boolean[]{
                     false, true
