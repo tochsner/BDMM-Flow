@@ -68,7 +68,7 @@ public class Flow implements IFlow {
 
         RealVector solution = null;
         try {
-            DecompositionSolver linearSolver = new QRDecomposition(flowMatrixEnd, 1e-10).getSolver();
+            DecompositionSolver linearSolver = new QRDecomposition(flowMatrixEnd, 1e-8).getSolver();
             solution = linearSolver.solve(likelihoodVectorEnd);
         } catch (SingularMatrixException e) {
             throw e;

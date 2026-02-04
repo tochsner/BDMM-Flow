@@ -125,7 +125,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
-            1e5
+            1e8
     );
 
     /* If a large number a cores is available (more than 8 or 10) the
@@ -855,7 +855,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 try {
                     this.forkJoinPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
                 } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                    // another thread caused an exception in the meantime
+                    // we ignore it and only throw the original one
                 }
 
                 throw exception;

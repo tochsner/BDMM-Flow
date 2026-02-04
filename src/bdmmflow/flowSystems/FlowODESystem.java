@@ -336,8 +336,16 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
         while (0 <= currentOldIntervalIdx) {
             Interval currentOldInterval = this.intervals.get(currentOldIntervalIdx);
 
+            double minNewIntervalStart = currentOldInterval.start();
+            double minNewIntervalMid = 0.5 * (currentOldInterval.start() + currentIntervalEnd);
+
             RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(currentIntervalEnd);
-            SingularValueDecomposition decomposition = new SingularValueDecomposition(currentEndSystemMatrix);
+            RealMatrix currentMidSystemMatrix = this.buildSystemMatrix(minNewIntervalMid);
+            RealMatrix currentStartSystemMatrix = this.buildSystemMatrix(minNewIntervalStart);
+
+            RealMatrix simpsonSystemApproximation = currentEndSystemMatrix.add(currentMidSystemMatrix.scalarMultiply(4)).add(currentStartSystemMatrix).scalarMultiply(1.0 / 6.0);
+
+            SingularValueDecomposition decomposition = new SingularValueDecomposition(simpsonSystemApproximation);
             double maxSingularValue = Arrays.stream(decomposition.getSingularValues()).max().orElseThrow();
             double maxIntervalSize = logMaxConditionNumber / (2.0 * maxSingularValue);
 
