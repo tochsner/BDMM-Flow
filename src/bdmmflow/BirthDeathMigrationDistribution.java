@@ -125,7 +125,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
-            1e8
+            1e6
     );
 
     /* If a large number a cores is available (more than 8 or 10) the
@@ -375,7 +375,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         try {
             extinctionProbabilities = this.calculateExtinctionProbabilities(intervals);
             flow = this.calculateFlow(intervals, extinctionProbabilities);
-        } catch (NumberIsTooSmallException e) {
+        } catch (NumberIsTooSmallException | SingularMatrixException e) {
             this.numFailedEvaluationsSinceReset++;
             return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
         }
@@ -848,7 +848,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                         flow,
                         extinctionProbabilities
                 );
-                likelihoodChild2 = futureLikelihoodChild2.get();
+                likelihoodChild2 = futureLikelihoodChild2.join();
             } catch (SingularMatrixException exception) {
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
@@ -860,8 +860,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 }
 
                 throw exception;
-            } catch (Exception exception) {
-                throw new RuntimeException(exception);
             }
 
         } else {
