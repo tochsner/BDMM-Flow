@@ -63,19 +63,21 @@ public class InverseFlow implements IFlow {
         );
         RealVector likelihoodVectorEnd = new ArrayRealVector(endState);
 
+        Pair<Double, Integer> startKey = new Pair<>(timeStart, interval);
         RealVector likelihoodVectorStart = null;
         try {
-            Pair<Double, Integer> startKey = new Pair<>(timeStart, interval);
             DecompositionSolver qr = this.decompositionCache.computeIfAbsent(
                     startKey,
                     k -> new QRDecomposition(
-                            this.flowCache.computeIfAbsent(startKey, k_ -> this.getFlow(timeStart, interval)), 1e-12
+                            this.flowCache.computeIfAbsent(startKey, k_ -> this.getFlow(timeStart, interval)), 1e-10
                     ).getSolver()
             );
             likelihoodVectorStart = qr.solve(flowMatrixEnd.operate(likelihoodVectorEnd));
         } catch (SingularMatrixException e) {
             // we fall back to SVD in case of nearly-singular matrices
-            DecompositionSolver svd = new SingularValueDecomposition(flowMatrixEnd).getSolver();
+            DecompositionSolver svd = new SingularValueDecomposition(
+                    this.flowCache.computeIfAbsent(startKey, k_ -> this.getFlow(timeStart, interval))
+            ).getSolver();
             likelihoodVectorStart = svd.solve(flowMatrixEnd.operate(likelihoodVectorEnd));
         }
 
