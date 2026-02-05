@@ -141,6 +141,10 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
     @Override
     public void computeDerivatives(double t, double[] y, double[] yDot) {
+        if (Double.isNaN(t)) {
+            throw new IllegalStateException("NaN detected during integration.");
+        }
+
         int numTypes = this.parameterization.getNTypes();
 
         RealMatrix yMatrix = Utils.toMatrix(y, numTypes);
@@ -193,7 +197,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
-                    RealMatrix startA = this.buildSystemMatrix(interval.start() +  + bdmmprime.util.Utils.globalPrecisionThreshold);
+                    RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
                     RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
                     double h = interval.end() - interval.start();
 
@@ -246,32 +250,17 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
                 yield arrays;
             }
-            case "qr" -> {
-                List<double[]> arrays = new ArrayList<>();
-
-                for (Interval interval : intervals) {
-                    RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
-                    RealMatrix R = new QRDecomposition(endA).getR();
-                    RealMatrix Rinv = MatrixUtils.inverse(R);
-
-                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                    Utils.fillArray(Rinv, array);
-
-                    arrays.add(array);
-                }
-
-                yield arrays;
-            }
             case "ed" -> {
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
                     RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
+                    RealMatrix midA = this.buildSystemMatrix((interval.start() + interval.end()) / 2);
                     RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
                     double h = interval.end() - interval.start();
 
-                    RealMatrix midA = endA.scalarMultiply(7).add(startA).scalarMultiply(-h / 32);
-                    RealMatrix midX = Utils.expm(midA);
+                    RealMatrix simpsonMidA = endA.add(midA.scalarMultiply(4)).add(startA).scalarMultiply(1.0 / 6.0);
+                    RealMatrix midX = Utils.expm(simpsonMidA);
 
                     RealMatrix V = new EigenDecomposition(midX).getV();
 

@@ -34,6 +34,10 @@ public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
 
     @Override
     public void computeDerivatives(double t, double[] y, double[] yDot) {
+        if (Double.isNaN(t)) {
+            throw new IllegalStateException("NaN detected during integration.");
+        }
+
         int interval = getCurrentParameterizationInterval(t);
 
         for (int i = 0; i < this.parameterization.getNTypes(); i++) {

@@ -375,7 +375,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         try {
             extinctionProbabilities = this.calculateExtinctionProbabilities(intervals);
             flow = this.calculateFlow(intervals, extinctionProbabilities);
-        } catch (NumberIsTooSmallException | SingularMatrixException e) {
+        } catch (NumberIsTooSmallException | SingularMatrixException | IllegalStateException e) {
             this.numFailedEvaluationsSinceReset++;
             return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
         }

@@ -142,6 +142,10 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
     @Override
     public void computeDerivatives(double t, double[] y, double[] yDot) {
+        if (Double.isNaN(t)) {
+            throw new IllegalStateException("NaN detected during integration.");
+        }
+
         int numTypes = this.parameterization.getNTypes();
 
         RealMatrix yMatrix = toMatrix(y, numTypes);
@@ -250,32 +254,17 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
                 yield arrays;
             }
-            case "qr" -> {
-                List<double[]> arrays = new ArrayList<>();
-
-                for (Interval interval : intervals) {
-                    RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
-                    RealMatrix R = new QRDecomposition(startA).getR();
-                    RealMatrix Rinv = MatrixUtils.inverse(R);
-
-                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                    Utils.fillArray(Rinv, array);
-
-                    arrays.add(array);
-                }
-
-                yield arrays;
-            }
             case "ed" -> {
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
-                    RealMatrix startA = this.buildSystemMatrix(interval.start());
-                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
+                    RealMatrix midA = this.buildSystemMatrix((interval.start() + interval.end()) / 2.0);
+                    RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
                     double h = interval.end() - interval.start();
 
-                    RealMatrix midA = startA.scalarMultiply(7).add(endA).scalarMultiply(h / 32);
-                    RealMatrix midX = Utils.expm(midA);
+                    RealMatrix simpsonMidA = startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(h / 2.0 / 6.0);
+                    RealMatrix midX = Utils.expm(simpsonMidA);
 
                     RealMatrix V = new EigenDecomposition(midX).getV();
 
