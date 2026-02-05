@@ -125,7 +125,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
-            1e7
+            1e6
     );
 
     /* If a large number a cores is available (more than 8 or 10) the

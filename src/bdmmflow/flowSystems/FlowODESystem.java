@@ -337,7 +337,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
             Interval currentOldInterval = this.intervals.get(currentOldIntervalIdx);
 
             double minNewIntervalStart = currentOldInterval.start();
-            double minNewIntervalMid = 0.5 * (currentOldInterval.start() + currentIntervalEnd);
+            double minNewIntervalMid = 0.5 * (minNewIntervalStart + currentIntervalEnd);
 
             RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(currentIntervalEnd);
             RealMatrix currentMidSystemMatrix = this.buildSystemMatrix(minNewIntervalMid);

@@ -330,8 +330,16 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         while (currentOldIntervalIdx < this.intervals.size()) {
             Interval currentOldInterval = this.intervals.get(currentOldIntervalIdx);
 
+            double maxNewIntervalEnd = currentOldInterval.end();
+            double maxNewIntervalMid = 0.5 * (currentIntervalStart + maxNewIntervalEnd);
+
             RealMatrix currentStartSystemMatrix = this.buildSystemMatrix(currentIntervalStart);
-            SingularValueDecomposition decomposition = new SingularValueDecomposition(currentStartSystemMatrix);
+            RealMatrix currentMidSystemMatrix = this.buildSystemMatrix(maxNewIntervalMid);
+            RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(maxNewIntervalEnd);
+
+            RealMatrix simpsonSystemApproximation = currentEndSystemMatrix.add(currentMidSystemMatrix.scalarMultiply(4)).add(currentStartSystemMatrix).scalarMultiply(1.0 / 6.0);
+
+            SingularValueDecomposition decomposition = new SingularValueDecomposition(simpsonSystemApproximation);
             double maxSingularValue = Arrays.stream(decomposition.getSingularValues()).max().orElseThrow();
             double maxIntervalSize = logMaxConditionNumber / (2.0 * maxSingularValue);
 
