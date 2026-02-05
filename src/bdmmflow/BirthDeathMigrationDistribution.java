@@ -446,10 +446,14 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             this.numDeviations++;
         }
 
+        if (deviation > 1e-3) {
+            Log.warning("Found deviation of " + deviation);
+        }
+
         // we log the deviation every 10_000 steps
         if (this.numDeviations % 10 == 0) {
             double meanDeviation = this.sumDeviation / this.numDeviations;
-            Log.warning("Mean deviation was " + meanDeviation);
+            Log.warning("Mean deviation was " + meanDeviation + " (sum " + this.sumDeviation + ", num " + this.numDeviations + ")");
         }
     }
 
