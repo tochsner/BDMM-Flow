@@ -57,8 +57,12 @@ public class InverseFlow implements IFlow {
     public double[] integrateUsingFlow(double timeStart, double timeEnd, double[] endState) {
         int interval = this.getInterval(timeStart);
 
+        Pair<Double, Integer> endKey = new Pair<>(timeEnd, interval);
+        RealMatrix flowMatrixEnd = this.flowCache.computeIfAbsent(
+                endKey,
+                k -> this.getFlow(timeEnd, interval)
+        );
         RealVector likelihoodVectorEnd = new ArrayRealVector(endState);
-        RealVector rightHandSide = this.getFlowVectorProduct(timeEnd, interval, likelihoodVectorEnd);
 
         Pair<Double, Integer> startKey = new Pair<>(timeStart, interval);
         RealVector likelihoodVectorStart = null;
@@ -69,13 +73,13 @@ public class InverseFlow implements IFlow {
                             this.flowCache.computeIfAbsent(startKey, k_ -> this.getFlow(timeStart, interval)), 1e-10
                     ).getSolver()
             );
-            likelihoodVectorStart = qr.solve(rightHandSide);
+            likelihoodVectorStart = qr.solve(flowMatrixEnd.operate(likelihoodVectorEnd));
         } catch (SingularMatrixException e) {
             // we fall back to SVD in case of nearly-singular matrices
             DecompositionSolver svd = new SingularValueDecomposition(
                     this.flowCache.computeIfAbsent(startKey, k_ -> this.getFlow(timeStart, interval))
             ).getSolver();
-            likelihoodVectorStart = svd.solve(rightHandSide);
+            likelihoodVectorStart = svd.solve(flowMatrixEnd.operate(likelihoodVectorEnd));
         }
 
         return likelihoodVectorStart.toArray();
@@ -115,18 +119,6 @@ public class InverseFlow implements IFlow {
         );
     }
 
-    /**
-     * Calculates the flow at a given time.
-     * <p>
-     * This method supports when the flow integration was restarted using the same initial state
-     * at the beginning of every interval. In this case, the flow is calculated by accumulatively
-     * multiplying the end flows of the intervals between startingAtInterval and time.
-     *
-     * @param time               the time for which to query the flow from.
-     * @param startingAtInterval where to start the accumulation of the flow if initial state resetting
-     *                           was used.
-     * @return the flow at the given time.
-     */
     public RealVector getFlowVectorProduct(double time, int startingAtInterval, RealVector vector) {
         int timeInterval = this.getInterval(time);
 
