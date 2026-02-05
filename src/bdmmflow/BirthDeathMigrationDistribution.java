@@ -361,11 +361,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         // set up intervals
 
         double maxIntervalSize = this.parameterization.getTotalProcessLength() / this.numIntervals;
-        double rootTime = this.parameterization.getNodeTime(this.tree.getRoot(), this.finalSampleOffset);
         List<Interval> intervals = IntervalUtils.getIntervals(
                 this.parameterization,
-                maxIntervalSize,
-                rootTime
+                maxIntervalSize
         );
 
         // integrate over the extinction probabilities ODE and the flow ODE
@@ -377,6 +375,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             flow = this.calculateFlow(intervals, extinctionProbabilities);
         } catch (NumberIsTooSmallException | SingularMatrixException | IllegalStateException e) {
             this.numFailedEvaluationsSinceReset++;
+            this.resetCache();
             return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
         }
 
@@ -952,6 +951,13 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public void restore() {
         this.currentExtinctionProbabilities = this.storedExtinctionProbabilities;
         this.currentFlow = this.storedFlow;
+    }
+
+    public void resetCache() {
+        this.currentExtinctionProbabilities = null;
+        this.storedExtinctionProbabilities = null;
+        this.currentFlow = null;
+        this.storedFlow = null;
     }
 
     @Override
