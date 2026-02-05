@@ -193,8 +193,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
-                    RealMatrix startA = this.buildSystemMatrix(interval.start());
-                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    RealMatrix startA = this.buildSystemMatrix(interval.start() +  + bdmmprime.util.Utils.globalPrecisionThreshold);
+                    RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
                     double h = interval.end() - interval.start();
 
                     RealMatrix negMidA = endA.scalarMultiply(3).add(startA).scalarMultiply(3*h / 8);
@@ -212,8 +212,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
-                    RealMatrix startA = this.buildSystemMatrix(interval.start());
-                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
+                    RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
                     double h = interval.end() - interval.start();
 
                     RealMatrix negMidA = endA.scalarMultiply(7).add(startA).scalarMultiply(h / 32);
@@ -231,8 +231,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
-                    RealMatrix startA = this.buildSystemMatrix(interval.start());
-                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
+                    RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
                     double h = interval.end() - interval.start();
 
                     RealMatrix negMidA = endA.add(startA).scalarMultiply(h / 2);
@@ -250,7 +250,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
-                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
                     RealMatrix R = new QRDecomposition(endA).getR();
                     RealMatrix Rinv = MatrixUtils.inverse(R);
 
@@ -266,8 +266,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
-                    RealMatrix startA = this.buildSystemMatrix(interval.start());
-                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
+                    RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
                     double h = interval.end() - interval.start();
 
                     RealMatrix midA = endA.scalarMultiply(7).add(startA).scalarMultiply(-h / 32);
@@ -339,9 +339,9 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
             double minNewIntervalStart = currentOldInterval.start();
             double minNewIntervalMid = 0.5 * (minNewIntervalStart + currentIntervalEnd);
 
-            RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(currentIntervalEnd);
+            RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(currentIntervalEnd - bdmmprime.util.Utils.globalPrecisionThreshold);
             RealMatrix currentMidSystemMatrix = this.buildSystemMatrix(minNewIntervalMid);
-            RealMatrix currentStartSystemMatrix = this.buildSystemMatrix(minNewIntervalStart);
+            RealMatrix currentStartSystemMatrix = this.buildSystemMatrix(minNewIntervalStart + bdmmprime.util.Utils.globalPrecisionThreshold);
 
             RealMatrix simpsonSystemApproximation = currentEndSystemMatrix.add(currentMidSystemMatrix.scalarMultiply(4)).add(currentStartSystemMatrix).scalarMultiply(1.0 / 6.0);
 

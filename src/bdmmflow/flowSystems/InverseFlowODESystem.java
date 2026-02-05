@@ -195,11 +195,12 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
-                    RealMatrix startA = this.buildSystemMatrix(interval.start());
-                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
+                    RealMatrix midA = this.buildSystemMatrix((interval.start() + interval.end()) / 2.0);
+                    RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
                     double h = interval.end() - interval.start();
 
-                    RealMatrix negMidA = endA.scalarMultiply(3).add(startA).scalarMultiply(-3*h / 8);
+                    RealMatrix negMidA = startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(-h / 2.0 / 6.0);
                     RealMatrix invMidX = Utils.expm(negMidA);
 
                     double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
@@ -214,11 +215,12 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
-                    RealMatrix startA = this.buildSystemMatrix(interval.start());
-                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
+                    RealMatrix midA = this.buildSystemMatrix((interval.start() + interval.end()) / 2.0);
+                    RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
                     double h = interval.end() - interval.start();
 
-                    RealMatrix negMidA = endA.scalarMultiply(7).add(startA).scalarMultiply(-h / 32);
+                    RealMatrix negMidA = startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(-h / 4.0 / 6.0);
                     RealMatrix invMidX = Utils.expm(negMidA);
 
                     double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
@@ -233,8 +235,8 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
-                    RealMatrix startA = this.buildSystemMatrix(interval.start());
-                    RealMatrix endA = this.buildSystemMatrix(interval.end());
+                    RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
+                    RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
                     double h = interval.end() - interval.start();
 
                     RealMatrix negMidA = endA.add(startA).scalarMultiply(-h / 2);
@@ -252,7 +254,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
                 List<double[]> arrays = new ArrayList<>();
 
                 for (Interval interval : intervals) {
-                    RealMatrix startA = this.buildSystemMatrix(interval.start());
+                    RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
                     RealMatrix R = new QRDecomposition(startA).getR();
                     RealMatrix Rinv = MatrixUtils.inverse(R);
 
@@ -272,7 +274,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
                     RealMatrix endA = this.buildSystemMatrix(interval.end());
                     double h = interval.end() - interval.start();
 
-                    RealMatrix midA = endA.scalarMultiply(7).add(startA).scalarMultiply(h / 32);
+                    RealMatrix midA = startA.scalarMultiply(7).add(endA).scalarMultiply(h / 32);
                     RealMatrix midX = Utils.expm(midA);
 
                     RealMatrix V = new EigenDecomposition(midX).getV();
@@ -333,9 +335,9 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
             double maxNewIntervalEnd = currentOldInterval.end();
             double maxNewIntervalMid = 0.5 * (currentIntervalStart + maxNewIntervalEnd);
 
-            RealMatrix currentStartSystemMatrix = this.buildSystemMatrix(currentIntervalStart);
+            RealMatrix currentStartSystemMatrix = this.buildSystemMatrix(currentIntervalStart + bdmmprime.util.Utils.globalPrecisionThreshold);
             RealMatrix currentMidSystemMatrix = this.buildSystemMatrix(maxNewIntervalMid);
-            RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(maxNewIntervalEnd);
+            RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(maxNewIntervalEnd - bdmmprime.util.Utils.globalPrecisionThreshold);
 
             RealMatrix simpsonSystemApproximation = currentEndSystemMatrix.add(currentMidSystemMatrix.scalarMultiply(4)).add(currentStartSystemMatrix).scalarMultiply(1.0 / 6.0);
 
