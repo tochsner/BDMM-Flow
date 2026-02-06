@@ -50,6 +50,10 @@ public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
             );
 
             for (int j = 0; j < this.parameterization.getNTypes(); j++) {
+                if (i == j) {
+                    continue;
+                }
+
                 yDot[i] += (
                         this.crossBirthRates[interval][i][j] * (y[i] - y[i] * y[j])
                                 + this.migrationRates[interval][i][j] * (y[i] - y[j])
