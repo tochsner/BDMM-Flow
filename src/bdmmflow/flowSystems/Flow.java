@@ -66,15 +66,8 @@ public class Flow implements IFlow {
 
         RealVector likelihoodVectorEnd = Utils.toVector(endState);
 
-        RealVector solution = null;
-        try {
-            DecompositionSolver linearSolver = new QRDecomposition(flowMatrixEnd, 1e-10).getSolver();
-            solution = linearSolver.solve(likelihoodVectorEnd);
-        } catch (SingularMatrixException e) {
-            // we fall back to SVD in case of nearly-singular matrices
-            DecompositionSolver linearSolver = new SingularValueDecomposition(flowMatrixEnd).getSolver();
-            solution = linearSolver.solve(likelihoodVectorEnd);
-        }
+        DecompositionSolver linearSolver = new QRDecomposition(flowMatrixEnd, 1e-10).getSolver();
+        RealVector solution = linearSolver.solve(likelihoodVectorEnd);
 
         RealVector likelihoodVectorStart = flowMatrixStart.operate(solution);
 

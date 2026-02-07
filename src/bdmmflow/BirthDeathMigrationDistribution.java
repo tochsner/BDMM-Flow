@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.DoubleStream;
@@ -125,7 +126,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
-            1e8
+            1e10
     );
 
     /* If a large number a cores is available (more than 8 or 10) the
@@ -396,7 +397,14 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     flow,
                     extinctionProbabilities
             );
-        } catch (SingularMatrixException exception) {
+        } catch (CompletionException | SingularMatrixException exception) {
+            // shutdown all open threads in case of an exception
+            try {
+                this.forkJoinPool.awaitQuiescence(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            } catch (SingularMatrixException e) {
+                // we are already handling this
+            }
+
             this.numFailedEvaluationsSinceReset++;
             return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
         } finally {
@@ -833,38 +841,24 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 && subtreeSizes[child1.getNr()] > this.parallelizeSubtreeSizeThreshold
                 && subtreeSizes[child2.getNr()] > this.parallelizeSubtreeSizeThreshold
         ) {
-            try {
-                // run second subtree on its own thread
-                CompletableFuture<double[]> futureLikelihoodChild2 = CompletableFuture.supplyAsync(() ->
-                        this.calculateSubTreeLikelihood(
-                                child2,
-                                timeEdgeEnd,
-                                this.parameterization.getNodeTime(child2, this.finalSampleOffset),
-                                flow.copy(),
-                                extinctionProbabilities
-                        ), this.forkJoinPool);
+            // run second subtree on its own thread
+            CompletableFuture<double[]> futureLikelihoodChild2 = CompletableFuture.supplyAsync(() ->
+                    this.calculateSubTreeLikelihood(
+                            child2,
+                            timeEdgeEnd,
+                            this.parameterization.getNodeTime(child2, this.finalSampleOffset),
+                            flow.copy(),
+                            extinctionProbabilities
+                    ), this.forkJoinPool);
 
-                likelihoodChild1 = this.calculateSubTreeLikelihood(
-                        child1,
-                        timeEdgeEnd,
-                        this.parameterization.getNodeTime(child1, this.finalSampleOffset),
-                        flow,
-                        extinctionProbabilities
-                );
-                likelihoodChild2 = futureLikelihoodChild2.join();
-            } catch (SingularMatrixException exception) {
-                // shutdown all threads in case of an exception
-                // the exception is automatically passed upwards to the caller
-                try {
-                    this.forkJoinPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-                } catch (InterruptedException e) {
-                    // another thread caused an exception in the meantime
-                    // we ignore it and only throw the original one
-                }
-
-                throw exception;
-            }
-
+            likelihoodChild1 = this.calculateSubTreeLikelihood(
+                    child1,
+                    timeEdgeEnd,
+                    this.parameterization.getNodeTime(child1, this.finalSampleOffset),
+                    flow,
+                    extinctionProbabilities
+            );
+            likelihoodChild2 = futureLikelihoodChild2.join();
         } else {
             likelihoodChild1 = this.calculateSubTreeLikelihood(
                     child1,
