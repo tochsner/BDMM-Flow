@@ -7,6 +7,7 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.util.Pair;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -21,7 +22,7 @@ public class Flow implements IFlow {
     boolean wasInitialStateResetAtEachInterval;
     int n;
 
-    LRUCache<Pair<Double, Integer>, RealMatrix> cache = new LRUCache<>(16);
+    HashMap<Pair<Double, Integer>, RealMatrix> cache = new HashMap<>();
     RealMatrix[][] accumulatedFlowCache;
 
     public Flow(ContinuousOutputModel[] outputModels, int n, List<double[]> initialStateArrays, boolean wasInitialStateResetAtEachInterval) {

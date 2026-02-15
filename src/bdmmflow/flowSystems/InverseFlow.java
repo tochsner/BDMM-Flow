@@ -1,13 +1,12 @@
 package bdmmflow.flowSystems;
 
-import bdmmflow.utils.LRUCache;
 import bdmmflow.utils.Utils;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.util.Pair;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -26,8 +25,8 @@ public class InverseFlow implements IFlow {
     boolean wasInitialStateResetAtEachInterval;
     int n;
 
-    LRUCache<Pair<Double, Integer>, RealMatrix> flowCache = new LRUCache<>(16);
-    LRUCache<Pair<Double, Integer>, DecompositionSolver> decompositionCache = new LRUCache<>(16);
+    HashMap<Pair<Double, Integer>, RealMatrix> flowCache = new HashMap<>();
+    HashMap<Pair<Double, Integer>, DecompositionSolver> decompositionCache = new HashMap<>();
     RealMatrix[][] accumulatedFlowCache;
 
     public InverseFlow(ContinuousOutputModel[] outputModels, int n, List<double[]> initialStateArrays, boolean useIntervals) {
