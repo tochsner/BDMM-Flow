@@ -59,10 +59,7 @@ public class Flow implements IFlow {
     public double[] integrateUsingFlow(double timeStart, double timeEnd, double[] endState) {
         int intervalEnd = this.getInterval(timeEnd);
 
-        Pair<Double, Integer> startKey = new Pair<>(timeStart, intervalEnd);
         Pair<Double, Integer> endKey = new Pair<>(timeEnd, intervalEnd);
-
-        RealMatrix flowMatrixStart = this.cache.computeIfAbsent(startKey, k -> this.getFlow(timeStart, intervalEnd));
         RealMatrix flowMatrixEnd = this.cache.computeIfAbsent(endKey, k -> this.getFlow(timeEnd, intervalEnd));
 
         RealVector likelihoodVectorEnd = Utils.toVector(endState);
@@ -70,14 +67,13 @@ public class Flow implements IFlow {
         DecompositionSolver linearSolver = new QRDecomposition(flowMatrixEnd, 1e-10).getSolver();
         RealVector solution = linearSolver.solve(likelihoodVectorEnd);
 
-        RealVector likelihoodVectorStart = flowMatrixStart.operate(solution);
+        RealVector likelihoodVectorStart = this.operateFlow(timeStart, intervalEnd, solution);
 
         return likelihoodVectorStart.toArray();
     }
 
     /**
      * Calculates the flow at a given time.
-     * <p>
      * This method supports when the flow integration was restarted using the same initial state
      * at the beginning of every interval. In this case, the flow is calculated by accumulatively
      * multiplying the end flows of the intervals between startingAtInterval and time.
@@ -107,6 +103,32 @@ public class Flow implements IFlow {
                 this.getFlow(this.outputModels[timeInterval], time)
                         .multiply(this.accumulatedFlowCache[startingAtInterval][timeInterval])
         );
+    }
+
+    /**
+     * Operates the flow at a given time on the given vector.
+     * This method supports when the flow integration was restarted using the same initial state
+     * at the beginning of every interval. In this case, the flow is calculated by accumulatively
+     * multiplying the end flows of the intervals between startingAtInterval and time.
+     *
+     * @param time               the time for which to query the flow from.
+     * @param startingAtInterval where to start the accumulation of the flow if initial state resetting
+     *                           was used.
+     * @param vector             the vector to multiply the flow with.
+     * @return the flow at the given time multiplied with the vector.
+     */
+    public RealVector operateFlow(double time, int startingAtInterval, RealVector vector) {
+        int timeInterval = this.getInterval(time);
+
+        RealVector accumulatedVector = vector;
+
+        for (int i = startingAtInterval; i < timeInterval ; i++) {
+            RealMatrix flowEnd = this.getFlow(this.outputModels[i], this.outputModels[i].getFinalTime());
+            accumulatedVector = flowEnd.operate(accumulatedVector);
+            accumulatedVector = this.inverseInitialStates.get(this.inverseInitialStates.size() - i - 2).operate(accumulatedVector);
+        }
+
+        return this.getFlow(this.outputModels[timeInterval], time).operate(accumulatedVector);
     }
 
     RealMatrix getFlow(ContinuousOutputModel output, double time) {
