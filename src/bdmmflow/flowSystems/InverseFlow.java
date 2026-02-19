@@ -57,7 +57,7 @@ public class InverseFlow implements IFlow {
         int interval = this.getInterval(timeStart);
 
         Pair<Double, Integer> startKey = new Pair<>(timeStart, interval);
-        DecompositionSolver qr = this.decompositionCache.computeIfAbsent(
+        DecompositionSolver linearSolver = this.decompositionCache.computeIfAbsent(
                 startKey,
                 k -> new QRDecomposition(
                         this.getFlow(timeStart, interval), 1e-10
@@ -67,7 +67,15 @@ public class InverseFlow implements IFlow {
         RealVector likelihoodVectorEnd = new ArrayRealVector(endState);
         ScaledVector likelihoodVectorIntervalEnd = this.operateFlow(timeEnd, interval, likelihoodVectorEnd);
 
-        RealVector likelihoodVectorStart = qr.solve(likelihoodVectorIntervalEnd.vector());
+        RealVector likelihoodVectorStart = null;
+        try {
+            likelihoodVectorStart = linearSolver.solve(likelihoodVectorIntervalEnd.vector());
+        } catch (SingularMatrixException e) {
+            // we fall back to an SVD least-squares solver
+            linearSolver = new SingularValueDecomposition(this.getFlow(timeStart, interval)).getSolver();
+            this.decompositionCache.put(startKey, linearSolver);
+            likelihoodVectorStart = linearSolver.solve(likelihoodVectorIntervalEnd.vector());
+        }
 
         return new IntegrationResult(likelihoodVectorStart.toArray(), likelihoodVectorIntervalEnd.logScalingFactor);
     }
