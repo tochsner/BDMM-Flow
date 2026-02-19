@@ -182,6 +182,22 @@ public class Utils {
         return Math.log(max) + previousLogFactor;
     }
 
+    /**
+     * Scales the given vector in-place such that the maximum value is 1. Assumes that
+     * the array has already been scaled by the given previousLogFactor.
+     *
+     * @param array             the array to scale.
+     * @param previousLogFactor the log of the previous scaling factor.
+     * @return the log of the overall scaling factor applied.
+     */
+    public static double rescale(RealVector array, double previousLogFactor) {
+        double max = array.getMaxValue();
+        if (max == 0.0) return previousLogFactor;
+
+        array.mapMultiplyToSelf(1.0 / max);
+        return Math.log(max) + previousLogFactor;
+    }
+
     public static RealMatrix expm(RealMatrix A) {
         SchurTransformer schur = new SchurTransformer(Utils.toHipparchusMatrix(A));
         RealMatrix Q = Utils.toMatrix(schur.getP());

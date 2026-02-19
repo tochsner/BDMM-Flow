@@ -594,7 +594,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      * node.
      */
     private double[] calculateSubTreeLikelihood(
-            Node root,
+            Node node,
             double timeEdgeStart,
             double timeEdgeEnd,
             IFlow flow,
@@ -602,30 +602,22 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     ) {
         double[] likelihoodEdgeEnd;
 
-        if (root.isLeaf()) {
-            likelihoodEdgeEnd = calculateLeafLikelihood(root, timeEdgeEnd, extinctionProbabilities);
-        } else if (root.getChild(0).isDirectAncestor() || root.getChild(1).isDirectAncestor()) {
-            likelihoodEdgeEnd = calculateDirectAncestorWithChildLikelihood(root, timeEdgeEnd, flow, extinctionProbabilities);
+        if (node.isLeaf()) {
+            likelihoodEdgeEnd = calculateLeafLikelihood(node, timeEdgeEnd, extinctionProbabilities);
+        } else if (node.getChild(0).isDirectAncestor() || node.getChild(1).isDirectAncestor()) {
+            likelihoodEdgeEnd = calculateDirectAncestorWithChildLikelihood(node, timeEdgeEnd, flow, extinctionProbabilities);
         } else {
-            likelihoodEdgeEnd = calculateInternalEdgeLikelihood(root, timeEdgeEnd, flow, extinctionProbabilities);
+            likelihoodEdgeEnd = calculateInternalEdgeLikelihood(node, timeEdgeEnd, flow, extinctionProbabilities);
         }
 
-        double[] likelihood = flow.integrateUsingFlow(
+        IntegrationResult likelihood = flow.integrateUsingFlow(
                 timeEdgeStart,
                 timeEdgeEnd,
                 likelihoodEdgeEnd
         );
 
-        if (Arrays.stream(likelihood).anyMatch(x -> x < 0)) {
-            // there is a negative likelihood due to numerical issues
-
-            for (int i = 0; i < likelihood.length; i++) {
-                if (0 <= likelihood[i]) continue;
-                likelihood[i] = 0;
-            }
-        }
-
-        return likelihood;
+        this.logScalingFactors[node.getNr()] += likelihood.logScalingFactor();
+        return likelihood.result();
     }
 
     /**

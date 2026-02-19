@@ -27,7 +27,7 @@ public class QRFlow extends Flow {
      * @return the integration result at the time of the node closer to the root.
      */
     @Override
-    public double[] integrateUsingFlow(double timeStart, double timeEnd, double[] endState) {
+    public IntegrationResult integrateUsingFlow(double timeStart, double timeEnd, double[] endState) {
         RealMatrix flowMatrixStart = this.getFlow(timeStart);
         double[] ODEStateEnd = this.getState(timeEnd);
 
@@ -35,7 +35,7 @@ public class QRFlow extends Flow {
         RealVector solution = this.solve(ODEStateEnd, likelihoodVectorEnd, this.n);
         RealVector likelihoodVectorStart = flowMatrixStart.operate(solution);
 
-        return likelihoodVectorStart.toArray();
+        return new IntegrationResult(likelihoodVectorStart.toArray(), 0.0);
     }
 
     RealMatrix getFlow(double time) {

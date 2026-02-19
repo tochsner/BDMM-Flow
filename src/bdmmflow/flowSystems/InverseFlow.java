@@ -53,7 +53,7 @@ public class InverseFlow implements IFlow {
     }
 
     @Override
-    public double[] integrateUsingFlow(double timeStart, double timeEnd, double[] endState) {
+    public IntegrationResult integrateUsingFlow(double timeStart, double timeEnd, double[] endState) {
         int interval = this.getInterval(timeStart);
 
         Pair<Double, Integer> startKey = new Pair<>(timeStart, interval);
@@ -65,11 +65,11 @@ public class InverseFlow implements IFlow {
         );
 
         RealVector likelihoodVectorEnd = new ArrayRealVector(endState);
-        RealVector likelihoodVectorStart = qr.solve(
-                this.operateFlow(timeEnd, interval, likelihoodVectorEnd)
-        );
+        ScaledVector likelihoodVectorIntervalEnd = this.operateFlow(timeEnd, interval, likelihoodVectorEnd);
 
-        return likelihoodVectorStart.toArray();
+        RealVector likelihoodVectorStart = qr.solve(likelihoodVectorIntervalEnd.vector());
+
+        return new IntegrationResult(likelihoodVectorStart.toArray(), likelihoodVectorIntervalEnd.logScalingFactor);
     }
 
     /**
@@ -117,22 +117,29 @@ public class InverseFlow implements IFlow {
      * @param vector             the vector to multiply the flow with.
      * @return the flow at the given time multiplied with the vector.
      */
-    public RealVector operateFlow(double time, int startingAtInterval, RealVector vector) {
+    public ScaledVector operateFlow(double time, int startingAtInterval, RealVector vector) {
         int timeInterval = this.getInterval(time);
 
         if (!this.wasInitialStateResetAtEachInterval || startingAtInterval == timeInterval)
-            return this.getFlow(this.outputModels[timeInterval], time).operate(vector);
+            return new ScaledVector(this.getFlow(this.outputModels[timeInterval], time).operate(vector), 0.0);
 
         RealVector accumulatedVector = this.getFlow(this.outputModels[timeInterval], time).operate(vector);
+        double logScalingFactor = 0.0;
 
         for (int i = timeInterval - 1; i >= startingAtInterval; i--) {
             RealMatrix flowEnd = this.getFlow(this.outputModels[i], this.outputModels[i].getFinalTime());
+
             accumulatedVector = this.inverseInitialStates.get(i + 1).operate(accumulatedVector);
+            logScalingFactor = Utils.rescale(accumulatedVector, logScalingFactor);
+
             accumulatedVector = flowEnd.operate(accumulatedVector);
+            logScalingFactor = Utils.rescale(accumulatedVector, logScalingFactor);
         }
 
-        return accumulatedVector;
+        return new ScaledVector(accumulatedVector, logScalingFactor);
     }
+
+    private record ScaledVector(RealVector vector, double logScalingFactor) {};
 
     RealMatrix getFlow(ContinuousOutputModel output, double time) {
         synchronized (output) {
