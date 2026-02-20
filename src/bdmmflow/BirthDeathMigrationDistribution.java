@@ -23,10 +23,7 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.DoubleStream;
 
 @Citation(value = "Kuehnert D, Stadler T, Vaughan TG, Drummond AJ. (2016). " +
@@ -126,7 +123,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
-            1e10
+            1e11
     );
 
     private Parameterization parameterization;
@@ -354,14 +351,17 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             treeLikelihood += rootLikelihoodPerState[i] * this.startTypePriorProbs[i];
         }
 
+        if (treeLikelihood <= 0) {
+            // we fall back to the original BDMM prime to be sure
+            return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
+        };
+
         // consider different ways to condition the tree
 
         double conditionDensity = this.calculateConditionDensityFactor(extinctionProbabilities);
         treeLikelihood /= conditionDensity;
 
         // turn the likelihood into log likelihood and correct for scaling
-
-        if (treeLikelihood <= 0) return Double.NEGATIVE_INFINITY;
 
         double logTreeLikelihood = Math.log(treeLikelihood) + this.logScalingFactors[root.getNr()];
 
