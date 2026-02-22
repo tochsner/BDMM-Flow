@@ -7,6 +7,8 @@ import bdmmflow.intervals.Interval;
 import bdmmflow.intervals.IntervalODESystem;
 import bdmmflow.intervals.IntervalUtils;
 import bdmmflow.utils.Utils;
+import bdmmprime.distribution.P0GeState;
+import bdmmprime.distribution.P0GeSystem;
 import bdmmprime.parameterization.Parameterization;
 import beast.base.core.*;
 import beast.base.evolution.speciation.SpeciesTreeDistribution;
@@ -123,7 +125,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
-            1e11
+            1e12
     );
 
     private Parameterization parameterization;
@@ -151,8 +153,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     int seed;
 
     boolean parallelize;
-    double minimalProportionForParallelization;
-    double minimalSubtreeSizeForParallelization;
 
     int numTypes;
 
@@ -353,6 +353,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         if (treeLikelihood <= 0) {
             // we fall back to the original BDMM prime to be sure
+            Log.warning("Falling back to BDMM-Prime");
             return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
         };
 
@@ -615,6 +616,12 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 timeEdgeEnd,
                 likelihoodEdgeEnd
         );
+
+        // make sure all likelihoods are positive
+
+        for (int i = 0; i < likelihood.result().length; i++) {
+            likelihood.result()[i] = Math.max(0.0, likelihood.result()[i]);
+        }
 
         this.logScalingFactors[node.getNr()] += likelihood.logScalingFactor();
         return likelihood.result();
