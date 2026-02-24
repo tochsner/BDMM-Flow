@@ -117,7 +117,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Integer> numIntervalsInput = new Input<>(
             "numIntervals",
             "The number of intervals to split up this computation.",
-            1
+            Runtime.getRuntime().availableProcessors()
     );
 
     public Input<Double> maxConditioningNumberInput = new Input<>(
@@ -611,28 +611,33 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             likelihoodEdgeEnd = calculateInternalEdgeLikelihood(node, timeEdgeEnd, flow, extinctionProbabilities);
         }
 
-        IntegrationResult likelihood = flow.integrateUsingFlow(
+        IntegrationResult likelihoodEdgeStart = flow.integrateUsingFlow(
                 timeEdgeStart,
                 timeEdgeEnd,
                 likelihoodEdgeEnd
         );
 
+        // sanity checks:
+
         // make sure all likelihoods are positive
 
-        for (int i = 0; i < likelihood.result().length; i++) {
-            likelihood.result()[i] = Math.max(0.0, likelihood.result()[i]);
+        for (int i = 0; i < likelihoodEdgeStart.result().length; i++) {
+            likelihoodEdgeStart.result()[i] = Math.max(0.0, likelihoodEdgeStart.result()[i]);
         }
 
-        // make sure the magnitude is as expected
+        // make sure the change is not weirdly high
 
-        if (4.0 < likelihood.logScalingFactor()) {
-            // this is weirdly high, likely due to inaccurate integration
+        double likelihoodEdgeEndSum = Arrays.stream(likelihoodEdgeEnd).sum();
+        double likelihoodEdgeStartSum = Arrays.stream(likelihoodEdgeStart.result()).sum();
+
+        if (4.0 < Math.log(likelihoodEdgeStartSum) + likelihoodEdgeStart.logScalingFactor() - Math.log(likelihoodEdgeEndSum)) {
+            // this is weirdly high, potentially due to inaccurate integration
             // we raise an exception and fall back to BDMM Prime to be sure
             throw new IllegalStateException();
         }
 
-        this.logScalingFactors[node.getNr()] += likelihood.logScalingFactor();
-        return likelihood.result();
+        this.logScalingFactors[node.getNr()] += likelihoodEdgeStart.logScalingFactor();
+        return likelihoodEdgeStart.result();
     }
 
     /**
