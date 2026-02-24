@@ -7,8 +7,6 @@ import bdmmflow.intervals.Interval;
 import bdmmflow.intervals.IntervalODESystem;
 import bdmmflow.intervals.IntervalUtils;
 import bdmmflow.utils.Utils;
-import bdmmprime.distribution.P0GeState;
-import bdmmprime.distribution.P0GeSystem;
 import bdmmprime.parameterization.Parameterization;
 import beast.base.core.*;
 import beast.base.evolution.speciation.SpeciesTreeDistribution;
@@ -77,7 +75,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> relativeToleranceInput = new Input<>(
             "relTolerance",
             "Relative tolerance for numerical integration.",
-            1e-8
+            1e-7
     );
 
     public Input<Double> absoluteToleranceInput = new Input<>(
@@ -119,7 +117,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Integer> numIntervalsInput = new Input<>(
             "numIntervals",
             "The number of intervals to split up this computation.",
-            Runtime.getRuntime().availableProcessors()
+            1
     );
 
     public Input<Double> maxConditioningNumberInput = new Input<>(
@@ -339,7 +337,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     flow,
                     extinctionProbabilities
             );
-        } catch (CompletionException | SingularMatrixException exception) {
+        } catch (CompletionException | SingularMatrixException | IllegalStateException exception) {
             this.numFailedEvaluationsSinceReset++;
             return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
         }
@@ -353,7 +351,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         if (treeLikelihood <= 0) {
             // we fall back to the original BDMM prime to be sure
-            Log.warning("Falling back to BDMM-Prime");
+            this.numFailedEvaluationsSinceReset++;
             return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
         };
 
@@ -373,7 +371,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // periodically compare with BDMMPrime
 
-        periodicallyCompareToBDMMPrime(dummyTree, logTreeLikelihood);
+        this.periodicallyCompareToBDMMPrime(dummyTree, logTreeLikelihood);
 
         return logTreeLikelihood;
     }
@@ -535,14 +533,16 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         }
 
         List<Interval> splitUpIntervals = system.splitUpIntervals();
-
         boolean resetInitialStateAtIntervalBoundaries = 1 < splitUpIntervals.size();
+
+        extinctionProbabilities.validateProbabilities(true);
         IFlow flow = system.calculateFlowIntegral(
                 splitUpIntervals,
                 initialMatrixStrategy,
                 resetInitialStateAtIntervalBoundaries,
                 this.parallelize && 4 < splitUpIntervals.size()
         );
+        extinctionProbabilities.validateProbabilities(false);
 
         this.currentFlow = flow;
         return flow;
@@ -621,6 +621,14 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         for (int i = 0; i < likelihood.result().length; i++) {
             likelihood.result()[i] = Math.max(0.0, likelihood.result()[i]);
+        }
+
+        // make sure the magnitude is as expected
+
+        if (4.0 < likelihood.logScalingFactor()) {
+            // this is weirdly high, likely due to inaccurate integration
+            // we raise an exception and fall back to BDMM Prime to be sure
+            throw new IllegalStateException();
         }
 
         this.logScalingFactors[node.getNr()] += likelihood.logScalingFactor();

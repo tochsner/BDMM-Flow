@@ -169,11 +169,12 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     List<double[]> getInitialStates(String initialMatrixStrategy, List<Interval> intervals) {
         return switch (initialMatrixStrategy) {
             case "random" -> {
-                RealMatrix matrix = Utils.getRandomMatrix(this.parameterization.getNTypes(), this.seed);
-
                 List<double[]> arrays = new ArrayList<>();
-                for (Interval ignored : intervals) {
+                for (Interval interval : intervals) {
                     double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    RealMatrix matrix = Utils.getRandomMatrix(
+                            this.parameterization.getNTypes(), this.seed + interval.interval()
+                    );
                     Utils.fillArray(matrix, array);
                     arrays.add(array);
                 }

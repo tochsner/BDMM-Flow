@@ -171,7 +171,7 @@ public class Utils {
      * @return the log of the overall scaling factor applied.
      */
     public static double rescale(double[] array, double previousLogFactor) {
-        double max = Arrays.stream(array).max().orElse(1.0);
+        double max = Math.abs(Arrays.stream(array).max().orElse(1.0));
 
         if (max == 0.0) return previousLogFactor;
 
@@ -191,7 +191,7 @@ public class Utils {
      * @return the log of the overall scaling factor applied.
      */
     public static double rescale(RealVector array, double previousLogFactor) {
-        double max = array.getMaxValue();
+        double max = Math.abs(array.getMaxValue());
         if (max == 0.0) return previousLogFactor;
 
         array.mapMultiplyToSelf(1.0 / max);

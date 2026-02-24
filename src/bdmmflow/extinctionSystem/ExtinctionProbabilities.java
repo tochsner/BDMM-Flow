@@ -8,6 +8,7 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
  */
 public class ExtinctionProbabilities {
     ContinuousOutputModel[] outputModels;
+    boolean validateProbabilities = false;
 
     public ExtinctionProbabilities(ContinuousOutputModel[] outputModels) {
         this.outputModels = outputModels;
@@ -16,7 +17,20 @@ public class ExtinctionProbabilities {
     public double[] getProbability(ContinuousOutputModel output, double time) {
         synchronized (output) {
             output.setInterpolatedTime(time);
-            return output.getInterpolatedState().clone();
+            double[] state = output.getInterpolatedState().clone();
+
+            if (this.validateProbabilities) {
+                // check that all are valid probabilities
+                // (interpolation can give rise to values outside [0, 1]
+
+                for (int i = 0; i < state.length; i++) {
+                    if (state[i] < 1e-4 || (1 + 1e-4) < state[i]) {
+                        throw new IllegalStateException();
+                    }
+                }
+            }
+
+            return state;
         }
     }
 
@@ -49,6 +63,14 @@ public class ExtinctionProbabilities {
         }
 
         return this.outputModels[this.outputModels.length - 1];
+    }
+
+    /**
+     * Enables or disables that an error is thrown when getProbability does not return
+     * a valid probability (outside [0, 1]).
+     */
+    public void validateProbabilities(boolean validateProbabilities) {
+        this.validateProbabilities = validateProbabilities;
     }
 
 }
