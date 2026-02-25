@@ -109,7 +109,8 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
                 try {
-                    forkJoinPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                    forkJoinPool.shutdownNow();
+                    forkJoinPool.awaitTermination(10, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     // another thread caused an exception in the meantime
                     // we ignore it and only throw the original one
@@ -220,7 +221,8 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
                 try {
-                    forkJoinPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                    forkJoinPool.shutdownNow();
+                    forkJoinPool.awaitTermination(10, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     // another thread caused an exception in the meantime
                     // we ignore it and only throw the original one
