@@ -105,7 +105,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
                         outputModels[interval.interval()] = outputModel;
                     })).join();
-            } catch (NumberIsTooSmallException exception) {
+            } catch (NumberIsTooSmallException | IllegalStateException exception) {
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
                 try {
@@ -216,7 +216,7 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
                     outputModels[intervals.size() - interval.interval() - 1] = outputModel;
                 })).join();
-            } catch (NumberIsTooSmallException exception) {
+            } catch (NumberIsTooSmallException | IllegalStateException exception) {
                 // shutdown all threads in case of an exception
                 // the exception is automatically passed upwards to the caller
                 try {

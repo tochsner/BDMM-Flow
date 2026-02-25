@@ -36,7 +36,20 @@ public class ExtinctionProbabilities {
 
     public double[] unsafeGetProbability(ContinuousOutputModel output, double time) {
         output.setInterpolatedTime(time);
-        return output.getInterpolatedState();
+        double[] state = output.getInterpolatedState();
+
+        if (this.validateProbabilities) {
+            // check that all are valid probabilities
+            // (interpolation can give rise to values outside [0, 1]
+
+            for (int i = 0; i < state.length; i++) {
+                if (state[i] < 1e-4 || (1 + 1e-4) < state[i]) {
+                    throw new IllegalStateException();
+                }
+            }
+        }
+
+        return state;
     }
 
     /**
