@@ -213,6 +213,26 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
                 yield arrays;
             }
+            case "third_inverse" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
+                    RealMatrix midA = this.buildSystemMatrix((interval.start() + interval.end()) / 2);
+                    RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
+                    double h = interval.end() - interval.start();
+
+                    RealMatrix simpsonMidA = endA.add(midA.scalarMultiply(4)).add(startA).scalarMultiply(1.0 / 6.0);
+                    RealMatrix invThirdMidX = Utils.expm(simpsonMidA.scalarMultiply(h / 3));
+
+                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    Utils.fillArray(invThirdMidX, array);
+
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
             case "quarter_inverse" -> {
                 List<double[]> arrays = new ArrayList<>();
 

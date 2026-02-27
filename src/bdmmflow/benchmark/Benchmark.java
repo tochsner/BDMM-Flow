@@ -30,6 +30,7 @@ public class Benchmark {
                     "identity",
                     "random",
                     "quarter_inverse",
+                    "third_inverse",
                     "mid_inverse",
                     "end_inverse",
                     "ed"
