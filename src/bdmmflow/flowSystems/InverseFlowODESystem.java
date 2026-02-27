@@ -201,7 +201,9 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
                 for (Interval interval : intervals) {
                     double h = interval.end() - interval.start();
                     RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
-                    RealMatrix quarterA = this.buildSystemMatrix((interval.start() + interval.end()) / 4.0);
+                    RealMatrix quarterA = this.buildSystemMatrix(
+                            interval.start() + (interval.end() - interval.start()) / 4.0
+                    );
                     RealMatrix midA = this.buildSystemMatrix((interval.start() + interval.end()) / 2.0);
                     RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
 
