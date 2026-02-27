@@ -123,7 +123,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
-            1e12
+            1e14
     );
 
     private Parameterization parameterization;
@@ -293,6 +293,10 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
      */
     @Override
     public double calculateTreeLogLikelihood(TreeInterface dummyTree) {
+        warnAboutNumericalIssuesIfNecessary();
+        this.numEvaluationsSinceReset++;
+        this.totalNumEvaluations++;
+
         // validate input values
 
         if (inputValuesHaveZeroDensity()) {
@@ -325,10 +329,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         Node root = this.tree.getRoot();
         double[] rootLikelihoodPerState;
 
-        warnAboutNumericalIssuesIfNecessary();
-        this.numEvaluationsSinceReset++;
-        this.totalNumEvaluations++;
-
         try {
             rootLikelihoodPerState = this.calculateSubTreeLikelihood(
                     root,
@@ -350,9 +350,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         }
 
         if (treeLikelihood <= 0) {
-            // we fall back to the original BDMM prime to be sure
-            this.numFailedEvaluationsSinceReset++;
-            return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
+            return Double.NEGATIVE_INFINITY;
         };
 
         // consider different ways to condition the tree
@@ -388,8 +386,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             this.numDeviations++;
         }
 
-        if (deviation > 1e-3) {
-            Log.warning("Found deviation of " + deviation);
+        if (deviation > 1e-2) {
+            Log.warning("Found relative deviation of " + 100*deviation + "% to BDMM-Prime. Consider using BDMM-Prime instead of BDMM-Flow.");
         }
 
         // we log the deviation every 10_000 steps
@@ -408,7 +406,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         double failureRate = 1.0 * this.numFailedEvaluationsSinceReset / this.numEvaluationsSinceReset;
 
-        Log.warning("Failure rate was " + failureRate);
+        if (failureRate > 0.2) {
+            Log.warning("Failure rate was " + failureRate + ". Consider using BDMM-Prime instead of BDMM-Flow.");
+        }
 
         // reset counters
 
