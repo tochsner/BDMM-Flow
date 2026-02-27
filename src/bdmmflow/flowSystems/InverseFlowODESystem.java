@@ -223,28 +223,6 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
                 yield arrays;
             }
-            case "ed" -> {
-                List<double[]> arrays = new ArrayList<>();
-
-                for (Interval interval : intervals) {
-                    RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
-                    RealMatrix midA = this.buildSystemMatrix((interval.start() + interval.end()) / 2.0);
-                    RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
-                    double h = interval.end() - interval.start();
-
-                    RealMatrix simpsonMidA = startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(h / 2.0 / 6.0);
-                    RealMatrix midX = Utils.expm(simpsonMidA);
-
-                    RealMatrix V = new EigenDecomposition(midX).getV();
-
-                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                    Utils.fillArray(V, array);
-
-                    arrays.add(array);
-                }
-
-                yield arrays;
-            }
             default -> throw new RuntimeException(
                     "Error: initial state strategy not known. Valid strategies are 'random' and 'identity'."
             );
