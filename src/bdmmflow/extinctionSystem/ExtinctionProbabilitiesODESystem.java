@@ -17,6 +17,8 @@ public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
     private final double[][][] crossBirthRates;
     private final double[][][] migrationRates;
 
+    private int currentInterval;
+
     public ExtinctionProbabilitiesODESystem(Parameterization parameterization, List<Interval> intervals, double absoluteTolerance, double relativeTolerance) {
         super(parameterization, intervals, absoluteTolerance, relativeTolerance);
 
@@ -25,6 +27,8 @@ public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
         this.samplingRates = this.parameterization.getSamplingRates();
         this.crossBirthRates = this.parameterization.getCrossBirthRates();
         this.migrationRates = this.parameterization.getMigRates();
+
+        this.currentInterval = intervals.size() - 1;
     }
 
     @Override
@@ -38,15 +42,13 @@ public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
             throw new IllegalStateException("NaN detected during integration.");
         }
 
-        int interval = getCurrentParameterizationInterval(t);
-
         for (int i = 0; i < this.parameterization.getNTypes(); i++) {
             yDot[i] = (
-                    this.birthRates[interval][i] * y[i]
-                            + this.deathRates[interval][i] * y[i]
-                            + this.samplingRates[interval][i] * y[i]
-                            - this.birthRates[interval][i] * y[i] * y[i]
-                            - this.deathRates[interval][i]
+                    this.birthRates[this.currentInterval][i] * y[i]
+                            + this.deathRates[this.currentInterval][i] * y[i]
+                            + this.samplingRates[this.currentInterval][i] * y[i]
+                            - this.birthRates[this.currentInterval][i] * y[i] * y[i]
+                            - this.deathRates[this.currentInterval][i]
             );
 
             for (int j = 0; j < this.parameterization.getNTypes(); j++) {
@@ -55,8 +57,8 @@ public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
                 }
 
                 yDot[i] += (
-                        this.crossBirthRates[interval][i][j] * (y[i] - y[i] * y[j])
-                                + this.migrationRates[interval][i][j] * (y[i] - y[j])
+                        this.crossBirthRates[this.currentInterval][i][j] * (y[i] - y[i] * y[j])
+                                + this.migrationRates[this.currentInterval][i][j] * (y[i] - y[j])
                 );
             }
         }
@@ -71,6 +73,8 @@ public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
         for (int type = 0; type < parameterization.getNTypes(); type++) {
             state[type] *= (1.0 - parameterization.getRhoValues()[newInterval][type]);
         }
+
+        this.currentInterval--;
     }
 
 }
