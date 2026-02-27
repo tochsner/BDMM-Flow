@@ -200,13 +200,13 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 for (Interval interval : intervals) {
                     double h = interval.end() - interval.start();
                     RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
-                    RealMatrix quarterA = this.buildSystemMatrix((interval.start() + interval.end()) / 4.0);
+                    RealMatrix threeQuarterA = this.buildSystemMatrix(3.0 * (interval.start() + interval.end()) / 4.0);
                     RealMatrix midA = this.buildSystemMatrix((interval.start() + interval.end()) / 2.0);
                     RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
 
                     RealMatrix startInvX = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
                     RealMatrix midInvX = Utils.expm(
-                            startA.add(quarterA.scalarMultiply(4)).add(endA).scalarMultiply(h / 2.0 / 6.0)
+                            midA.add(threeQuarterA.scalarMultiply(4)).add(endA).scalarMultiply(h / 2.0 / 6.0)
                     );
                     RealMatrix endInvX = Utils.expm(
                             startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(h / 6.0)

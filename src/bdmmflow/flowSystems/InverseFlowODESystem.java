@@ -207,7 +207,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
                     RealMatrix startInvX = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
                     RealMatrix midInvX = Utils.expm(
-                            startA.add(quarterA.scalarMultiply(4)).add(endA).scalarMultiply(-h / 2.0 / 6.0)
+                            startA.add(quarterA.scalarMultiply(4)).add(midA).scalarMultiply(-h / 2.0 / 6.0)
                     );
                     RealMatrix endInvX = Utils.expm(
                             startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(-h / 6.0)
