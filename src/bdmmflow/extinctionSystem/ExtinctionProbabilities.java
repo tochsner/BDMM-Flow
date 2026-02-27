@@ -24,7 +24,7 @@ public class ExtinctionProbabilities {
                 // (interpolation can give rise to values outside [0, 1]
 
                 for (int i = 0; i < state.length; i++) {
-                    if (state[i] < 1e-4 || (1 + 1e-4) < state[i]) {
+                    if (state[i] < -0.01 || 1.01 < state[i]) {
                         throw new IllegalStateException("Invalid extinction probability found.");
                     }
                 }
@@ -43,7 +43,7 @@ public class ExtinctionProbabilities {
             // (interpolation can give rise to values outside [0, 1]
 
             for (int i = 0; i < state.length; i++) {
-                if (state[i] < 1e-4 || (1 + 1e-4) < state[i]) {
+                if (state[i] < -0.1 || 1.1 < state[i]) {
                     throw new IllegalStateException("Invalid extinction probability found.");
                 }
             }

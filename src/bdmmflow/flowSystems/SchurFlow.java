@@ -15,7 +15,6 @@ public class SchurFlow extends Flow {
         this.U = U;
     }
 
-    @Override
     RealMatrix getFlow(ContinuousOutputModel output, double time) {
         synchronized (output) {
             output.setInterpolatedTime(time);

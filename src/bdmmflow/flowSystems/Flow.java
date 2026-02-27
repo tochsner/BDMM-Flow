@@ -8,6 +8,7 @@ import org.apache.commons.math3.util.Pair;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * This class is a lightweight wrapper of the result of the Flow ODE integration. It allows to easily query the
@@ -21,7 +22,7 @@ public class Flow implements IFlow {
     boolean wasInitialStateResetAtEachInterval;
     int n;
 
-    HashMap<Pair<Double, Integer>, RealMatrix> cache = new HashMap<>();
+    ConcurrentHashMap<Double, RealMatrix>[] flowCache;
 
     public Flow(ContinuousOutputModel[] outputModels, int n, List<double[]> initialStateArrays, boolean wasInitialStateResetAtEachInterval) {
         this.outputModels = outputModels;
@@ -34,13 +35,19 @@ public class Flow implements IFlow {
             RealMatrix inverseInitialStateMatrix = MatrixUtils.inverse(initialStateMatrix);
             this.inverseInitialStates.add(inverseInitialStateMatrix);
         }
+
+        this.flowCache = new ConcurrentHashMap[outputModels.length];
+        for (int i = 0; i < outputModels.length; i++) {
+            this.flowCache[i] = new ConcurrentHashMap<>();
+        }
     }
 
-    private Flow(ContinuousOutputModel[] outputModels, int n, boolean wasInitialStateResetAtEachInterval, List<RealMatrix> inverseInitialStates) {
+    private Flow(ContinuousOutputModel[] outputModels, int n, boolean wasInitialStateResetAtEachInterval, List<RealMatrix> inverseInitialStates, ConcurrentHashMap<Double, RealMatrix>[] flowCache) {
         this.outputModels = outputModels;
         this.n = n;
         this.wasInitialStateResetAtEachInterval = wasInitialStateResetAtEachInterval;
         this.inverseInitialStates = inverseInitialStates;
+        this.flowCache = flowCache;
     }
 
     /**
@@ -54,9 +61,7 @@ public class Flow implements IFlow {
     @Override
     public IntegrationResult integrateUsingFlow(double timeStart, double timeEnd, double[] endState) {
         int intervalEnd = this.getInterval(timeEnd);
-
-        Pair<Double, Integer> endKey = new Pair<>(timeEnd, intervalEnd);
-        RealMatrix flowMatrixEnd = this.cache.computeIfAbsent(endKey, k -> this.getFlow(timeEnd, intervalEnd));
+        RealMatrix flowMatrixEnd = this.getFlow(timeEnd, intervalEnd);
 
         RealVector likelihoodVectorEnd = Utils.toVector(endState);
 
@@ -88,19 +93,16 @@ public class Flow implements IFlow {
         int timeInterval = this.getInterval(time);
 
         if (!this.wasInitialStateResetAtEachInterval || startingAtInterval == timeInterval)
-            return this.getFlow(this.outputModels[timeInterval], time);
+            return this.getFlow(timeInterval, time);
 
         RealMatrix accumulatedFlow = MatrixUtils.createRealIdentityMatrix(this.n);
 
         for (int i = startingAtInterval; i < timeInterval; i++) {
-            RealMatrix flowEnd = this.getFlow(this.outputModels[i], this.outputModels[i].getFinalTime());
+            RealMatrix flowEnd = this.getFlow(i, this.outputModels[i].getFinalTime());
             accumulatedFlow = this.inverseInitialStates.get(this.inverseInitialStates.size() - i - 2).multiply(flowEnd).multiply(accumulatedFlow);
         }
 
-        return (
-                this.getFlow(this.outputModels[timeInterval], time)
-                        .multiply(accumulatedFlow)
-        );
+        return this.getFlow(timeInterval, time).multiply(accumulatedFlow);
     }
 
     /**
@@ -122,7 +124,7 @@ public class Flow implements IFlow {
         double logScalingFactor = 0.0;
 
         for (int i = startingAtInterval; i < timeInterval ; i++) {
-            RealMatrix flowEnd = this.getFlow(this.outputModels[i], this.outputModels[i].getFinalTime());
+            RealMatrix flowEnd = this.getFlow(i, this.outputModels[i].getFinalTime());
 
             accumulatedVector = flowEnd.operate(accumulatedVector);
             logScalingFactor = Utils.rescale(accumulatedVector, logScalingFactor);
@@ -131,17 +133,25 @@ public class Flow implements IFlow {
             logScalingFactor = Utils.rescale(accumulatedVector, logScalingFactor);
         }
 
-        accumulatedVector = this.getFlow(this.outputModels[timeInterval], time).operate(accumulatedVector);
+        accumulatedVector = this.getFlow(timeInterval, time).operate(accumulatedVector);
         logScalingFactor = Utils.rescale(accumulatedVector, logScalingFactor);
 
         return new IntegrationResult(accumulatedVector.toArray(), logScalingFactor);
     }
 
-    RealMatrix getFlow(ContinuousOutputModel output, double time) {
-        synchronized (output) {
-            output.setInterpolatedTime(time);
-            return Utils.toMatrix(output.getInterpolatedState(), this.n);
+    RealMatrix getFlow(int interval, double time) {
+        RealMatrix flow = this.flowCache[interval].get(time);
+
+        if (flow == null) {
+            ContinuousOutputModel output = this.outputModels[interval];
+            synchronized (output) {
+                output.setInterpolatedTime(time);
+                flow = Utils.toMatrix(output.getInterpolatedState(), this.n);
+            }
+            this.flowCache[interval].put(time, flow);
         }
+
+        return flow;
     }
 
     /**
@@ -180,7 +190,7 @@ public class Flow implements IFlow {
         }
 
         return new Flow(
-                clonedOutputModels, this.n, this.wasInitialStateResetAtEachInterval, this.inverseInitialStates
+                clonedOutputModels, this.n, this.wasInitialStateResetAtEachInterval, this.inverseInitialStates, this.flowCache
         );
     }
 }

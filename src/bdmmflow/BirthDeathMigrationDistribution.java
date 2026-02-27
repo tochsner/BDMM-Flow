@@ -124,12 +124,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     "calculations on the children. ",
             64);
 
-    public Input<Integer> numIntervalsInput = new Input<>(
-            "numIntervals",
-            "The number of intervals to split up this computation.",
-            Runtime.getRuntime().availableProcessors()
-    );
-
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
@@ -153,7 +147,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     double absoluteTolerance;
     double relativeTolerance;
 
-    int numIntervals = 1;
     double maxConditioningNumber;
 
     boolean useInverseFlow;
@@ -208,7 +201,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.minimalSubtreeSizeForParallelization = minimalSubtreeSizeForParallelizationInput.get();
         this.useInverseFlow = this.useInverseFlowInput.get();
         this.useODESplitting = this.useODESplittingInput.get();
-        this.numIntervals = this.numIntervalsInput.get();
         this.maxConditioningNumber = this.maxConditioningNumberInput.get();
 
         // reset cache
@@ -241,14 +233,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         if (!bdmmprime.util.Utils.equalWithPrecision(probSum, 1.0)) {
             throw new RuntimeException(
                     "Error: start type prior probabilities must add up to 1 but currently add to %f.".formatted(probSum)
-            );
-        }
-
-        // validate minNumIntervals
-
-        if (this.numIntervals < 1) {
-            throw new RuntimeException(
-                    "Error: minNumIntervals must be at least 1."
             );
         }
 
@@ -353,7 +337,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // set up intervals
 
-        double maxIntervalSize = this.parameterization.getTotalProcessLength() / this.numIntervals;
+        double maxIntervalSize = this.parameterization.getTotalProcessLength();
         List<Interval> intervals = IntervalUtils.getIntervals(
                 this.parameterization,
                 maxIntervalSize
