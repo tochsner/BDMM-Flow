@@ -25,7 +25,7 @@ public class ExtinctionProbabilities {
 
                 for (int i = 0; i < state.length; i++) {
                     if (state[i] < 1e-4 || (1 + 1e-4) < state[i]) {
-                        throw new IllegalStateException();
+                        throw new IllegalStateException("Invalid extinction probability found.");
                     }
                 }
             }
@@ -44,7 +44,7 @@ public class ExtinctionProbabilities {
 
             for (int i = 0; i < state.length; i++) {
                 if (state[i] < 1e-4 || (1 + 1e-4) < state[i]) {
-                    throw new IllegalStateException();
+                    throw new IllegalStateException("Invalid extinction probability found.");
                 }
             }
         }

@@ -23,7 +23,10 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.DoubleStream;
 
 @Citation(value = "Kuehnert D, Stadler T, Vaughan TG, Drummond AJ. (2016). " +
@@ -111,8 +114,15 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Boolean> parallelizeInput = new Input<>(
             "parallelize",
             "Whether or not parallelize the computation.",
-            true
+            false
     );
+
+    public Input<Integer> minimalSubtreeSizeForParallelizationInput = new Input<>(
+            "minimalSubtreeSizeForParallelization",
+            "the minimal absolute size the two children " +
+                    "subtrees of a node must have to start parallel " +
+                    "calculations on the children. ",
+            64);
 
     public Input<Integer> numIntervalsInput = new Input<>(
             "numIntervals",
@@ -151,6 +161,12 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     int seed;
 
     boolean parallelize;
+    double minimalProportionForParallelization;
+    int minimalSubtreeSizeForParallelization;
+
+    ForkJoinPool forkJoinPool;
+    int[] subtreeSizes;
+    double parallelizeSubtreeSizeThreshold;
 
     int numTypes;
 
@@ -189,6 +205,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.initialMatrixStrategy = this.initialMatrixStrategyInput.get();
         this.seed = this.seedInput.get();
         this.parallelize = this.parallelizeInput.get();
+        this.minimalSubtreeSizeForParallelization = minimalSubtreeSizeForParallelizationInput.get();
         this.useInverseFlow = this.useInverseFlowInput.get();
         this.useODESplitting = this.useODESplittingInput.get();
         this.numIntervals = this.numIntervalsInput.get();
@@ -286,6 +303,32 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     }
 
     /**
+     * Initialized the `subtreeSizes` array with the number of nodes in the subtree of
+     * each node.
+     */
+    private void initializeSubtreeSizes() {
+        this.subtreeSizes = new int[this.tree.getNodeCount()];
+        initializeSubtreeSizes(tree.getRoot());
+        this.parallelizeSubtreeSizeThreshold = Math.max(
+                this.subtreeSizes[tree.getRoot().getNr()] * this.minimalProportionForParallelization,
+                this.minimalSubtreeSizeForParallelization
+        );
+    }
+
+    /**
+     * Initialized the `subtreeSizes` array with the number of nodes in the subtree of
+     * `node`.
+     */
+    private int initializeSubtreeSizes(Node node) {
+        int subtreeSize = 1;
+        for (Node child : node.getChildren()) {
+            subtreeSize += this.initializeSubtreeSizes(child);
+        }
+        this.subtreeSizes[node.getNr()] = subtreeSize;
+        return subtreeSize;
+    }
+
+    /**
      * Calculates the log tree likelihood.
      *
      * @param dummyTree a dummyTree that is not considered, a BEAST implementation detail.
@@ -302,6 +345,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         if (inputValuesHaveZeroDensity()) {
             return Double.NEGATIVE_INFINITY;
         }
+
+        // set up fork-join pool
+
+        this.forkJoinPool = new ForkJoinPool();
+        this.initializeSubtreeSizes();
 
         // set up intervals
 
@@ -339,7 +387,20 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             );
         } catch (CompletionException | SingularMatrixException | IllegalStateException exception) {
             this.numFailedEvaluationsSinceReset++;
+
+            // shutdown all threads in case of an exception
+            // the exception is automatically passed upwards to the caller
+            try {
+                forkJoinPool.shutdownNow();
+                forkJoinPool.awaitTermination(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                // another thread caused an exception in the meantime
+                // we ignore it and only throw the original one
+            }
+
             return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
+        } finally {
+            forkJoinPool.shutdown();
         }
 
         // get tree likelihood by a weighted average of the root likelihood per state
@@ -406,7 +467,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         double failureRate = 1.0 * this.numFailedEvaluationsSinceReset / this.numEvaluationsSinceReset;
 
-        if (failureRate > 0.2) {
+        if (failureRate > 0.01) {
             Log.warning("Failure rate was " + failureRate + ". Consider using BDMM-Prime instead of BDMM-Flow.");
         }
 
@@ -540,7 +601,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 splitUpIntervals,
                 initialMatrixStrategy,
                 resetInitialStateAtIntervalBoundaries,
-                this.parallelize && 4 < splitUpIntervals.size()
+                this.parallelize
         );
         extinctionProbabilities.validateProbabilities(false);
 
@@ -617,25 +678,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 likelihoodEdgeEnd
         );
 
-        // sanity checks:
-
         // make sure all likelihoods are positive
 
         for (int i = 0; i < likelihoodEdgeStart.result().length; i++) {
             likelihoodEdgeStart.result()[i] = Math.max(0.0, likelihoodEdgeStart.result()[i]);
         }
-
-        // make sure the change is not weirdly high
-
-        double likelihoodEdgeEndSum = Arrays.stream(likelihoodEdgeEnd).sum();
-        double likelihoodEdgeStartSum = Arrays.stream(likelihoodEdgeStart.result()).sum();
-
-        if (4.0 < Math.log(likelihoodEdgeStartSum) + likelihoodEdgeStart.logScalingFactor() - Math.log(likelihoodEdgeEndSum)) {
-            // this is weirdly high, potentially due to inaccurate integration
-            // we raise an exception and fall back to BDMM Prime to be sure
-            throw new IllegalStateException();
-        }
-
         this.logScalingFactors[node.getNr()] += likelihoodEdgeStart.logScalingFactor();
         return likelihoodEdgeStart.result();
     }
@@ -785,20 +832,41 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         double[] likelihoodChild1;
         double[] likelihoodChild2;
 
-        likelihoodChild1 = this.calculateSubTreeLikelihood(
-                child1,
-                timeEdgeEnd,
-                this.parameterization.getNodeTime(child1, this.finalSampleOffset),
-                flow,
-                extinctionProbabilities
-        );
-        likelihoodChild2 = this.calculateSubTreeLikelihood(
-                child2,
-                timeEdgeEnd,
-                this.parameterization.getNodeTime(child2, this.finalSampleOffset),
-                flow,
-                extinctionProbabilities
-        );
+        if (parallelize && subtreeSizes[child1.getNr()] > this.parallelizeSubtreeSizeThreshold
+                && subtreeSizes[child2.getNr()] > this.parallelizeSubtreeSizeThreshold) {
+            CompletableFuture<double[]> futureLikelihoodChild1 = CompletableFuture.supplyAsync(() ->
+                    this.calculateSubTreeLikelihood(
+                        child1,
+                        timeEdgeEnd,
+                        this.parameterization.getNodeTime(child1, this.finalSampleOffset),
+                        flow.copy(),
+                        extinctionProbabilities
+                    ), forkJoinPool
+            );
+            likelihoodChild2 = this.calculateSubTreeLikelihood(
+                    child2,
+                    timeEdgeEnd,
+                    this.parameterization.getNodeTime(child2, this.finalSampleOffset),
+                    flow,
+                    extinctionProbabilities
+            );
+            likelihoodChild1 = futureLikelihoodChild1.join();
+        } else {
+            likelihoodChild1 = this.calculateSubTreeLikelihood(
+                    child1,
+                    timeEdgeEnd,
+                    this.parameterization.getNodeTime(child1, this.finalSampleOffset),
+                    flow,
+                    extinctionProbabilities
+            );
+            likelihoodChild2 = this.calculateSubTreeLikelihood(
+                    child2,
+                    timeEdgeEnd,
+                    this.parameterization.getNodeTime(child2, this.finalSampleOffset),
+                    flow,
+                    extinctionProbabilities
+            );
+        }
 
         // combine the child likelihoods to get the likelihood at the edge end
 

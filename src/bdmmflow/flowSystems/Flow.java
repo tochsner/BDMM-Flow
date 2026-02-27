@@ -22,13 +22,11 @@ public class Flow implements IFlow {
     int n;
 
     HashMap<Pair<Double, Integer>, RealMatrix> cache = new HashMap<>();
-    RealMatrix[][] accumulatedFlowCache;
 
     public Flow(ContinuousOutputModel[] outputModels, int n, List<double[]> initialStateArrays, boolean wasInitialStateResetAtEachInterval) {
         this.outputModels = outputModels;
         this.n = n;
         this.wasInitialStateResetAtEachInterval = wasInitialStateResetAtEachInterval;
-        this.accumulatedFlowCache = new RealMatrix[outputModels.length][outputModels.length];
 
         this.inverseInitialStates = new ArrayList<>();
         for (double[] initialStateArray : initialStateArrays) {
@@ -43,7 +41,6 @@ public class Flow implements IFlow {
         this.n = n;
         this.wasInitialStateResetAtEachInterval = wasInitialStateResetAtEachInterval;
         this.inverseInitialStates = inverseInitialStates;
-        this.accumulatedFlowCache = new RealMatrix[outputModels.length][outputModels.length];
     }
 
     /**
@@ -93,19 +90,16 @@ public class Flow implements IFlow {
         if (!this.wasInitialStateResetAtEachInterval || startingAtInterval == timeInterval)
             return this.getFlow(this.outputModels[timeInterval], time);
 
-        if (this.accumulatedFlowCache[startingAtInterval][timeInterval] == null) {
-            RealMatrix accumulatedFlow = MatrixUtils.createRealIdentityMatrix(this.n);
+        RealMatrix accumulatedFlow = MatrixUtils.createRealIdentityMatrix(this.n);
 
-            for (int i = startingAtInterval; i < timeInterval; i++) {
-                RealMatrix flowEnd = this.getFlow(this.outputModels[i], this.outputModels[i].getFinalTime());
-                accumulatedFlow = this.inverseInitialStates.get(this.inverseInitialStates.size() - i - 2).multiply(flowEnd).multiply(accumulatedFlow);
-                this.accumulatedFlowCache[startingAtInterval][i + 1] = accumulatedFlow;
-            }
+        for (int i = startingAtInterval; i < timeInterval; i++) {
+            RealMatrix flowEnd = this.getFlow(this.outputModels[i], this.outputModels[i].getFinalTime());
+            accumulatedFlow = this.inverseInitialStates.get(this.inverseInitialStates.size() - i - 2).multiply(flowEnd).multiply(accumulatedFlow);
         }
 
         return (
                 this.getFlow(this.outputModels[timeInterval], time)
-                        .multiply(this.accumulatedFlowCache[startingAtInterval][timeInterval])
+                        .multiply(accumulatedFlow)
         );
     }
 
