@@ -225,6 +225,42 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
                 yield arrays;
             }
+            case "quarter_average_inverse" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    double h = interval.end() - interval.start();
+                    RealMatrix startA = this.buildSystemMatrix(
+                            interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold
+                    );
+                    RealMatrix quarterA = this.buildSystemMatrix(
+                            interval.start() + (interval.end() - interval.start()) / 8.0
+                    );
+                    RealMatrix midA = this.buildSystemMatrix(
+                            interval.start() +  2.0 * (interval.end() - interval.start()) / 8.0
+                    );
+                    RealMatrix endA = this.buildSystemMatrix(
+                            interval.start() + 4.0 * (interval.end() - interval.start()) / 8.0
+                    );
+
+                    RealMatrix startInvX = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
+                    RealMatrix midInvX = Utils.expm(
+                            startA.add(quarterA.scalarMultiply(4)).add(midA).scalarMultiply(-h / 4.0 / 6.0)
+                    );
+                    RealMatrix endInvX = Utils.expm(
+                            startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(-h / 2.0 / 6.0)
+                    );
+
+                    RealMatrix averageInvX = startInvX.add(midInvX.scalarMultiply(4)).add(endInvX).scalarMultiply(1.0 / 6.0);
+
+                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    Utils.fillArray(averageInvX, array);
+
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
             default -> throw new RuntimeException(
                     "Error: initial state strategy not known. Valid strategies are 'random' and 'identity'."
             );

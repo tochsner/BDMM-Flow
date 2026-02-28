@@ -208,10 +208,46 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
                     RealMatrix startInvX = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
                     RealMatrix midInvX = Utils.expm(
-                            midA.add(threeQuarterA.scalarMultiply(4)).add(endA).scalarMultiply(h / 2.0 / 6.0)
+                            midA.add(threeQuarterA.scalarMultiply(4)).add(endA).scalarMultiply(h / 4.0 / 6.0)
                     );
                     RealMatrix endInvX = Utils.expm(
-                            startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(h / 6.0)
+                            startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(h / 2.0 / 6.0)
+                    );
+
+                    RealMatrix averageInvX = startInvX.add(midInvX.scalarMultiply(4)).add(endInvX).scalarMultiply(1.0 / 6.0);
+
+                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                    Utils.fillArray(averageInvX, array);
+
+                    arrays.add(array);
+                }
+
+                yield arrays;
+            }
+            case "quarter_average_inverse" -> {
+                List<double[]> arrays = new ArrayList<>();
+
+                for (Interval interval : intervals) {
+                    double h = interval.end() - interval.start();
+                    RealMatrix startA = this.buildSystemMatrix(
+                            interval.start() + 4.0 * (interval.end() - interval.start()) / 8.0
+                    );
+                    RealMatrix midA = this.buildSystemMatrix(
+                            interval.start() + 6.0 * (interval.end() - interval.start()) / 8.0
+                    );
+                    RealMatrix threeQuarterA = this.buildSystemMatrix(
+                            interval.start() + 7.0 * (interval.end() - interval.start()) / 8.0
+                    );
+                    RealMatrix endA = this.buildSystemMatrix(
+                            interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold
+                    );
+
+                    RealMatrix startInvX = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
+                    RealMatrix midInvX = Utils.expm(
+                            midA.add(threeQuarterA.scalarMultiply(4)).add(endA).scalarMultiply(h / 4.0 / 6.0)
+                    );
+                    RealMatrix endInvX = Utils.expm(
+                            startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(h / 2.0 / 6.0)
                     );
 
                     RealMatrix averageInvX = startInvX.add(midInvX.scalarMultiply(4)).add(endInvX).scalarMultiply(1.0 / 6.0);
