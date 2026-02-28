@@ -308,10 +308,13 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
             RealMatrix simpsonSystemApproximation = currentEndSystemMatrix.add(currentMidSystemMatrix.scalarMultiply(4)).add(currentStartSystemMatrix).scalarMultiply(1.0 / 6.0);
 
-            SingularValueDecomposition decomposition = new SingularValueDecomposition(simpsonSystemApproximation);
-            double maxSingularValue = Arrays.stream(decomposition.getSingularValues()).max().orElseThrow();
-            double maxIntervalSize = logMaxConditionNumber / (2.0 * maxSingularValue);
+            RealMatrix hermitian = simpsonSystemApproximation.add(simpsonSystemApproximation.transpose()).scalarMultiply(0.5);
+            EigenDecomposition eigenDecomposition = new EigenDecomposition(hermitian);
+            double minEV = Arrays.stream(eigenDecomposition.getRealEigenvalues()).min().orElseThrow();
+            double maxEV = Arrays.stream(eigenDecomposition.getRealEigenvalues()).max().orElseThrow();
+            double spread = maxEV - minEV;
 
+            double maxIntervalSize = logMaxConditionNumber / spread;
             double newIntervalStart = Math.max(currentIntervalEnd - maxIntervalSize, currentOldInterval.start());
 
             // find containing parameterization interval ends
