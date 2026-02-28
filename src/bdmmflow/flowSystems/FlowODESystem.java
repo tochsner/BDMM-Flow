@@ -208,10 +208,10 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
                     RealMatrix startInvX = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
                     RealMatrix midInvX = Utils.expm(
-                            midA.add(threeQuarterA.scalarMultiply(4)).add(endA).scalarMultiply(h / 4.0 / 6.0)
+                            midA.add(threeQuarterA.scalarMultiply(4)).add(endA).scalarMultiply(h / 2.0 / 6.0)
                     );
                     RealMatrix endInvX = Utils.expm(
-                            startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(h / 2.0 / 6.0)
+                            startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(h / 6.0)
                     );
 
                     RealMatrix averageInvX = startInvX.add(midInvX.scalarMultiply(4)).add(endInvX).scalarMultiply(1.0 / 6.0);
