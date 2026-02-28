@@ -3,10 +3,8 @@ package bdmmflow.flowSystems;
 import bdmmflow.utils.Utils;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
-import org.apache.commons.math3.util.Pair;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -174,23 +172,5 @@ public class Flow implements IFlow {
         }
 
         return this.outputModels.length - 1;
-    }
-
-    public Flow copy() {
-        ContinuousOutputModel[] clonedOutputModels = new ContinuousOutputModel[this.outputModels.length];
-
-        for (int i = 0; i < this.outputModels.length; i++) {
-            ContinuousOutputModel outputModel = this.outputModels[i];
-
-            if (outputModel instanceof DiagonalIPFlowODESystem.ContinuousModel) {
-                clonedOutputModels[i] = ((DiagonalIPFlowODESystem.ContinuousModel) outputModel).copy();
-            } else {
-                clonedOutputModels[i] = this.outputModels[i];
-            }
-        }
-
-        return new Flow(
-                clonedOutputModels, this.n, this.wasInitialStateResetAtEachInterval, this.inverseInitialStates, this.flowCache
-        );
     }
 }

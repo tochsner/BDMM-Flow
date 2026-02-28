@@ -823,7 +823,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                         child1,
                         timeEdgeEnd,
                         this.parameterization.getNodeTime(child1, this.finalSampleOffset),
-                        flow.copy(),
+                        flow,
                         extinctionProbabilities
                     ), forkJoinPool
             );

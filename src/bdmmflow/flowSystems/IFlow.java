@@ -10,5 +10,4 @@ public interface IFlow {
             double timeEnd,
             double[] endState
     );
-    IFlow copy();
 }

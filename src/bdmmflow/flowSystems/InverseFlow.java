@@ -181,18 +181,4 @@ public class InverseFlow implements IFlow {
 
         return this.outputModels.length - 1;
     }
-
-    public InverseFlow copy() {
-        ContinuousOutputModel[] clonedOutputModels = new ContinuousOutputModel[this.outputModels.length];
-
-        for (int i = 0; i < this.outputModels.length; i++) {
-            clonedOutputModels[i] = new ContinuousOutputModel();
-            clonedOutputModels[i].append(this.outputModels[i]);
-        }
-
-        return new InverseFlow(
-                clonedOutputModels, this.n, this.wasInitialStateResetAtEachInterval, this.inverseInitialStates,
-                this.flowCache, this.decompositionCache
-        );
-    }
 }
