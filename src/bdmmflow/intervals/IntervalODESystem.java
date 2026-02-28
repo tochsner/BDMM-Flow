@@ -2,8 +2,7 @@ package bdmmflow.intervals;
 
 import bdmmprime.parameterization.Parameterization;
 import bdmmprime.util.Utils;
-import org.apache.commons.math3.exception.MathIllegalArgumentException;
-import org.apache.commons.math3.exception.NumberIsTooSmallException;
+import org.apache.commons.math3.exception.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;
 import org.apache.commons.math3.ode.nonstiff.*;
@@ -275,16 +274,33 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
      * Integrate the system along the given interval from start to end using the given initialState.
      */
     protected ContinuousOutputModel integrate(double[] initialState, double start, double end, Interval interval) {
-        ContinuousOutputModel intervalResult = new ContinuousOutputModel();
+        try {
+            ContinuousOutputModel intervalResult = new ContinuousOutputModel();
 
-        DormandPrince853Integrator integrator = new DormandPrince853Integrator(
-                this.integrationMinStep, this.integrationMaxStep, this.absoluteTolerance, this.relativeTolerance
-        );
-        integrator.addStepHandler(intervalResult);
-        integrator.integrate(this, start, initialState, end, initialState);
-        integrator.clearStepHandlers();
+            DormandPrince853Integrator integrator = new DormandPrince853Integrator(
+                    this.integrationMinStep, this.integrationMaxStep, this.absoluteTolerance, this.relativeTolerance
+            );
+            integrator.addStepHandler(intervalResult);
+            integrator.integrate(this, start, initialState, end, initialState);
+            integrator.clearStepHandlers();
 
-        return intervalResult;
+            return intervalResult;
+        } catch (IllegalStateException e) {
+            // NaN was found during integration
+            // we switch to the slower but more robust DormandPrince54Integrator
+            // and try again
+
+            ContinuousOutputModel intervalResult = new ContinuousOutputModel();
+
+            DormandPrince54Integrator integrator = new DormandPrince54Integrator(
+                    this.integrationMinStep, this.integrationMaxStep, this.absoluteTolerance, this.relativeTolerance
+            );
+            integrator.addStepHandler(intervalResult);
+            integrator.integrate(this, start, initialState, end, initialState);
+            integrator.clearStepHandlers();
+
+            return intervalResult;
+        }
     }
 
     /**

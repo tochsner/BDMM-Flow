@@ -44,12 +44,11 @@ public class ExtinctionProbabilitiesODESystem extends IntervalODESystem {
 
         for (int i = 0; i < this.parameterization.getNTypes(); i++) {
             yDot[i] = (
-                    this.birthRates[this.currentInterval][i] * y[i]
-                            + this.deathRates[this.currentInterval][i] * y[i]
-                            + this.samplingRates[this.currentInterval][i] * y[i]
-                            - this.birthRates[this.currentInterval][i] * y[i] * y[i]
-                            - this.deathRates[this.currentInterval][i]
-            );
+                    this.birthRates[this.currentInterval][i]
+                            + this.deathRates[this.currentInterval][i]
+                            + this.samplingRates[this.currentInterval][i]
+                            - this.birthRates[this.currentInterval][i] * y[i]
+            )* y[i] - this.deathRates[this.currentInterval][i];
 
             for (int j = 0; j < this.parameterization.getNTypes(); j++) {
                 if (i == j) {
