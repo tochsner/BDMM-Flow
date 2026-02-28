@@ -32,7 +32,6 @@ import java.util.stream.IntStream;
 public abstract class IntervalODESystem implements FirstOrderDifferentialEquations {
 
     protected List<Interval> intervals;
-    protected Set<Integer> parameterizationIntervalBoundaries;
     protected Parameterization parameterization;
 
     protected double absoluteTolerance;
@@ -43,12 +42,8 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
     public IntervalODESystem(Parameterization parameterization, List<Interval> intervals, double absoluteTolerance, double relativeTolerance) {
         this.parameterization = parameterization;
         this.intervals = intervals;
-        this.parameterizationIntervalBoundaries = IntervalUtils.getParameterizationIntervalBoundaries(
-                this.intervals
-        );
-
-        integrationMinStep = this.parameterization.getTotalProcessLength() * 1e-15;
-        integrationMaxStep = this.parameterization.getTotalProcessLength() / 5;
+        this.integrationMinStep = this.parameterization.getTotalProcessLength() * 1e-15;
+        this.integrationMaxStep = this.parameterization.getTotalProcessLength() / 5;
         this.absoluteTolerance = absoluteTolerance;
         this.relativeTolerance = relativeTolerance;
     }

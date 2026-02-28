@@ -61,27 +61,4 @@ public class IntervalUtils {
 
         return intervals;
     }
-
-    /**
-     * Returns the interval corresponding to the given time.
-     */
-    public static Interval getInterval(double time, List<Interval> intervals) {
-        if (time < intervals.get(0).start()) {
-            return intervals.get(0);
-        }
-
-        for (Interval interval : intervals) {
-            if (interval.start() <= time && time <= interval.end()) {
-                return interval;
-            }
-        }
-
-        return intervals.get(intervals.size() - 1);
-    }
-
-    public static Set<Integer> getParameterizationIntervalBoundaries(List<Interval> intervals) {
-        Set<Integer> boundaries = new HashSet<>();
-
-        return boundaries;
-    }
 }
