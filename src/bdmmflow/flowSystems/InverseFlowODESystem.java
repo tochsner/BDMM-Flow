@@ -12,6 +12,7 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static bdmmflow.utils.Utils.*;
 
@@ -296,59 +297,67 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
     @Override
     public List<Interval> splitUpIntervals() {
-        List<Interval> newIntervals = new ArrayList<>();
-
         double logMaxConditionNumber = Math.log(this.maxConditionNumber);
 
-        int currentOldIntervalIdx = 0;
-        double currentIntervalStart = this.intervals.get(0).start();
+        List<Interval> newIntervals = this.intervals.stream().parallel().map((currentOldInterval) -> {
+            double currentIntervalStart = currentOldInterval.start();
+            List<Interval> subIntervals = new ArrayList<>();
 
-        while (currentOldIntervalIdx < this.intervals.size()) {
-            Interval currentOldInterval = this.intervals.get(currentOldIntervalIdx);
+            while (true) {
+                double maxNewIntervalEnd = currentOldInterval.end();
+                double maxNewIntervalMid = 0.5 * (currentIntervalStart + maxNewIntervalEnd);
 
-            double maxNewIntervalEnd = currentOldInterval.end();
-            double maxNewIntervalMid = 0.5 * (currentIntervalStart + maxNewIntervalEnd);
+                RealMatrix currentStartSystemMatrix = this.buildSystemMatrix(currentIntervalStart + bdmmprime.util.Utils.globalPrecisionThreshold);
+                RealMatrix currentMidSystemMatrix = this.buildSystemMatrix(maxNewIntervalMid);
+                RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(maxNewIntervalEnd - bdmmprime.util.Utils.globalPrecisionThreshold);
 
-            RealMatrix currentStartSystemMatrix = this.buildSystemMatrix(currentIntervalStart + bdmmprime.util.Utils.globalPrecisionThreshold);
-            RealMatrix currentMidSystemMatrix = this.buildSystemMatrix(maxNewIntervalMid);
-            RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(maxNewIntervalEnd - bdmmprime.util.Utils.globalPrecisionThreshold);
+                RealMatrix simpsonSystemApproximation = currentEndSystemMatrix.add(currentMidSystemMatrix.scalarMultiply(4)).add(currentStartSystemMatrix).scalarMultiply(1.0 / 6.0);
 
-            RealMatrix simpsonSystemApproximation = currentEndSystemMatrix.add(currentMidSystemMatrix.scalarMultiply(4)).add(currentStartSystemMatrix).scalarMultiply(1.0 / 6.0);
+                RealMatrix hermitian = simpsonSystemApproximation.add(simpsonSystemApproximation.transpose()).scalarMultiply(0.5);
+                EigenDecomposition eigenDecomposition = new EigenDecomposition(hermitian);
+                double minEV = Arrays.stream(eigenDecomposition.getRealEigenvalues()).min().orElseThrow();
+                double maxEV = Arrays.stream(eigenDecomposition.getRealEigenvalues()).max().orElseThrow();
+                double spread = maxEV - minEV;
 
-            RealMatrix hermitian = simpsonSystemApproximation.add(simpsonSystemApproximation.transpose()).scalarMultiply(0.5);
-            EigenDecomposition eigenDecomposition = new EigenDecomposition(hermitian);
-            double minEV = Arrays.stream(eigenDecomposition.getRealEigenvalues()).min().orElseThrow();
-            double maxEV = Arrays.stream(eigenDecomposition.getRealEigenvalues()).max().orElseThrow();
-            double spread = maxEV - minEV;
+                double maxIntervalSize = logMaxConditionNumber / spread;
+                double currentIntervalEnd = Math.min(currentIntervalStart + maxIntervalSize, currentOldInterval.end());
 
-            double maxIntervalSize = logMaxConditionNumber / spread;
-            double currentIntervalEnd = Math.min(currentIntervalStart + maxIntervalSize, currentOldInterval.end());
-
-            // find containing parameterization interval ends
-            List<Integer> containingParameterizationIntervalEnds = new ArrayList<>();
-            for (int j = 0; j < parameterization.getTotalIntervalCount(); j++) {
-                double parameterizationIntervalEndTime = parameterization.getIntervalEndTimes()[j];
-                if (
-                        bdmmprime.util.Utils.lessThanWithPrecision(currentIntervalStart, parameterizationIntervalEndTime) &&
-                                bdmmprime.util.Utils.lessThanWithPrecision(parameterizationIntervalEndTime, currentIntervalEnd)
-                ) {
-                    containingParameterizationIntervalEnds.add(j);
+                // find containing parameterization interval ends
+                List<Integer> containingParameterizationIntervalEnds = new ArrayList<>();
+                for (int j = 0; j < parameterization.getTotalIntervalCount(); j++) {
+                    double parameterizationIntervalEndTime = parameterization.getIntervalEndTimes()[j];
+                    if (
+                            bdmmprime.util.Utils.lessThanWithPrecision(currentIntervalStart, parameterizationIntervalEndTime) &&
+                                    bdmmprime.util.Utils.lessThanWithPrecision(parameterizationIntervalEndTime, currentIntervalEnd)
+                    ) {
+                        containingParameterizationIntervalEnds.add(j);
+                    }
                 }
-            }
 
-            Interval newInterval = new Interval(
-                    newIntervals.size(), containingParameterizationIntervalEnds, currentIntervalStart, currentIntervalEnd
+                Interval newInterval = new Interval(
+                        0, containingParameterizationIntervalEnds, currentIntervalStart, currentIntervalEnd
+                );
+                subIntervals.add(newInterval);
+
+                if (bdmmprime.util.Utils.equalWithPrecision(currentIntervalEnd, currentOldInterval.end())) {
+                    // we reached the end of the current old interval
+                    break;
+                }
+                currentIntervalStart = currentIntervalEnd;
+            };
+
+            return subIntervals;
+        }).flatMap(List::stream).collect(Collectors.toList());
+
+        // update interval indices
+
+        for (int i = 0; i < newIntervals.size(); i++) {
+            Interval interval = newIntervals.get(i);
+            Interval intervalWithCorrectIdx = new Interval(
+                    i, interval.parameterizationIntervals(), interval.start(), interval.end()
             );
-            newIntervals.add(newInterval);
-
-            if (bdmmprime.util.Utils.equalWithPrecision(currentIntervalEnd, currentOldInterval.end())) {
-                // we reached the end of the current old interval
-                // let's go to the next one
-                currentOldIntervalIdx++;
-            }
-            currentIntervalStart = currentIntervalEnd;
+            newIntervals.set(i, intervalWithCorrectIdx);
         }
-
         this.intervals = newIntervals;
 
         return this.intervals;
