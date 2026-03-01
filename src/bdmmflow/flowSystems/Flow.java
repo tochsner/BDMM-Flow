@@ -56,7 +56,13 @@ public class Flow implements IFlow {
             solution = linearSolver.solve(likelihoodVectorEnd);
         } catch (SingularMatrixException e) {
             // we fall back to an SVD least-squares solver
-            linearSolver = new SingularValueDecomposition(flowMatrixEnd).getSolver();
+            SingularValueDecomposition svd = new SingularValueDecomposition(flowMatrixEnd);
+
+            if (Double.isInfinite(svd.getConditionNumber())) {
+                throw new IllegalStateException("Infinite condition number found.");
+            }
+
+            linearSolver = svd.getSolver();
             solution = linearSolver.solve(likelihoodVectorEnd);
         }
 

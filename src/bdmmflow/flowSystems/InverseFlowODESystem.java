@@ -303,19 +303,22 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
                 double maxNewIntervalSize = maxNewIntervalEnd - currentIntervalStart;
 
                 RealMatrix currentStartSystemMatrix = this.buildSystemMatrix(currentIntervalStart + bdmmprime.util.Utils.globalPrecisionThreshold);
+                RealMatrix currentMidSystemMatrix = this.buildSystemMatrix((currentIntervalStart + maxNewIntervalEnd) / 2);
                 RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(maxNewIntervalEnd - bdmmprime.util.Utils.globalPrecisionThreshold);
 
                 double startSpread = Utils.getHermitianSpread(currentStartSystemMatrix);
+                double midSpread = Utils.getHermitianSpread(currentMidSystemMatrix);
                 double endSpread = Utils.getHermitianSpread(currentEndSystemMatrix);
 
                 double maxIntervalSize = maxNewIntervalSize / (endSpread - startSpread) * (Math.sqrt(startSpread * startSpread + 2 * (endSpread - startSpread) / maxNewIntervalSize * logMaxConditionNumber) - startSpread);
-
-                double currentIntervalEnd;
                 if (Double.isNaN(maxIntervalSize)) {
-                    currentIntervalEnd = currentOldInterval.end();
-                } else {
-                    currentIntervalEnd = Math.min(currentIntervalStart + maxIntervalSize, currentOldInterval.end());
+                    maxIntervalSize = maxNewIntervalSize;
                 }
+                maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / startSpread);
+                maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / midSpread);
+                maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / endSpread);
+
+                double currentIntervalEnd = Math.min(currentIntervalStart + maxIntervalSize, currentOldInterval.end());
 
                 // find containing parameterization interval ends
                 List<Integer> containingParameterizationIntervalEnds = new ArrayList<>();

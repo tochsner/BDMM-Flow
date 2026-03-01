@@ -59,7 +59,13 @@ public class InverseFlow implements IFlow {
             likelihoodVectorStart = linearSolver.solve(likelihoodVectorIntervalEnd.vector());
         } catch (SingularMatrixException e) {
             // we fall back to an SVD least-squares solver
-            linearSolver = new SingularValueDecomposition(this.getFlow(timeStart, interval)).getSolver();
+            SingularValueDecomposition svd = new SingularValueDecomposition(this.getFlow(timeStart, interval));
+
+            if (Double.isInfinite(svd.getConditionNumber())) {
+                throw new IllegalStateException("Infinite condition number found.");
+            }
+
+            linearSolver = svd.getSolver();
             this.decompositionCache.put(timeStart, linearSolver);
             likelihoodVectorStart = linearSolver.solve(likelihoodVectorIntervalEnd.vector());
         }

@@ -310,19 +310,22 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 double maxNewIntervalSize = currentIntervalEnd - minNewIntervalStart;
 
                 RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(currentIntervalEnd - bdmmprime.util.Utils.globalPrecisionThreshold);
+                RealMatrix currentMidSystemMatrix = this.buildSystemMatrix((currentIntervalEnd + minNewIntervalStart) / 2);
                 RealMatrix currentStartSystemMatrix = this.buildSystemMatrix(minNewIntervalStart + bdmmprime.util.Utils.globalPrecisionThreshold);
 
                 double endSpread = Utils.getHermitianSpread(currentEndSystemMatrix);
+                double midSpread = Utils.getHermitianSpread(currentMidSystemMatrix);
                 double startSpread = Utils.getHermitianSpread(currentStartSystemMatrix);
 
                 double maxIntervalSize = maxNewIntervalSize / (startSpread - endSpread) * (Math.sqrt(endSpread * endSpread + 2 * (startSpread - endSpread) / maxNewIntervalSize * logMaxConditionNumber) - endSpread);
-
-                double newIntervalStart;
                 if (Double.isNaN(maxIntervalSize)) {
-                    newIntervalStart = currentOldInterval.start();
-                } else {
-                    newIntervalStart = Math.max(currentIntervalEnd - maxIntervalSize, currentOldInterval.start());
+                    maxIntervalSize = maxNewIntervalSize;
                 }
+                maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / endSpread);
+                maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / midSpread);
+                maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / startSpread);
+
+                double newIntervalStart = Math.max(currentIntervalEnd - maxIntervalSize, currentOldInterval.start());
 
                 // find containing parameterization interval ends
                 List<Integer> containingParameterizationIntervalEnds = new ArrayList<>();
