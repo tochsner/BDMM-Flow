@@ -169,19 +169,22 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         }
     }
 
-    List<double[]> getInitialStates(String initialMatrixStrategy, List<Interval> intervals) {
+    List<InitialState> getInitialStates(String initialMatrixStrategy, List<Interval> intervals) {
         return switch (initialMatrixStrategy) {
             case "random" -> {
-                RealMatrix matrix = Utils.getRandomMatrix(this.parameterization.getNTypes(), this.seed);
+                List<InitialState> initialStates = new ArrayList<>();
 
-                List<double[]> arrays = new ArrayList<>();
                 for (Interval ignored : intervals) {
+                    RealMatrix matrix = Utils.getRandomMatrix(this.parameterization.getNTypes(), this.seed);
+                    RealMatrix inverse = MatrixUtils.inverse(matrix);
+
                     double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
                     Utils.fillArray(matrix, array);
-                    arrays.add(array);
+
+                    initialStates.add(new InitialState(array, inverse));
                 }
 
-                yield arrays;
+                yield initialStates;
             }
             case "identity" -> {
                 RealMatrix matrix = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
@@ -189,79 +192,71 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
                 double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
                 Utils.fillArray(matrix, array);
 
-                List<double[]> arrays = new ArrayList<>();
+                List<InitialState> initialStates = new ArrayList<>();
                 for (Interval ignored : intervals) {
-                    arrays.add(array);
+                    initialStates.add(new InitialState(array, matrix));
                 }
 
-                yield arrays;
+                yield initialStates;
             }
-            case "average_inverse" -> {
-                List<double[]> arrays = new ArrayList<>();
+            case "average_inverse" -> intervals.stream().parallel().map(interval -> {
+                double h = interval.end() - interval.start();
+                RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
+                RealMatrix quarterA = this.buildSystemMatrix(
+                        interval.start() + (interval.end() - interval.start()) / 4.0
+                );
+                RealMatrix midA = this.buildSystemMatrix((interval.start() + interval.end()) / 2.0);
+                RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
 
-                for (Interval interval : intervals) {
-                    double h = interval.end() - interval.start();
-                    RealMatrix startA = this.buildSystemMatrix(interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold);
-                    RealMatrix quarterA = this.buildSystemMatrix(
-                            interval.start() + (interval.end() - interval.start()) / 4.0
-                    );
-                    RealMatrix midA = this.buildSystemMatrix((interval.start() + interval.end()) / 2.0);
-                    RealMatrix endA = this.buildSystemMatrix(interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold);
+                RealMatrix startInvX = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
+                RealMatrix midInvX = Utils.expm(
+                        startA.add(quarterA.scalarMultiply(4)).add(midA).scalarMultiply(-h / 2.0 / 6.0)
+                );
+                RealMatrix endInvX = Utils.expm(
+                        startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(-h / 6.0)
+                );
 
-                    RealMatrix startInvX = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
-                    RealMatrix midInvX = Utils.expm(
-                            startA.add(quarterA.scalarMultiply(4)).add(midA).scalarMultiply(-h / 2.0 / 6.0)
-                    );
-                    RealMatrix endInvX = Utils.expm(
-                            startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(-h / 6.0)
-                    );
+                RealMatrix averageInvX = startInvX.add(midInvX.scalarMultiply(4)).add(endInvX).scalarMultiply(1.0 / 6.0);
 
-                    RealMatrix averageInvX = startInvX.add(midInvX.scalarMultiply(4)).add(endInvX).scalarMultiply(1.0 / 6.0);
+                double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                Utils.fillArray(averageInvX, array);
 
-                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                    Utils.fillArray(averageInvX, array);
+                RealMatrix inverse = MatrixUtils.inverse(averageInvX);
 
-                    arrays.add(array);
-                }
+                return new InitialState(array, inverse);
+            }).toList();
+            case "quarter_average_inverse" -> intervals.stream().parallel().map((interval) -> {
+                double h = interval.end() - interval.start();
+                RealMatrix startA = this.buildSystemMatrix(
+                        interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold
+                );
+                RealMatrix quarterA = this.buildSystemMatrix(
+                        interval.start() + (interval.end() - interval.start()) / 8.0
+                );
+                RealMatrix midA = this.buildSystemMatrix(
+                        interval.start() +  2.0 * (interval.end() - interval.start()) / 8.0
+                );
+                RealMatrix endA = this.buildSystemMatrix(
+                        interval.start() + 4.0 * (interval.end() - interval.start()) / 8.0
+                );
 
-                yield arrays;
-            }
-            case "quarter_average_inverse" -> {
-                List<double[]> arrays = new ArrayList<>();
+                RealMatrix startInvX = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
+                RealMatrix midInvX = Utils.expm(
+                        startA.add(quarterA.scalarMultiply(4)).add(midA).scalarMultiply(-h / 4.0 / 6.0)
+                );
+                RealMatrix endInvX = Utils.expm(
+                        startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(-h / 2.0 / 6.0)
+                );
 
-                for (Interval interval : intervals) {
-                    double h = interval.end() - interval.start();
-                    RealMatrix startA = this.buildSystemMatrix(
-                            interval.start() + bdmmprime.util.Utils.globalPrecisionThreshold
-                    );
-                    RealMatrix quarterA = this.buildSystemMatrix(
-                            interval.start() + (interval.end() - interval.start()) / 8.0
-                    );
-                    RealMatrix midA = this.buildSystemMatrix(
-                            interval.start() +  2.0 * (interval.end() - interval.start()) / 8.0
-                    );
-                    RealMatrix endA = this.buildSystemMatrix(
-                            interval.start() + 4.0 * (interval.end() - interval.start()) / 8.0
-                    );
+                RealMatrix averageInvX = startInvX.add(midInvX.scalarMultiply(4)).add(endInvX).scalarMultiply(1.0 / 6.0);
 
-                    RealMatrix startInvX = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
-                    RealMatrix midInvX = Utils.expm(
-                            startA.add(quarterA.scalarMultiply(4)).add(midA).scalarMultiply(-h / 4.0 / 6.0)
-                    );
-                    RealMatrix endInvX = Utils.expm(
-                            startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(-h / 2.0 / 6.0)
-                    );
+                double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
+                Utils.fillArray(averageInvX, array);
 
-                    RealMatrix averageInvX = startInvX.add(midInvX.scalarMultiply(4)).add(endInvX).scalarMultiply(1.0 / 6.0);
+                RealMatrix inverse = MatrixUtils.inverse(averageInvX);
 
-                    double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                    Utils.fillArray(averageInvX, array);
-
-                    arrays.add(array);
-                }
-
-                yield arrays;
-            }
+                return new InitialState(array, inverse);
+            }).toList();
             default -> throw new RuntimeException(
                     "Error: initial state strategy not known. Valid strategies are 'random' and 'identity'."
             );
@@ -279,10 +274,10 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
             boolean resetInitialStateAtIntervalsBoundaries,
             boolean parallelize
     ) {
-        List<double[]> initialStates = this.getInitialStates(initialMatrixStrategy, intervals);
+        List<InitialState> initialStates = this.getInitialStates(initialMatrixStrategy, intervals);
 
         ContinuousOutputModel[] rawOutputs = this.integrateForwards(
-                initialStates,
+                initialStates.stream().map(InitialState::initialState).toList(),
                 intervals,
                 resetInitialStateAtIntervalsBoundaries,
                 parallelize
