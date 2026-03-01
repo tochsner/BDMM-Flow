@@ -136,12 +136,10 @@ public class InverseFlow implements IFlow {
         if (flow == null) {
             ContinuousOutputModel output = this.outputModels[interval];
 
-            double[] state;
             synchronized (output) {
                 output.setInterpolatedTime(time);
-                state = output.getInterpolatedState();
+                flow = Utils.toMatrix(output.getInterpolatedState(), n);
             }
-            flow = Utils.toMatrix(state, n);
 
             this.flowCache[interval].put(time, flow);
         }
