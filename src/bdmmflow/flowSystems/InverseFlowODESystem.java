@@ -300,22 +300,22 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
             while (true) {
                 double maxNewIntervalEnd = currentOldInterval.end();
-                double maxNewIntervalMid = 0.5 * (currentIntervalStart + maxNewIntervalEnd);
+                double maxNewIntervalSize = maxNewIntervalEnd - currentIntervalStart;
 
                 RealMatrix currentStartSystemMatrix = this.buildSystemMatrix(currentIntervalStart + bdmmprime.util.Utils.globalPrecisionThreshold);
-                RealMatrix currentMidSystemMatrix = this.buildSystemMatrix(maxNewIntervalMid);
                 RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(maxNewIntervalEnd - bdmmprime.util.Utils.globalPrecisionThreshold);
 
-                RealMatrix simpsonSystemApproximation = currentEndSystemMatrix.add(currentMidSystemMatrix.scalarMultiply(4)).add(currentStartSystemMatrix).scalarMultiply(1.0 / 6.0);
+                double startSpread = Utils.getHermitianSpread(currentStartSystemMatrix);
+                double endSpread = Utils.getHermitianSpread(currentEndSystemMatrix);
 
-                RealMatrix hermitian = simpsonSystemApproximation.add(simpsonSystemApproximation.transpose()).scalarMultiply(0.5);
-                EigenDecomposition eigenDecomposition = new EigenDecomposition(hermitian);
-                double minEV = Arrays.stream(eigenDecomposition.getRealEigenvalues()).min().orElseThrow();
-                double maxEV = Arrays.stream(eigenDecomposition.getRealEigenvalues()).max().orElseThrow();
-                double spread = maxEV - minEV;
+                double maxIntervalSize = maxNewIntervalSize / (endSpread - startSpread) * (Math.sqrt(startSpread * startSpread + 2 * (endSpread - startSpread) / maxNewIntervalSize * logMaxConditionNumber) - startSpread);
 
-                double maxIntervalSize = logMaxConditionNumber / spread;
-                double currentIntervalEnd = Math.min(currentIntervalStart + maxIntervalSize, currentOldInterval.end());
+                double currentIntervalEnd;
+                if (Double.isNaN(maxIntervalSize)) {
+                    currentIntervalEnd = currentOldInterval.end();
+                } else {
+                    currentIntervalEnd = Math.min(currentIntervalStart + maxIntervalSize, currentOldInterval.end());
+                }
 
                 // find containing parameterization interval ends
                 List<Integer> containingParameterizationIntervalEnds = new ArrayList<>();

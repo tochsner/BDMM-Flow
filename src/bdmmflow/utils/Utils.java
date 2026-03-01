@@ -1,6 +1,7 @@
 package bdmmflow.utils;
 
 import com.flag4j.Matrix;
+import org.apache.commons.math3.exception.MathArithmeticException;
 import org.apache.commons.math3.linear.*;
 import org.jblas.DoubleMatrix;
 
@@ -246,5 +247,16 @@ public class Utils {
         return F;
     }
 
+    public static double getHermitianSpread(RealMatrix matrix) {
+        try {
+            RealMatrix hermitian = matrix.add(matrix.transpose()).scalarMultiply(0.5);
+            EigenDecomposition eigenDecomposition = new EigenDecomposition(hermitian);
+            double minEV = Arrays.stream(eigenDecomposition.getRealEigenvalues()).min().orElseThrow();
+            double maxEV = Arrays.stream(eigenDecomposition.getRealEigenvalues()).max().orElseThrow();
+            return maxEV - minEV;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 }
