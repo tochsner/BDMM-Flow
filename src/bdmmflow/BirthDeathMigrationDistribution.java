@@ -122,7 +122,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             "the minimal absolute size the two children " +
                     "subtrees of a node must have to start parallel " +
                     "calculations on the children. ",
-            64);
+            100);
 
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
