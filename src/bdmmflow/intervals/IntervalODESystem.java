@@ -288,12 +288,13 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
         } catch (IllegalStateException e) {
             // NaN was found during integration
             // we switch to the slower but more robust DormandPrince54Integrator
-            // and try again
+            // with lower relative tolerance and try again
 
             ContinuousOutputModel intervalResult = new ContinuousOutputModel();
 
             DormandPrince54Integrator integrator = new DormandPrince54Integrator(
-                    this.integrationMinStep, this.integrationMaxStep, this.absoluteTolerance, this.relativeTolerance
+                    this.integrationMinStep, this.integrationMaxStep,
+                    this.absoluteTolerance, this.relativeTolerance / 100.0
             );
             integrator.addStepHandler(intervalResult);
             integrator.integrate(this, start, initialState, end, initialState);
