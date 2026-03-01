@@ -16,36 +16,22 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Flow implements IFlow {
     ContinuousOutputModel[] outputModels;
 
-    List<RealMatrix> inverseInitialStates;
+    List<InitialState> initialStates;
     boolean wasInitialStateResetAtEachInterval;
     int n;
 
     ConcurrentHashMap<Double, RealMatrix>[] flowCache;
 
-    public Flow(ContinuousOutputModel[] outputModels, int n, List<double[]> initialStateArrays, boolean wasInitialStateResetAtEachInterval) {
+    public Flow(ContinuousOutputModel[] outputModels, int n, List<InitialState> initialStates, boolean wasInitialStateResetAtEachInterval) {
         this.outputModels = outputModels;
         this.n = n;
         this.wasInitialStateResetAtEachInterval = wasInitialStateResetAtEachInterval;
-
-        this.inverseInitialStates = new ArrayList<>();
-        for (double[] initialStateArray : initialStateArrays) {
-            RealMatrix initialStateMatrix = Utils.toMatrix(initialStateArray, this.n);
-            RealMatrix inverseInitialStateMatrix = MatrixUtils.inverse(initialStateMatrix);
-            this.inverseInitialStates.add(inverseInitialStateMatrix);
-        }
+        this.initialStates = initialStates;
 
         this.flowCache = new ConcurrentHashMap[outputModels.length];
         for (int i = 0; i < outputModels.length; i++) {
             this.flowCache[i] = new ConcurrentHashMap<>();
         }
-    }
-
-    private Flow(ContinuousOutputModel[] outputModels, int n, boolean wasInitialStateResetAtEachInterval, List<RealMatrix> inverseInitialStates, ConcurrentHashMap<Double, RealMatrix>[] flowCache) {
-        this.outputModels = outputModels;
-        this.n = n;
-        this.wasInitialStateResetAtEachInterval = wasInitialStateResetAtEachInterval;
-        this.inverseInitialStates = inverseInitialStates;
-        this.flowCache = flowCache;
     }
 
     /**
@@ -97,7 +83,7 @@ public class Flow implements IFlow {
 
         for (int i = startingAtInterval; i < timeInterval; i++) {
             RealMatrix flowEnd = this.getFlow(i, this.outputModels[i].getFinalTime());
-            accumulatedFlow = this.inverseInitialStates.get(this.inverseInitialStates.size() - i - 2).multiply(flowEnd).multiply(accumulatedFlow);
+            accumulatedFlow = this.initialStates.get(this.initialStates.size() - i - 2).inverse().multiply(flowEnd).multiply(accumulatedFlow);
         }
 
         return this.getFlow(timeInterval, time).multiply(accumulatedFlow);
@@ -127,7 +113,7 @@ public class Flow implements IFlow {
             accumulatedVector = flowEnd.operate(accumulatedVector);
             logScalingFactor = Utils.rescale(accumulatedVector, logScalingFactor);
 
-            accumulatedVector = this.inverseInitialStates.get(this.inverseInitialStates.size() - i - 2).operate(accumulatedVector);
+            accumulatedVector = this.initialStates.get(this.initialStates.size() - i - 2).inverse().operate(accumulatedVector);
             logScalingFactor = Utils.rescale(accumulatedVector, logScalingFactor);
         }
 
