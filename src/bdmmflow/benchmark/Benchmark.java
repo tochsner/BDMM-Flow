@@ -43,7 +43,7 @@ public class Benchmark {
             for (Boolean useInverseFlow : choices) {
                 for (String strategy : initialStateStrategies) {
                     BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, startTypePriorProbs);
-                    BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, false, strategy, minNumIntervals, true);
+                    BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, false, strategy, minNumIntervals, false);
                     BenchmarkResult result = new BenchmarkResult(
                             i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, false, strategy, minNumIntervals, true
                     );
@@ -91,7 +91,6 @@ public class Benchmark {
                 "initialMatrixStrategy", initialStateStrategy,
                 "useInverseFlow", useInverseFlow,
                 "useODESplitting", useSplitting,
-                "numIntervals", minNumIntervals,
                 "parallelize", parallelized
         );
         density.initAndValidate();
