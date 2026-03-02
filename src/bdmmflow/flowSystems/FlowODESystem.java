@@ -307,7 +307,6 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
             while (true) {
                 double minNewIntervalStart = currentOldInterval.start();
-                double maxNewIntervalSize = currentIntervalEnd - minNewIntervalStart;
 
                 RealMatrix currentEndSystemMatrix = this.buildSystemMatrix(currentIntervalEnd - bdmmprime.util.Utils.globalPrecisionThreshold);
                 RealMatrix currentMidSystemMatrix = this.buildSystemMatrix((currentIntervalEnd + minNewIntervalStart) / 2);
@@ -317,10 +316,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 double midSpread = Utils.getHermitianSpread(currentMidSystemMatrix);
                 double startSpread = Utils.getHermitianSpread(currentStartSystemMatrix);
 
-                double maxIntervalSize = maxNewIntervalSize / (startSpread - endSpread) * (Math.sqrt(endSpread * endSpread + 2 * (startSpread - endSpread) / maxNewIntervalSize * logMaxConditionNumber) - endSpread);
-                if (Double.isNaN(maxIntervalSize)) {
-                    maxIntervalSize = maxNewIntervalSize;
-                }
+                double maxIntervalSize = currentIntervalEnd - minNewIntervalStart;
                 maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / endSpread);
                 maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / midSpread);
                 maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / startSpread);
