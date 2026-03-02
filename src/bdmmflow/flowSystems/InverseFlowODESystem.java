@@ -174,8 +174,8 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
             case "random" -> {
                 List<InitialState> initialStates = new ArrayList<>();
 
-                for (Interval ignored : intervals) {
-                    RealMatrix matrix = Utils.getRandomMatrix(this.parameterization.getNTypes(), this.seed);
+                for (Interval interval : intervals) {
+                    RealMatrix matrix = Utils.getRandomMatrix(this.parameterization.getNTypes(), this.seed + interval.interval());
                     RealMatrix inverse = MatrixUtils.inverse(matrix);
 
                     double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];

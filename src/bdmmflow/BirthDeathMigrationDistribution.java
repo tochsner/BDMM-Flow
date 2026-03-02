@@ -114,7 +114,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Boolean> parallelizeInput = new Input<>(
             "parallelize",
             "Whether or not parallelize the computation.",
-            false
+            true
     );
 
     public Input<Integer> minimalSubtreeSizeForParallelizationInput = new Input<>(
@@ -154,7 +154,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     int seed;
 
     boolean parallelize;
-    double minimalProportionForParallelization;
+    double minimalProportionForParallelization = 0.05;
     int minimalSubtreeSizeForParallelization;
 
     ForkJoinPool forkJoinPool;
@@ -260,7 +260,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 "typeTraitSet", this.typeTraitSetInput.get(),
                 "typeLabel", this.typeLabelInput.get(),
                 "conditionOnSurvival", this.conditionOnSurvivalInput.get(),
-                "conditionOnRoot", this.conditionOnRootInput.get(),
                 "conditionOnRoot", this.conditionOnRootInput.get()
         );
     }
