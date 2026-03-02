@@ -101,30 +101,28 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     void addTimeVaryingSystemMatrix(double t, RealMatrix system) {
         ContinuousOutputModel extinctionOutputModel = this.extinctionProbabilities.getOutputModel(t);
 
-        synchronized (extinctionOutputModel) {
-            double[] extinctProbabilities = this.extinctionProbabilities.unsafeGetProbability(extinctionOutputModel, t);
-            int interval = this.getCurrentParameterizationInterval(t);
+        double[] extinctProbabilities = this.extinctionProbabilities.getProbability(extinctionOutputModel, t);
+        int interval = this.getCurrentParameterizationInterval(t);
 
-            for (int i = 0; i < parameterization.getNTypes(); i++) {
+        for (int i = 0; i < parameterization.getNTypes(); i++) {
+            system.addToEntry(
+                    i,
+                    i,
+                    -2 * this.birthRates[interval][i] * extinctProbabilities[i]
+            );
+
+            for (int j = 0; j < parameterization.getNTypes(); j++) {
                 system.addToEntry(
                         i,
                         i,
-                        -2 * this.birthRates[interval][i] * extinctProbabilities[i]
+                        -this.crossBirthRates[interval][i][j] * extinctProbabilities[j]
                 );
 
-                for (int j = 0; j < parameterization.getNTypes(); j++) {
-                    system.addToEntry(
-                            i,
-                            i,
-                            -this.crossBirthRates[interval][i][j] * extinctProbabilities[j]
-                    );
-
-                    system.addToEntry(
-                            i,
-                            j,
-                            -this.crossBirthRates[interval][i][j] * extinctProbabilities[i]
-                    );
-                }
+                system.addToEntry(
+                        i,
+                        j,
+                        -this.crossBirthRates[interval][i][j] * extinctProbabilities[i]
+                );
             }
         }
 

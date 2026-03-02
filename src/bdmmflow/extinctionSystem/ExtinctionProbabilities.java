@@ -9,29 +9,34 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 public class ExtinctionProbabilities {
     ContinuousOutputModel[] outputModels;
     boolean validateProbabilities = false;
+    int n;
 
-    public ExtinctionProbabilities(ContinuousOutputModel[] outputModels) {
+    public ExtinctionProbabilities(ContinuousOutputModel[] outputModels, int n) {
         this.outputModels = outputModels;
+        this.n = n;
     }
 
     public double[] getProbability(ContinuousOutputModel output, double time) {
+        double[] state = new double[this.n];
+
         synchronized (output) {
             output.setInterpolatedTime(time);
-            double[] state = output.getInterpolatedState().clone();
+            double[] interpolatedState = output.getInterpolatedState();
+            System.arraycopy(interpolatedState, 0, state, 0, this.n);
+        }
 
-            if (this.validateProbabilities) {
-                // check that all are valid probabilities
-                // (interpolation can give rise to values outside [0, 1]
+        if (this.validateProbabilities) {
+            // check that all are valid probabilities
+            // (interpolation can give rise to values outside [0, 1]
 
-                for (int i = 0; i < state.length; i++) {
-                    if (state[i] < -0.01 || 1.01 < state[i]) {
-                        throw new IllegalStateException("Invalid extinction probability found.");
-                    }
+            for (int i = 0; i < state.length; i++) {
+                if (state[i] < -0.01 || 1.01 < state[i]) {
+                    throw new IllegalStateException("Invalid extinction probability found.");
                 }
             }
-
-            return state;
         }
+
+        return state;
     }
 
     public double[] unsafeGetProbability(ContinuousOutputModel output, double time) {
