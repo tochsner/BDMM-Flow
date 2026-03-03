@@ -420,7 +420,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
     private void periodicallyCompareToBDMMPrime(TreeInterface dummyTree, double bdmmFlowLikelihood) {
         if (this.totalNumEvaluations < 1_000) return;
-        if (this.totalNumEvaluations % 1_000 != 0) return;
+        if (this.totalNumEvaluations % 2_000 != 0) return;
 
         double bdmmPrimeLikelihood = this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
         double deviation = Math.abs(Math.abs(bdmmFlowLikelihood - bdmmPrimeLikelihood) / bdmmPrimeLikelihood);
