@@ -6,4 +6,4 @@ package bdmmflow.intervals;
  * @param start - the start time.
  * @param end - the end time.
  */
-public record Interval(int interval, double start, double end) { }
+public record Interval(int interval, int parameterizationInterval, double start, double end) { }

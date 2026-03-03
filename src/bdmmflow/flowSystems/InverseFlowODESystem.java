@@ -314,7 +314,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
                 double currentIntervalEnd = Math.min(currentIntervalStart + maxIntervalSize, currentOldInterval.end());
 
                 Interval newInterval = new Interval(
-                        0, currentIntervalStart, currentIntervalEnd
+                        0, currentOldInterval.parameterizationInterval(), currentIntervalStart, currentIntervalEnd
                 );
                 subIntervals.add(newInterval);
 
@@ -333,7 +333,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         for (int i = 0; i < newIntervals.size(); i++) {
             Interval interval = newIntervals.get(i);
             Interval intervalWithCorrectIdx = new Interval(
-                    i, interval.start(), interval.end()
+                    i, interval.parameterizationInterval(), interval.start(), interval.end()
             );
             newIntervals.set(i, intervalWithCorrectIdx);
         }
