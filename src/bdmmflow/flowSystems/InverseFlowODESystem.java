@@ -313,20 +313,8 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
 
                 double currentIntervalEnd = Math.min(currentIntervalStart + maxIntervalSize, currentOldInterval.end());
 
-                // find containing parameterization interval ends
-                List<Integer> containingParameterizationIntervalEnds = new ArrayList<>();
-                for (int j = 0; j < parameterization.getTotalIntervalCount(); j++) {
-                    double parameterizationIntervalEndTime = parameterization.getIntervalEndTimes()[j];
-                    if (
-                            bdmmprime.util.Utils.lessThanWithPrecision(currentIntervalStart, parameterizationIntervalEndTime) &&
-                                    bdmmprime.util.Utils.lessThanWithPrecision(parameterizationIntervalEndTime, currentIntervalEnd)
-                    ) {
-                        containingParameterizationIntervalEnds.add(j);
-                    }
-                }
-
                 Interval newInterval = new Interval(
-                        0, containingParameterizationIntervalEnds, currentIntervalStart, currentIntervalEnd
+                        0, currentIntervalStart, currentIntervalEnd
                 );
                 subIntervals.add(newInterval);
 
@@ -345,7 +333,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         for (int i = 0; i < newIntervals.size(); i++) {
             Interval interval = newIntervals.get(i);
             Interval intervalWithCorrectIdx = new Interval(
-                    i, interval.parameterizationIntervals(), interval.start(), interval.end()
+                    i, interval.start(), interval.end()
             );
             newIntervals.set(i, intervalWithCorrectIdx);
         }

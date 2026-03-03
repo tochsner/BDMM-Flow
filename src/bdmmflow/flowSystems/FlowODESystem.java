@@ -330,7 +330,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 }
 
                 Interval newInterval = new Interval(
-                        0, containingParameterizationIntervalEnds, newIntervalStart, currentIntervalEnd
+                        0, newIntervalStart, currentIntervalEnd
                 );
                 subIntervals.add(0, newInterval);
 
@@ -349,7 +349,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
         for (int i = 0; i < newIntervals.size(); i++) {
             Interval interval = newIntervals.get(i);
             Interval intervalWithCorrectIdx = new Interval(
-                    i, interval.parameterizationIntervals(), interval.start(), interval.end()
+                    i, interval.start(), interval.end()
             );
             newIntervals.set(i, intervalWithCorrectIdx);
         }

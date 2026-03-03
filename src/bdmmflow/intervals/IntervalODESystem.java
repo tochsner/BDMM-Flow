@@ -73,31 +73,8 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                         Interval interval = intervals.get(i);
                         double[] state = initialStates.get(i).clone();
 
-                        ContinuousOutputModel outputModel = new ContinuousOutputModel();
-
-                        // this interval might contain multiple parameterization intervals
-                        // we loop through the containing parameterization intervals and
-                        // integrate them piece-by-piece
-
-                        double currentStart = interval.start();
-                        for (int parameterizationInterval : interval.parameterizationIntervals()) {
-                            this.handleParameterizationIntervalBoundaryIfNecessary(currentStart, state);
-
-                            double parameterizationEnd = this.parameterization.getIntervalEndTimes()[parameterizationInterval];
-                            outputModel.append(
-                                    this.integrate(state, currentStart, parameterizationEnd, interval)
-                            );
-
-                            currentStart = parameterizationEnd;
-                        }
-
-                        this.handleParameterizationIntervalBoundaryIfNecessary(currentStart, state);
-
-                        outputModel.append(
-                                this.integrate(state, currentStart, interval.end(), interval)
-                        );
-
-                        outputModels[interval.interval()] = outputModel;
+                        this.handleParameterizationIntervalBoundaryIfNecessary(interval.start(), state);
+                        outputModels[interval.interval()] = this.integrate(state, interval.start(), interval.end(), interval);
                     })).join();
             } catch (NumberIsTooSmallException | IllegalStateException exception) {
                 // shutdown all threads in case of an exception
@@ -126,31 +103,8 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                     state = initialStates.get(i).clone();
                 }
 
-                ContinuousOutputModel outputModel = new ContinuousOutputModel();
-
-                // this interval might contain multiple parameterization intervals
-                // we loop through the containing parameterization intervals and
-                // integrate them piece-by-piece
-
-                double currentStart = interval.start();
-                for (int parameterizationInterval : interval.parameterizationIntervals()) {
-                    this.handleParameterizationIntervalBoundaryIfNecessary(currentStart, state);
-
-                    double parameterizationEnd = this.parameterization.getIntervalEndTimes()[parameterizationInterval];
-                    outputModel.append(
-                            this.integrate(state, currentStart, parameterizationEnd, interval)
-                    );
-
-                    currentStart = parameterizationEnd;
-                }
-
-                this.handleParameterizationIntervalBoundaryIfNecessary(currentStart, state);
-
-                outputModel.append(
-                        this.integrate(state, currentStart, interval.end(), interval)
-                );
-
-                outputModels[interval.interval()] = outputModel;
+                this.handleParameterizationIntervalBoundaryIfNecessary(interval.start(), state);
+                outputModels[interval.interval()] = this.integrate(state, interval.start(), interval.end(), interval);
             }
 
         }
@@ -184,32 +138,8 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                     Interval interval = intervals.get(i);
                     double[] state = initialStates.get(i).clone();
 
-                    ContinuousOutputModel outputModel = new ContinuousOutputModel();
-
-                    // this interval might contain multiple parameterization intervals
-                    // we loop through the containing parameterization intervals and
-                    // integrate them piece-by-piece
-
-                    double currentEnd = interval.end();
-                    for (int j = interval.parameterizationIntervals().size() - 1; j >= 0; j--) {
-                        this.handleParameterizationIntervalBoundaryIfNecessary(currentEnd, state);
-
-                        int parameterizationInterval = interval.parameterizationIntervals().get(j);
-                        double parameterizationEnd = this.parameterization.getIntervalEndTimes()[parameterizationInterval];
-                        outputModel.append(
-                                this.integrate(state, currentEnd, parameterizationEnd, interval)
-                        );
-
-                        currentEnd = parameterizationEnd;
-                    }
-
-                    this.handleParameterizationIntervalBoundaryIfNecessary(currentEnd, state);
-
-                    outputModel.append(
-                            this.integrate(state, currentEnd, interval.start(), interval)
-                    );
-
-                    outputModels[intervals.size() - interval.interval() - 1] = outputModel;
+                    this.handleParameterizationIntervalBoundaryIfNecessary(interval.end(), state);
+                    outputModels[intervals.size() - interval.interval() - 1] = this.integrate(state, interval.end(), interval.start(), interval);
                 })).join();
             } catch (NumberIsTooSmallException | IllegalStateException exception) {
                 // shutdown all threads in case of an exception
@@ -237,32 +167,8 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
                     state = initialStates.get(i).clone();
                 }
 
-                ContinuousOutputModel outputModel = new ContinuousOutputModel();
-
-                // this interval might contain multiple parameterization intervals
-                // we loop through the containing parameterization intervals and
-                // integrate them piece-by-piece
-
-                double currentEnd = interval.end();
-                for (int j = interval.parameterizationIntervals().size() - 1; j >= 0; j--) {
-                    this.handleParameterizationIntervalBoundaryIfNecessary(currentEnd, state);
-
-                    int parameterizationInterval = interval.parameterizationIntervals().get(j);
-                    double parameterizationEnd = this.parameterization.getIntervalEndTimes()[parameterizationInterval];
-                    outputModel.append(
-                            this.integrate(state, currentEnd, parameterizationEnd, interval)
-                    );
-
-                    currentEnd = parameterizationEnd;
-                }
-
-                this.handleParameterizationIntervalBoundaryIfNecessary(currentEnd, state);
-
-                outputModel.append(
-                        this.integrate(state, currentEnd, interval.start(), interval)
-                );
-
-                outputModels[intervals.size() - interval.interval() - 1] = outputModel;
+                this.handleParameterizationIntervalBoundaryIfNecessary(interval.end(), state);
+                outputModels[intervals.size() - interval.interval() - 1] = this.integrate(state, interval.end(), interval.start(), interval);
             }
 
         }

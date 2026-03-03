@@ -36,7 +36,6 @@ public class IntervalUtils {
                 intervals.add(
                         new Interval(
                                 intervals.size(),
-                                List.of(),
                                 currentStartTime,
                                 currentParameterizationIntervalEndTime
                         )
@@ -49,7 +48,6 @@ public class IntervalUtils {
                 intervals.add(
                         new Interval(
                                 intervals.size(),
-                                List.of(),
                                 currentStartTime,
                                 currentMaxEndTime
                         )
