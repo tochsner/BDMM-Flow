@@ -4,7 +4,6 @@ import bdmmflow.utils.Utils;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -42,12 +41,12 @@ public class InverseFlow implements IFlow {
 
     @Override
     public IntegrationResult integrateUsingFlow(double timeStart, double timeEnd, double[] endState) {
-        int interval = this.getInterval(timeStart);
+        int interval = this.getLeftInterval(timeStart);
 
         DecompositionSolver linearSolver = this.decompositionCache.computeIfAbsent(
                 timeStart,
                 k -> new QRDecomposition(
-                        this.getFlow(timeStart, interval), 1e-10
+                        this.getFlow(interval, timeStart), 1e-10
                 ).getSolver()
         );
 
@@ -59,7 +58,7 @@ public class InverseFlow implements IFlow {
             likelihoodVectorStart = linearSolver.solve(likelihoodVectorIntervalEnd.vector());
         } catch (SingularMatrixException e) {
             // we fall back to an SVD least-squares solver
-            SingularValueDecomposition svd = new SingularValueDecomposition(this.getFlow(timeStart, interval));
+            SingularValueDecomposition svd = new SingularValueDecomposition(this.getFlow(interval, timeStart));
 
             if (Double.isInfinite(svd.getConditionNumber())) {
                 throw new IllegalStateException("Infinite condition number found.");
@@ -71,33 +70,6 @@ public class InverseFlow implements IFlow {
         }
 
         return new IntegrationResult(likelihoodVectorStart.toArray(), likelihoodVectorIntervalEnd.logScalingFactor);
-    }
-
-    /**
-     * Calculates the flow at a given time.
-     * This method supports when the flow integration was restarted using the same initial state
-     * at the beginning of every interval. In this case, the flow is calculated by accumulatively
-     * multiplying the end flows of the intervals between startingAtInterval and time.
-     *
-     * @param time               the time for which to query the flow from.
-     * @param startingAtInterval where to start the accumulation of the flow if initial state resetting
-     *                           was used.
-     * @return the flow at the given time.
-     */
-    public RealMatrix getFlow(double time, int startingAtInterval) {
-        int timeInterval = this.getInterval(time);
-
-        if (!this.wasInitialStateResetAtEachInterval || startingAtInterval == timeInterval)
-            return this.getFlow(timeInterval, time);
-
-        RealMatrix accumulatedFlow = MatrixUtils.createRealIdentityMatrix(this.n);
-
-        for (int i = startingAtInterval; i < timeInterval; i++) {
-            RealMatrix flowEnd = this.getFlow(i, this.outputModels[i].getFinalTime());
-            accumulatedFlow = accumulatedFlow.multiply(flowEnd).multiply(this.initialStates.get(i + 1).inverse());
-        }
-
-        return accumulatedFlow.multiply(this.getFlow(timeInterval, time));
     }
 
     /**
@@ -113,7 +85,7 @@ public class InverseFlow implements IFlow {
      * @return the flow at the given time multiplied with the vector.
      */
     public ScaledVector operateFlow(double time, int startingAtInterval, RealVector vector) {
-        int timeInterval = this.getInterval(time);
+        int timeInterval = this.getRightInterval(time);
 
         if (!this.wasInitialStateResetAtEachInterval || startingAtInterval == timeInterval)
             return new ScaledVector(this.getFlow(timeInterval, time).operate(vector), 0.0);
@@ -159,7 +131,7 @@ public class InverseFlow implements IFlow {
      * @param time the time to get the interval for.
      * @return the interval.
      */
-    public int getInterval(double time) {
+    public int getLeftInterval(double time) {
         if (time < this.outputModels[0].getInitialTime()) {
             return 0;
         }
@@ -167,7 +139,29 @@ public class InverseFlow implements IFlow {
         for (int i = 0; i < this.outputModels.length; i++) {
             ContinuousOutputModel model = this.outputModels[i];
 
-            if (model.getInitialTime() <= time && time <= model.getFinalTime()) {
+            if (model.getInitialTime() <= time && time < model.getFinalTime()) {
+                return i;
+            }
+        }
+
+        return this.outputModels.length - 1;
+    }
+
+    /**
+     * Returns the interval corresponding to the given time.
+     *
+     * @param time the time to get the interval for.
+     * @return the interval.
+     */
+    public int getRightInterval(double time) {
+        if (time <= this.outputModels[0].getInitialTime()) {
+            return 0;
+        }
+
+        for (int i = 0; i < this.outputModels.length; i++) {
+            ContinuousOutputModel model = this.outputModels[i];
+
+            if (model.getInitialTime() < time && time <= model.getFinalTime()) {
                 return i;
             }
         }

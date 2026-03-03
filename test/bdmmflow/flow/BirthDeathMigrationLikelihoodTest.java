@@ -34,6 +34,10 @@ public class BirthDeathMigrationLikelihoodTest {
             { "random",  false, true },
             { "random", true,  false },
             { "random", true,  true },
+            { "average_inverse",  false, false },
+            { "average_inverse",  false, true },
+            { "average_inverse", true,  false },
+            { "average_inverse", true,  true },
         });
     }
 
@@ -1628,6 +1632,16 @@ public class BirthDeathMigrationLikelihoodTest {
                 "parallelize", parallelize
         );
 
-        assertEquals(-22.348462265673483 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-5); //Reference value from BDSKY (06/04/2017)
+        bdmmprime.distribution.BirthDeathMigrationDistribution primeDensity = new bdmmprime.distribution.BirthDeathMigrationDistribution();
+        primeDensity.initByName("parameterization", parameterization, "relTolerance", 1e-10,
+                "startTypePriorProbs", new RealParameter("1.0"),
+                "conditionOnSurvival", true,
+                "tree", tree,
+                "typeLabel", "type",
+                "parallelize", parallelize
+        );
+
+        // assertEquals(-22.348462265673483 + labeledTreeConversionFactor(density), density.calculateLogP(), 1e-5); //Reference value from BDSKY (06/04/2017)
+        assertEquals(density.calculateLogP(), primeDensity.calculateLogP(), 1e-5); //Reference value from BDSKY (06/04/2017)
     }
 }

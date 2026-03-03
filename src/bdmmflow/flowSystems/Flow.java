@@ -4,7 +4,6 @@ import bdmmflow.utils.Utils;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,8 +43,8 @@ public class Flow implements IFlow {
      */
     @Override
     public IntegrationResult integrateUsingFlow(double timeStart, double timeEnd, double[] endState) {
-        int intervalEnd = this.getInterval(timeEnd);
-        RealMatrix flowMatrixEnd = this.getFlow(timeEnd, intervalEnd);
+        int intervalEnd = this.getLeftInterval(timeEnd);
+        RealMatrix flowMatrixEnd = this.getFlow(intervalEnd, timeEnd);
 
         RealVector likelihoodVectorEnd = Utils.toVector(endState);
 
@@ -68,32 +67,6 @@ public class Flow implements IFlow {
 
         return this.operateFlow(timeStart, intervalEnd, solution);
     }
-    /**
-     * Calculates the flow at a given time.
-     * This method supports when the flow integration was restarted using the same initial state
-     * at the beginning of every interval. In this case, the flow is calculated by accumulatively
-     * multiplying the end flows of the intervals between startingAtInterval and time.
-     *
-     * @param time               the time for which to query the flow from.
-     * @param startingAtInterval where to start the accumulation of the flow if initial state resetting
-     *                           was used.
-     * @return the flow at the given time.
-     */
-    public RealMatrix getFlow(double time, int startingAtInterval) {
-        int timeInterval = this.getInterval(time);
-
-        if (!this.wasInitialStateResetAtEachInterval || startingAtInterval == timeInterval)
-            return this.getFlow(timeInterval, time);
-
-        RealMatrix accumulatedFlow = MatrixUtils.createRealIdentityMatrix(this.n);
-
-        for (int i = startingAtInterval; i < timeInterval; i++) {
-            RealMatrix flowEnd = this.getFlow(i, this.outputModels[i].getFinalTime());
-            accumulatedFlow = this.initialStates.get(this.initialStates.size() - i - 2).inverse().multiply(flowEnd).multiply(accumulatedFlow);
-        }
-
-        return this.getFlow(timeInterval, time).multiply(accumulatedFlow);
-    }
 
     /**
      * Operates the flow at a given time on the given vector.
@@ -108,7 +81,7 @@ public class Flow implements IFlow {
      * @return the flow at the given time multiplied with the vector.
      */
     public IntegrationResult operateFlow(double time, int startingAtInterval, RealVector vector) {
-        int timeInterval = this.getInterval(time);
+        int timeInterval = this.getRightInterval(time);
 
         RealVector accumulatedVector = vector;
         double logScalingFactor = 0.0;
@@ -152,7 +125,7 @@ public class Flow implements IFlow {
      * @param time the time to get the interval for.
      * @return the interval.
      */
-    public int getInterval(double time) {
+    public int getLeftInterval(double time) {
         if (this.outputModels[0].getInitialTime() < time) {
             return 0;
         }
@@ -161,6 +134,28 @@ public class Flow implements IFlow {
             ContinuousOutputModel model = this.outputModels[i];
 
             if (model.getFinalTime() < time && time <= model.getInitialTime()) {
+                return i;
+            }
+        }
+
+        return this.outputModels.length - 1;
+    }
+
+    /**
+     * Returns the interval corresponding to the given time.
+     *
+     * @param time the time to get the interval for.
+     * @return the interval.
+     */
+    public int getRightInterval(double time) {
+        if (this.outputModels[0].getInitialTime() <= time) {
+            return 0;
+        }
+
+        for (int i = 0; i < this.outputModels.length; i++) {
+            ContinuousOutputModel model = this.outputModels[i];
+
+            if (model.getFinalTime() <= time && time < model.getInitialTime()) {
                 return i;
             }
         }
