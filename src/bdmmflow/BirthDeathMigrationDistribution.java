@@ -522,7 +522,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 initialStates, intervals, false, parallelize
         );
 
-        ExtinctionProbabilities extinctionProbabilities = new ExtinctionProbabilities(integrationResults);
+        ExtinctionProbabilities extinctionProbabilities = new ExtinctionProbabilities(integrationResults, this.parameterization.getNTypes());
         this.currentExtinctionProbabilities = extinctionProbabilities;
         return extinctionProbabilities;
     }
@@ -581,7 +581,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         extinctionProbabilities.validateProbabilities(true);
         IFlow flow = system.calculateFlowIntegral(
-                splitUpIntervals,
                 initialMatrixStrategy,
                 resetInitialStateAtIntervalBoundaries,
                 this.parallelize

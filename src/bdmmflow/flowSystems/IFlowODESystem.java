@@ -7,7 +7,6 @@ import java.util.List;
 
 public interface IFlowODESystem {
     IFlow calculateFlowIntegral(
-            List<Interval> intervals,
             String initialMatrixStrategy,
             boolean resetInitialStateAtIntervalsBoundaries,
             boolean parallelize

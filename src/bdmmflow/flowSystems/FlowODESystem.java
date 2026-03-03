@@ -263,21 +263,19 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     /**
      * Calculates the flow integral using the given intervals.
      *
-     * @param intervals the intervals to use when integrating over the flow.
      * @return the calculated flow.
      */
     @Override
     public IFlow calculateFlowIntegral(
-            List<Interval> intervals,
             String initialMatrixStrategy,
             boolean resetInitialStateAtIntervalsBoundaries,
             boolean parallelize
     ) {
-        List<InitialState> initialStates = this.getInitialStates(initialMatrixStrategy, intervals);
+        List<InitialState> initialStates = this.getInitialStates(initialMatrixStrategy, this.intervals);
 
         ContinuousOutputModel[] rawOutputs = this.integrateBackwards(
                 initialStates.stream().map(InitialState::initialState).toList(),
-                intervals,
+                this.intervals,
                 resetInitialStateAtIntervalsBoundaries,
                 parallelize
         );
