@@ -3,14 +3,12 @@ package bdmmflow.flowSystems;
 import bdmmflow.extinctionSystem.ExtinctionProbabilities;
 import bdmmflow.intervals.Interval;
 import bdmmflow.intervals.IntervalODESystem;
-import bdmmflow.utils.LRUCache;
 import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -269,27 +267,28 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
     @Override
     public IFlow calculateFlowIntegral(
             String initialMatrixStrategy,
-            boolean resetInitialStateAtIntervalsBoundaries,
             boolean parallelize
     ) {
+        this.splitUpIntervals();
+        boolean resetInitialStateAtIntervalBoundaries = 1 < this.intervals.size();
+
         List<InitialState> initialStates = this.getInitialStates(initialMatrixStrategy, this.intervals);
 
         ContinuousOutputModel[] rawOutputs = this.integrateForwards(
                 initialStates.stream().map(InitialState::initialState).toList(),
                 this.intervals,
-                resetInitialStateAtIntervalsBoundaries,
+                resetInitialStateAtIntervalBoundaries,
                 parallelize
         );
         return new InverseFlow(
                 rawOutputs,
                 this.parameterization.getNTypes(),
                 initialStates,
-                resetInitialStateAtIntervalsBoundaries
+                resetInitialStateAtIntervalBoundaries
         );
     }
 
-    @Override
-    public List<Interval> splitUpIntervals() {
+    protected void splitUpIntervals() {
         double logMaxConditionNumber = Math.log(this.maxConditionNumber);
 
         List<Interval> newIntervals = this.intervals.stream().parallel().map((currentOldInterval) -> {
@@ -351,7 +350,5 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
             newIntervals.set(i, intervalWithCorrectIdx);
         }
         this.intervals = newIntervals;
-
-        return this.intervals;
     }
 }

@@ -10,7 +10,6 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -268,15 +267,17 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     @Override
     public IFlow calculateFlowIntegral(
             String initialMatrixStrategy,
-            boolean resetInitialStateAtIntervalsBoundaries,
             boolean parallelize
     ) {
+        this.splitUpIntervals();
+        boolean resetInitialStateAtIntervalBoundaries = 1 < this.intervals.size();
+
         List<InitialState> initialStates = this.getInitialStates(initialMatrixStrategy, this.intervals);
 
         ContinuousOutputModel[] rawOutputs = this.integrateBackwards(
                 initialStates.stream().map(InitialState::initialState).toList(),
                 this.intervals,
-                resetInitialStateAtIntervalsBoundaries,
+                resetInitialStateAtIntervalBoundaries,
                 parallelize
         );
 
@@ -284,17 +285,14 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 rawOutputs,
                 this.parameterization.getNTypes(),
                 initialStates,
-                resetInitialStateAtIntervalsBoundaries
+                resetInitialStateAtIntervalBoundaries
         );
     }
 
     /**
      * Splits up the stored intervals if numerical issues are expected.
-     *
-     * @return the new list of intervals.
      */
-    @Override
-    public List<Interval> splitUpIntervals() {
+    protected void splitUpIntervals() {
         double logMaxConditionNumber = Math.log(this.maxConditionNumber);
 
         List<Interval> newIntervals = this.intervals.stream().parallel().map((currentOldInterval) -> {
@@ -356,7 +354,5 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
             newIntervals.set(i, intervalWithCorrectIdx);
         }
         this.intervals = newIntervals;
-
-        return this.intervals;
     }
 }

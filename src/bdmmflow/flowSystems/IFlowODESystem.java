@@ -8,8 +8,6 @@ import java.util.List;
 public interface IFlowODESystem {
     IFlow calculateFlowIntegral(
             String initialMatrixStrategy,
-            boolean resetInitialStateAtIntervalsBoundaries,
             boolean parallelize
     );
-    List<Interval> splitUpIntervals();
 }

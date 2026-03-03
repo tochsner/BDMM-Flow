@@ -576,13 +576,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             );
         }
 
-        List<Interval> splitUpIntervals = system.splitUpIntervals();
-        boolean resetInitialStateAtIntervalBoundaries = 1 < splitUpIntervals.size();
-
         extinctionProbabilities.validateProbabilities(true);
         IFlow flow = system.calculateFlowIntegral(
                 initialMatrixStrategy,
-                resetInitialStateAtIntervalBoundaries,
                 this.parallelize
         );
         extinctionProbabilities.validateProbabilities(false);
