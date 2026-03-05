@@ -434,7 +434,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             Log.warning("Found relative deviation of " + 100*deviation + "% to BDMM-Prime. Consider using BDMM-Prime instead of BDMM-Flow.");
         }
 
-        // we log the deviation every 10_000 steps
+        // we log the deviation every 20_000 steps
         if (this.numDeviations % 10 == 0) {
             double meanDeviation = this.sumDeviation / this.numDeviations;
             Log.warning("Mean deviation was " + meanDeviation + " (sum " + this.sumDeviation + ", num " + this.numDeviations + ")");
@@ -450,7 +450,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         double failureRate = 1.0 * this.numFailedEvaluationsSinceReset / this.numEvaluationsSinceReset;
 
-        if (failureRate > 0.01) {
+        if (failureRate > 0.05) {
             Log.warning("Failure rate was " + failureRate + ". Consider using BDMM-Prime instead of BDMM-Flow.");
         }
 
@@ -659,8 +659,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         // make sure all likelihoods are positive
 
         for (int i = 0; i < likelihoodEdgeStart.result().length; i++) {
-            likelihoodEdgeStart.result()[i] = Math.max(0.0, likelihoodEdgeStart.result()[i]);
+            if (likelihoodEdgeStart.result()[i] < 0) {
+                throw new IllegalStateException("Negative probability detected.");
+            }
         }
+
         this.logScalingFactors[node.getNr()] += likelihoodEdgeStart.logScalingFactor();
         return likelihoodEdgeStart.result();
     }

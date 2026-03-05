@@ -170,15 +170,25 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
     List<InitialState> getInitialStates(String initialMatrixStrategy, List<Interval> intervals) {
         return switch (initialMatrixStrategy) {
             case "random" -> {
+                RealMatrix matrix = Utils.getRandomMatrix(
+                        this.parameterization.getNTypes(), this.seed
+                );
+
+                // we condition on having at most a certain condition number for numeric safety
+
+                double maxConditionNumber = this.parameterization.getNTypes() * 3;
+                int seedCorrection = 0;
+                while (maxConditionNumber < new SingularValueDecomposition(matrix).getConditionNumber()) {
+                    matrix = Utils.getRandomMatrix(
+                            this.parameterization.getNTypes(), this.seed + ++seedCorrection
+                    );
+                }
+
+                RealMatrix inverse = MatrixUtils.inverse(matrix);
                 List<InitialState> initialStates = new ArrayList<>();
-
-                for (Interval interval : intervals) {
-                    RealMatrix matrix = Utils.getRandomMatrix(this.parameterization.getNTypes(), this.seed + interval.interval());
-                    RealMatrix inverse = MatrixUtils.inverse(matrix);
-
+                for (Interval ignored : intervals) {
                     double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
                     Utils.fillArray(matrix, array);
-
                     initialStates.add(new InitialState(array, inverse));
                 }
 

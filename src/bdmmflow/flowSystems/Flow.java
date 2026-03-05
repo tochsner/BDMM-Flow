@@ -84,7 +84,7 @@ public class Flow implements IFlow {
         int timeInterval = this.getRightInterval(time);
 
         RealVector accumulatedVector = vector;
-        double logScalingFactor = 0.0;
+        double logScalingFactor = Utils.rescale(accumulatedVector, 0.0);
 
         for (int i = startingAtInterval; i < timeInterval ; i++) {
             RealMatrix flowEnd = this.getFlow(i, this.outputModels[i].getFinalTime());

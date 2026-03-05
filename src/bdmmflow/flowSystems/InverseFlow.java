@@ -91,7 +91,7 @@ public class InverseFlow implements IFlow {
             return new ScaledVector(this.getFlow(timeInterval, time).operate(vector), 0.0);
 
         RealVector accumulatedVector = this.getFlow(timeInterval, time).operate(vector);
-        double logScalingFactor = 0.0;
+        double logScalingFactor = Utils.rescale(accumulatedVector, 0.0);
 
         for (int i = timeInterval - 1; i >= startingAtInterval; i--) {
             RealMatrix flowEnd = this.getFlow(i, this.outputModels[i].getFinalTime());
