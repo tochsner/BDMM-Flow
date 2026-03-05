@@ -10,6 +10,7 @@ import org.apache.commons.math3.ode.ContinuousOutputModel;
 
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,6 +30,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
     int seed;
     double maxConditionNumber;
+    boolean useLoucaPennellIntervals;
 
     public FlowODESystem(
             Parameterization parameterization,
@@ -37,8 +39,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
             double absoluteTolerance,
             double relativeTolerance,
             int seed,
-            double maxConditionNumber
-    ) {
+            double maxConditionNumber,
+            boolean useLoucaPennellIntervals) {
         super(parameterization, intervals, absoluteTolerance, relativeTolerance);
         this.extinctionProbabilities = extinctionProbabilities;
 
@@ -47,6 +49,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
         this.samplingRates = this.parameterization.getSamplingRates();
         this.crossBirthRates = this.parameterization.getCrossBirthRates();
         this.migrationRates = this.parameterization.getMigRates();
+        this.useLoucaPennellIntervals = useLoucaPennellIntervals;
 
         this.seed = seed;
         this.maxConditionNumber = maxConditionNumber;
@@ -315,14 +318,21 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
                 RealMatrix currentMidSystemMatrix = this.buildSystemMatrix((currentIntervalEnd + minNewIntervalStart) / 2);
                 RealMatrix currentStartSystemMatrix = this.buildSystemMatrix(minNewIntervalStart + bdmmprime.util.Utils.globalPrecisionThreshold);
 
-                double endSpread = Utils.getHermitianSpread(currentEndSystemMatrix);
-                double midSpread = Utils.getHermitianSpread(currentMidSystemMatrix);
-                double startSpread = Utils.getHermitianSpread(currentStartSystemMatrix);
+                double maxIntervalSize;
+                if (this.useLoucaPennellIntervals) {
+                    SingularValueDecomposition decomposition = new SingularValueDecomposition(currentEndSystemMatrix);
+                    double maxSingularValue = Arrays.stream(decomposition.getSingularValues()).max().orElseThrow();
+                    maxIntervalSize = logMaxConditionNumber / (2.0 * maxSingularValue);
+                } else {
+                    double endSpread = Utils.getHermitianSpread(currentEndSystemMatrix);
+                    double midSpread = Utils.getHermitianSpread(currentMidSystemMatrix);
+                    double startSpread = Utils.getHermitianSpread(currentStartSystemMatrix);
 
-                double maxIntervalSize = currentIntervalEnd - minNewIntervalStart;
-                maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / endSpread);
-                maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / midSpread);
-                maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / startSpread);
+                    maxIntervalSize = currentIntervalEnd - minNewIntervalStart;
+                    maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / endSpread);
+                    maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / midSpread);
+                    maxIntervalSize = Math.min(maxIntervalSize, logMaxConditionNumber / startSpread);
+                }
 
                 double newIntervalStart = Math.max(currentIntervalEnd - maxIntervalSize, currentOldInterval.start());
 

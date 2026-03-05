@@ -130,6 +130,12 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             1e8
     );
 
+    public Input<Boolean> useLoucaPennellIntervalsInput = new Input<>(
+            "useLoucaPennellIntervals",
+            "Whether to use the interval heruistic introduced by Louca and Pennell.",
+            false
+    );
+
     private Parameterization parameterization;
 
     private String initialMatrixStrategy;
@@ -148,6 +154,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     double relativeTolerance;
 
     double maxConditioningNumber;
+    boolean useLoucaPennellIntervals;
 
     boolean useInverseFlow;
     boolean useODESplitting;
@@ -202,6 +209,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.useInverseFlow = this.useInverseFlowInput.get();
         this.useODESplitting = this.useODESplittingInput.get();
         this.maxConditioningNumber = this.maxConditioningNumberInput.get();
+        this.useLoucaPennellIntervals = this.useLoucaPennellIntervalsInput.get();
 
         // reset cache
 
@@ -554,7 +562,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     this.absoluteTolerance,
                     this.relativeTolerance,
                     heightSum,
-                    this.maxConditioningNumber
+                    this.maxConditioningNumber,
+                    this.useLoucaPennellIntervals
             );
         } else if (this.useODESplitting) {
             system = new DiagonalIPFlowODESystem(
@@ -572,7 +581,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     this.absoluteTolerance,
                     this.relativeTolerance,
                     heightSum,
-                    this.maxConditioningNumber
+                    this.maxConditioningNumber,
+                    this.useLoucaPennellIntervals
             );
         }
 

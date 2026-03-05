@@ -10,7 +10,7 @@ import java.util.List;
 public class DiagonalFlowSystem extends FlowODESystem {
 
     public DiagonalFlowSystem(Parameterization parameterization, ExtinctionProbabilities extinctionProbabilities, List<Interval> intervals, double absoluteTolerance, double relativeTolerance, int seed, double maxConditionNumber) {
-        super(parameterization, extinctionProbabilities, intervals, absoluteTolerance, relativeTolerance, seed, maxConditionNumber);
+        super(parameterization, extinctionProbabilities, intervals, absoluteTolerance, relativeTolerance, seed, maxConditionNumber, false);
     }
 
     @Override
