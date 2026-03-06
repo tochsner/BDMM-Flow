@@ -6,6 +6,7 @@ import bdmmflow.flowSystems.*;
 import bdmmflow.intervals.Interval;
 import bdmmflow.intervals.IntervalODESystem;
 import bdmmflow.intervals.IntervalUtils;
+import bdmmflow.utils.Result;
 import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import beast.base.core.*;
@@ -26,7 +27,6 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.DoubleStream;
 
 @Citation(value = "Kuehnert D, Stadler T, Vaughan TG, Drummond AJ. (2016). " +
@@ -256,6 +256,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         this.logScalingFactors = new double[this.tree.getNodeCount()];
         this.initializeIsRhoSampled();
+        this.forkJoinPool = new ForkJoinPool();
 
         // initialize bdmm prime as a fallback if we detect numerical issues
 
@@ -337,9 +338,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             return Double.NEGATIVE_INFINITY;
         }
 
-        // set up fork-join pool
+        // set up subtrees for parallelization
 
-        this.forkJoinPool = new ForkJoinPool();
         this.initializeSubtreeSizes();
 
         // set up intervals
@@ -378,20 +378,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             );
         } catch (CompletionException | SingularMatrixException | IllegalStateException exception) {
             this.numFailedEvaluationsSinceReset++;
-
-            // shutdown all threads in case of an exception
-            // the exception is automatically passed upwards to the caller
-            try {
-                forkJoinPool.shutdownNow();
-                forkJoinPool.awaitTermination(10, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                // another thread caused an exception in the meantime
-                // we ignore it and only throw the original one
-            }
-
             return this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
-        } finally {
-            forkJoinPool.shutdown();
         }
 
         // get tree likelihood by a weighted average of the root likelihood per state
@@ -825,14 +812,14 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         if (parallelize && subtreeSizes[child1.getNr()] > this.parallelizeSubtreeSizeThreshold
                 && subtreeSizes[child2.getNr()] > this.parallelizeSubtreeSizeThreshold) {
-            CompletableFuture<double[]> futureLikelihoodChild1 = CompletableFuture.supplyAsync(() ->
-                    this.calculateSubTreeLikelihood(
+            CompletableFuture<Result<double[]>> futureLikelihoodChild1 = CompletableFuture.supplyAsync(() ->
+                    Result.of(() -> this.calculateSubTreeLikelihood(
                         child1,
                         timeEdgeEnd,
                         this.parameterization.getNodeTime(child1, this.finalSampleOffset),
                         flow,
                         extinctionProbabilities
-                    ), forkJoinPool
+                    )), this.forkJoinPool
             );
             likelihoodChild2 = this.calculateSubTreeLikelihood(
                     child2,
@@ -841,7 +828,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     flow,
                     extinctionProbabilities
             );
-            likelihoodChild1 = futureLikelihoodChild1.join();
+            likelihoodChild1 = futureLikelihoodChild1.join().getOrThrow();
         } else {
             likelihoodChild1 = this.calculateSubTreeLikelihood(
                     child1,

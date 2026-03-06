@@ -1,5 +1,6 @@
 package bdmmflow.intervals;
 
+import bdmmflow.utils.Result;
 import bdmmprime.parameterization.Parameterization;
 import bdmmprime.util.Utils;
 import org.apache.commons.math3.exception.*;
@@ -13,6 +14,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 
 /**
@@ -65,32 +67,16 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
         if (alwaysStartAtInitialState && parallelize) {
 
-            ForkJoinPool forkJoinPool = new ForkJoinPool();
+            Stream<Result<Object>> executionResults = IntStream.range(0, intervals.size()).parallel().mapToObj(i -> Result.of(() -> {
+                Interval interval = intervals.get(i);
+                double[] state = initialStates.get(i).clone();
 
-            try {
-                forkJoinPool.submit(() ->
-                    IntStream.range(0, intervals.size()).parallel().forEach(i -> {
-                        Interval interval = intervals.get(i);
-                        double[] state = initialStates.get(i).clone();
+                this.handleParameterizationIntervalBoundaryIfNecessary(interval.start(), state);
+                outputModels[interval.interval()] = this.integrate(state, interval.start(), interval.end(), interval);
 
-                        this.handleParameterizationIntervalBoundaryIfNecessary(interval.start(), state);
-                        outputModels[interval.interval()] = this.integrate(state, interval.start(), interval.end(), interval);
-                    })).join();
-            } catch (NumberIsTooSmallException | IllegalStateException exception) {
-                // shutdown all threads in case of an exception
-                // the exception is automatically passed upwards to the caller
-                try {
-                    forkJoinPool.shutdownNow();
-                    forkJoinPool.awaitTermination(10, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    // another thread caused an exception in the meantime
-                    // we ignore it and only throw the original one
-                }
-
-                throw exception;
-            } finally {
-                forkJoinPool.shutdown();
-            }
+                return null;
+            }));
+            Result.throwIfFailure(executionResults);
 
         } else {
 
@@ -130,32 +116,15 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
 
         if (alwaysStartAtInitialState && parallelize) {
 
-            ForkJoinPool forkJoinPool = new ForkJoinPool();
+            Stream<Result<Object>> executionResults = IntStream.range(0, intervals.size()).parallel().mapToObj(i -> Result.of(() -> {
+                Interval interval = intervals.get(i);
+                double[] state = initialStates.get(i).clone();
 
-            try {
-                forkJoinPool.submit(() ->
-                    IntStream.range(0, intervals.size()).parallel().forEach(i -> {
-                    Interval interval = intervals.get(i);
-                    double[] state = initialStates.get(i).clone();
-
-                    this.handleParameterizationIntervalBoundaryIfNecessary(interval.end(), state);
-                    outputModels[intervals.size() - interval.interval() - 1] = this.integrate(state, interval.end(), interval.start(), interval);
-                })).join();
-            } catch (NumberIsTooSmallException | IllegalStateException exception) {
-                // shutdown all threads in case of an exception
-                // the exception is automatically passed upwards to the caller
-                try {
-                    forkJoinPool.shutdownNow();
-                    forkJoinPool.awaitTermination(10, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    // another thread caused an exception in the meantime
-                    // we ignore it and only throw the original one
-                }
-
-                throw exception;
-            } finally {
-                forkJoinPool.shutdown();
-            }
+                this.handleParameterizationIntervalBoundaryIfNecessary(interval.end(), state);
+                outputModels[intervals.size() - interval.interval() - 1] = this.integrate(state, interval.end(), interval.start(), interval);
+                return null;
+            }));
+            Result.throwIfFailure(executionResults);
 
         } else {
 
