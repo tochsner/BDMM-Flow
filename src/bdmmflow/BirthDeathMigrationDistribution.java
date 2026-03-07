@@ -122,12 +122,12 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             "the minimal absolute size the two children " +
                     "subtrees of a node must have to start parallel " +
                     "calculations on the children. ",
-            100);
+            64);
 
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
-            1e8
+            1e7
     );
 
     public Input<Boolean> useLoucaPennellIntervalsInput = new Input<>(
