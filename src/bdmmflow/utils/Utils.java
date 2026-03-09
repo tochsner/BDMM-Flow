@@ -209,7 +209,7 @@ public class Utils {
         return Q.multiply(expT).multiply(Q.transpose());
     }
 
-    private static RealMatrix expmUpperTriangular(RealMatrix T) {
+    public static RealMatrix expmUpperTriangular(RealMatrix T) {
         int n = T.getRowDimension();
         RealMatrix F = MatrixUtils.createRealMatrix(n, n);
 

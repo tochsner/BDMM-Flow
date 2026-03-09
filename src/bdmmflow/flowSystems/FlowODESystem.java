@@ -76,7 +76,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
             system.addToEntry(
                     i,
                     i,
-                    this.deathRates[interval][i] + this.samplingRates[interval][i] + this.birthRates[interval][i]
+                    this.deathRates[interval][i] + this.samplingRates[interval][i]
             );
 
             for (int j = 0; j < parameterization.getNTypes(); j++) {
@@ -110,7 +110,7 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
             system.addToEntry(
                     i,
                     i,
-                    -2 * this.birthRates[interval][i] * extinctProbabilities[i]
+                    -2 * this.birthRates[interval][i] * extinctProbabilities[i] + this.birthRates[interval][i]
             );
 
             for (int j = 0; j < parameterization.getNTypes(); j++) {

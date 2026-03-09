@@ -202,11 +202,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.absoluteTolerance = this.absoluteToleranceInput.get();
         this.relativeTolerance = this.relativeToleranceInput.get();
         this.numTypes = this.parameterization.getNTypes();
-        this.initialMatrixStrategy = this.initialMatrixStrategyInput.get();
+        this.initialMatrixStrategy = "identity"; // this.initialMatrixStrategyInput.get();
         this.seed = this.seedInput.get();
         this.parallelize = this.parallelizeInput.get();
         this.minimalSubtreeSizeForParallelization = minimalSubtreeSizeForParallelizationInput.get();
-        this.useInverseFlow = this.useInverseFlowInput.get();
+        this.useInverseFlow = true; // this.useInverseFlowInput.get();
         this.useODESplitting = this.useODESplittingInput.get();
         this.maxConditioningNumber = this.maxConditioningNumberInput.get();
         this.useLoucaPennellIntervals = this.useLoucaPennellIntervalsInput.get();
@@ -542,7 +542,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         int heightSum = (int) Math.floor(10_000 * heights.sum());
 
         if (this.useInverseFlow) {
-            system = new InverseFlowODESystem(
+            system = new IPFlowODESystem(
                     this.parameterization,
                     extinctionProbabilities,
                     intervals,
@@ -552,16 +552,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     this.maxConditioningNumber,
                     this.useLoucaPennellIntervals
             );
-        } else if (this.useODESplitting) {
-            system = new DiagonalIPFlowODESystem(
-                    this.parameterization,
-                    extinctionProbabilities,
-                    intervals,
-                    this.absoluteTolerance,
-                    this.relativeTolerance
-            );
         } else {
-            system = new FlowODESystem(
+            system = new IPFlowODESystem(
                     this.parameterization,
                     extinctionProbabilities,
                     intervals,
