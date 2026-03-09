@@ -5,10 +5,11 @@ import bdmmflow.intervals.Interval;
 import bdmmflow.utils.Utils;
 import bdmmprime.parameterization.Parameterization;
 import org.apache.commons.math3.linear.BlockRealMatrix;
+import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
-import org.hipparchus.linear.SchurTransformer;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,54 +17,93 @@ import java.util.List;
  */
 public class IPFlowODESystem extends FlowODESystem {
 
-    final RealMatrix[] timeInvariantQMatrices;
-    final RealMatrix[] timeInvariantQTMatrices;
-    final RealMatrix[] timeInvariantTMatrices;
-
     public IPFlowODESystem(Parameterization parameterization, ExtinctionProbabilities extinctionProbabilities, List<Interval> intervals, double absoluteTolerance, double relativeTolerance, int seed, double maxConditionNumber, boolean useLoucaPennellIntervals) {
         super(parameterization, extinctionProbabilities, intervals, absoluteTolerance, relativeTolerance, seed, maxConditionNumber, useLoucaPennellIntervals);
-
-        this.timeInvariantQMatrices = new RealMatrix[intervals.size()];
-        this.timeInvariantQTMatrices = new RealMatrix[intervals.size()];
-        this.timeInvariantTMatrices = new RealMatrix[intervals.size()];
-        for (int i = 0; i < intervals.size(); i++) {
-            RealMatrix invariantMatrix = this.timeInvariantSystemMatrices[i];
-            SchurTransformer schur = new SchurTransformer(Utils.toHipparchusMatrix(invariantMatrix));
-            this.timeInvariantQMatrices[i] = Utils.toMatrix(schur.getP());
-            this.timeInvariantQTMatrices[i] = this.timeInvariantQMatrices[i].transpose();
-            this.timeInvariantTMatrices[i] = Utils.toMatrix(schur.getT());
-        }
     }
 
     /**
      * Builds the system matrix for a given time point.
      */
-    RealMatrix buildSystemMatrix(double t) {
-//        RealMatrix timeInvariantMatrix = this.buildTimeInvariantSystemMatrix(t);
-//        RealMatrix timeVaryingMatrix = this.buildTimeVaryingSystemMatrix(t);
-//
-//        double[] values = new double[this.param.getNTypes() * this.param.getNTypes()];
-//        Utils.fillArray(timeVaryingMatrix, values);
-//
-//        RealMatrix A = Utils.toMatrix(MatrixFunctions.expm(this.jblasConstantMatrix.mul(this.param.getTotalProcessLength() - t)));
-//        RealMatrix B = Utils.toMatrix(MatrixFunctions.expm(this.jblasConstantMatrix.mul(t - this.param.getTotalProcessLength())));
-//
-//        return A.multiply(timeVaryingMatrix.add(timeInvariantMatrix).subtract(constantMatrix)).multiply(B);
-
+    RealMatrix buildSystemMatrix(double t, double[] y) {
+        int n = this.parameterization.getNTypes();
         int interval = this.parameterization.getIntervalIndex(t);
-        double deltaT = this.intervals.get(interval).end() - t;
 
-        RealMatrix timeVaryingMatrix = new BlockRealMatrix(this.parameterization.getNTypes(), this.parameterization.getNTypes());
-        this.addTimeVaryingSystemMatrix(t, timeVaryingMatrix);
+        RealMatrix system = new BlockRealMatrix(parameterization.getNTypes(), parameterization.getNTypes());
 
-        RealMatrix Q = this.timeInvariantQMatrices[interval];
-        RealMatrix QT = this.timeInvariantQTMatrices[interval];
-        RealMatrix T = this.timeInvariantTMatrices[interval];
+        ContinuousOutputModel extinctionOutputModel = this.extinctionProbabilities.getOutputModel(t);
+        double[] extinctProbabilities = this.extinctionProbabilities.getProbability(extinctionOutputModel, t);
 
-        RealMatrix expT = Q.multiply(Utils.expmUpperTriangular(T.scalarMultiply(deltaT))).multiply(QT);
-        RealMatrix expNegT = QT.multiply(Utils.expmUpperTriangular(T.scalarMultiply(-deltaT))).multiply(Q);
+        for (int i = 0; i < parameterization.getNTypes(); i++) {
+            for (int j = 0; j < parameterization.getNTypes(); j++) {
+                system.addToEntry(
+                        i,
+                        j,
+                        -this.migrationRates[interval][i][j] - this.crossBirthRates[interval][i][j] * extinctProbabilities[i]
+                );
+            }
+        }
 
-        return expT.multiply(timeVaryingMatrix).multiply(expNegT);
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                double factor = Math.exp(y[n * n + j] - y[n * n + i]);
+                system.multiplyEntry(i, j, factor);
+            }
+        }
+
+        return system;
+    }
+
+    @Override
+    public void computeDerivatives(double t, double[] y, double[] yDot) {
+        // fill matrix
+
+        int numTypes = this.parameterization.getNTypes();
+
+        RealMatrix yMatrix = Utils.toMatrix(y, numTypes);
+        RealMatrix systemMatrix = this.buildSystemMatrix(t, y);
+        RealMatrix yDotMatrix = systemMatrix.multiply(yMatrix);
+        Utils.fillArray(yDotMatrix, yDot);
+
+        // fill diagonal parts
+
+        int n = this.parameterization.getNTypes();
+
+        ContinuousOutputModel extinctionOutputModel = this.extinctionProbabilities.getOutputModel(t);
+
+        synchronized (extinctionOutputModel) {
+            double[] extinctProbabilities = this.extinctionProbabilities.unsafeGetProbability(extinctionOutputModel, t);
+            int interval = this.getCurrentParameterizationInterval(t);
+
+            for (int i = 0; i < n; i++) {
+                yDot[n * n + i] = this.deathRates[interval][i] + this.samplingRates[interval][i] + this.birthRates[interval][i];
+                yDot[n * n + i] -= 2 * this.birthRates[interval][i] * extinctProbabilities[i];
+
+                for (int j = 0; j < n; j++) {
+                    yDot[n * n + i] += this.migrationRates[interval][i][j];
+                    yDot[n * n + i] += this.crossBirthRates[interval][i][j] * (1 - extinctProbabilities[j]);
+                }
+            }
+        }
+    }
+
+    List<InitialState> getInitialStates(String initialMatrixStrategy, List<Interval> intervals) {
+        int n = this.parameterization.getNTypes();
+
+        RealMatrix matrix = MatrixUtils.createRealIdentityMatrix(n);
+
+        double[] array = new double[n*n + n];
+        Utils.fillArray(matrix, array);
+
+        for (int i = 0; i < n; i++) {
+            array[n*n + i] = 0.0;
+        }
+
+        List<InitialState> arrays = new ArrayList<>();
+        for (Interval ignored : intervals) {
+            arrays.add(new InitialState(array, matrix));
+        }
+
+        return arrays;
     }
 
     /**
@@ -93,16 +133,13 @@ public class IPFlowODESystem extends FlowODESystem {
                 this.parameterization.getNTypes(),
                 initialStates,
                 resetInitialStateAtIntervalBoundaries,
-                this.parameterization,
-                this.timeInvariantQMatrices,
-                this.timeInvariantQTMatrices,
-                this.timeInvariantTMatrices
+                this.parameterization
         );
     }
 
     @Override
     public int getDimension() {
-        return parameterization.getNTypes() * parameterization.getNTypes();
+        return parameterization.getNTypes() * parameterization.getNTypes() + parameterization.getNTypes();
     }
 
 }

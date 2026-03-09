@@ -11,16 +11,10 @@ import java.util.List;
 public class IPFlow extends Flow {
 
     Parameterization parameterization;
-    final RealMatrix[] timeInvariantQMatrices;
-    final RealMatrix[] timeInvariantQTMatrices;
-    final RealMatrix[] timeInvariantTMatrices;
 
-    public IPFlow(ContinuousOutputModel[] outputModels, int n, List<InitialState> initialStateArrays, boolean wasInitialStateResetAtEachInterval, Parameterization parameterization, RealMatrix[] timeInvariantQMatrices, RealMatrix[] timeInvariantQTMatrices, RealMatrix[] timeInvariantTMatrices) {
+    public IPFlow(ContinuousOutputModel[] outputModels, int n, List<InitialState> initialStateArrays, boolean wasInitialStateResetAtEachInterval, Parameterization parameterization) {
         super(outputModels, n, initialStateArrays, wasInitialStateResetAtEachInterval);
         this.parameterization = parameterization;
-        this.timeInvariantQMatrices = timeInvariantQMatrices;
-        this.timeInvariantQTMatrices = timeInvariantQTMatrices;
-        this.timeInvariantTMatrices = timeInvariantTMatrices;
     }
 
     RealMatrix getFlow(int interval, double time) {
@@ -33,19 +27,28 @@ public class IPFlow extends Flow {
         }
         RealMatrix flow = Utils.toMatrix(state, this.n);
 
-        double negDeltaT = time - this.outputModels[interval].getInitialTime();
-        RealMatrix Q = this.timeInvariantQMatrices[interval];
-        RealMatrix QT = this.timeInvariantQTMatrices[interval];
-        RealMatrix T = this.timeInvariantTMatrices[interval];
+        double c = new SingularValueDecomposition(flow).getConditionNumber();
 
-        RealMatrix expT = QT.multiply(Utils.expmUpperTriangular(T.scalarMultiply(negDeltaT))).multiply(Q);
-
-        synchronized (this) {
-            a++;
-            b += new SingularValueDecomposition(flow).getConditionNumber();
+        for (int i = 0; i < this.n; i++) {
+            for (int j = 0; j < this.n; j++) {
+                double factor = Math.exp(state[this.n*this.n + i]);
+                flow.multiplyEntry(i, j, factor);
+            }
         }
 
-        return expT.multiply(flow);
+        double d = new SingularValueDecomposition(flow).getConditionNumber();
+
+        synchronized (this) {
+            if (Double.isFinite(c)) {
+                a++;
+                b += c / d;
+                System.out.println(c / d + "(" + c + ") running " + b / a);
+            }
+        }
+
+
+
+        return flow;
     }
 
 }

@@ -68,7 +68,7 @@ public class Flow implements IFlow {
         return this.operateFlow(timeStart, intervalEnd, solution);
     }
 
-    int a; double b;
+    static int a; static double b;
 
     /**
      * Operates the flow at a given time on the given vector.
