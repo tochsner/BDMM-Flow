@@ -99,12 +99,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
             false
     );
 
-    public Input<Boolean> useODESplittingInput = new Input<>(
-            "useODESplitting",
-            "Whether to use the inverse flow algorithm. It is faster, but can lead to higher numerical instability.",
-            false
-    );
-
     public Input<Integer> seedInput = new Input<>(
             "seed",
             "The random seed used in the analysis.",
@@ -157,7 +151,6 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     boolean useLoucaPennellIntervals;
 
     boolean useInverseFlow;
-    boolean useODESplitting;
     int seed;
 
     boolean parallelize;
@@ -202,12 +195,11 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         this.absoluteTolerance = this.absoluteToleranceInput.get();
         this.relativeTolerance = this.relativeToleranceInput.get();
         this.numTypes = this.parameterization.getNTypes();
-        this.initialMatrixStrategy = "identity"; // this.initialMatrixStrategyInput.get();
+        this.initialMatrixStrategy = this.initialMatrixStrategyInput.get();
         this.seed = this.seedInput.get();
         this.parallelize = this.parallelizeInput.get();
         this.minimalSubtreeSizeForParallelization = minimalSubtreeSizeForParallelizationInput.get();
-        this.useInverseFlow = true; // this.useInverseFlowInput.get();
-        this.useODESplitting = this.useODESplittingInput.get();
+        this.useInverseFlow = this.useInverseFlowInput.get();
         this.maxConditioningNumber = this.maxConditioningNumberInput.get();
         this.useLoucaPennellIntervals = this.useLoucaPennellIntervalsInput.get();
 
@@ -542,7 +534,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         int heightSum = (int) Math.floor(10_000 * heights.sum());
 
         if (this.useInverseFlow) {
-            system = new IPFlowODESystem(
+            system = new InverseFlowODESystem(
                     this.parameterization,
                     extinctionProbabilities,
                     intervals,
@@ -553,7 +545,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                     this.useLoucaPennellIntervals
             );
         } else {
-            system = new IPFlowODESystem(
+            system = new FlowODESystem(
                     this.parameterization,
                     extinctionProbabilities,
                     intervals,
