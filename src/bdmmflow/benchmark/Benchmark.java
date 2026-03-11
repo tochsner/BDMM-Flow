@@ -6,6 +6,7 @@ import bdmmprime.trajectories.simulation.SimulatedTree;
 import beast.base.evolution.tree.Tree;
 import beast.base.inference.parameter.RealParameter;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.LinkedList;
@@ -24,6 +25,8 @@ public class Benchmark {
 
     static List<BenchmarkResult> runBenchmarks(int numTrials, ParameterizationSampler sampler) {
         List<BenchmarkResult> results = new LinkedList<>();
+
+        long start = System.currentTimeMillis();
 
         for (int i = 0; i < numTrials; i++) {
             String[] initialStateStrategies = new String[]{
@@ -45,7 +48,7 @@ public class Benchmark {
                     BenchmarkRun bdmmRun = runBDMMBenchmark(tree, parameterization, startTypePriorProbs);
                     BenchmarkRun flowRun = runFlowBenchmark(tree, parameterization, startTypePriorProbs, useInverseFlow, false, strategy, minNumIntervals, false);
                     BenchmarkResult result = new BenchmarkResult(
-                            i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, false, strategy, minNumIntervals, true
+                            start + i, parameterization, tree, flowRun, bdmmRun, useInverseFlow, false, strategy, minNumIntervals, false
                     );
                     results.add(result);
                 }
@@ -90,7 +93,6 @@ public class Benchmark {
                 "typeLabel", "type",
                 "initialMatrixStrategy", initialStateStrategy,
                 "useInverseFlow", useInverseFlow,
-                "useODESplitting", useSplitting,
                 "parallelize", parallelized
         );
         density.initAndValidate();
@@ -121,9 +123,14 @@ public class Benchmark {
     }
 
     static void writeResults(List<BenchmarkResult> results, String fileName) {
-        try (FileWriter fileWriter = new FileWriter(fileName)) {
-            fileWriter.write(results.get(0).getHeaders());
-            fileWriter.write("\n");
+        File file = new File(fileName);
+        boolean writeHeader = !file.exists() || file.length() == 0;
+
+        try (FileWriter fileWriter = new FileWriter(fileName, true)) {
+            if (writeHeader) {
+                fileWriter.write(results.get(0).getHeaders());
+                fileWriter.write("\n");
+            }
 
             for (BenchmarkResult result : results) {
                 fileWriter.write(result.toString());
