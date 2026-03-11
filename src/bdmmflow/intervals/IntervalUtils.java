@@ -9,16 +9,14 @@ import java.util.List;
 import java.util.Set;
 
 public class IntervalUtils {
-    public static List<Interval> getIntervals(Parameterization parameterization, double maxIntervalSize) {
-        return IntervalUtils.getIntervals(parameterization, maxIntervalSize, 0.0);
-    }
-
-    public static List<Interval> getIntervals(Parameterization parameterization, double maxIntervalSize, double rootTime) {
+    /**
+     * Returns the list of intervals for the given parameterization intervals.
+     */
+    public static List<Interval> getIntervals(Parameterization parameterization) {
         List<Interval> intervals = new ArrayList<>();
 
         int currentParameterizationInterval = 0;
-
-        double currentStartTime = Math.min(0.0, Math.min(rootTime, parameterization.getIntervalEndTimes()[0]));
+        double currentStartTime = Math.min(0.0, parameterization.getIntervalEndTimes()[0]);
 
         while (currentParameterizationInterval < parameterization.getTotalIntervalCount()) {
             double currentParameterizationIntervalEndTime = parameterization.getIntervalEndTimes()[currentParameterizationInterval];
@@ -29,36 +27,20 @@ public class IntervalUtils {
                 continue;
             }
 
-            double currentMaxEndTime = currentStartTime + maxIntervalSize;
+            intervals.add(
+                    new Interval(
+                            intervals.size(),
+                            currentParameterizationInterval,
+                            currentStartTime,
+                            currentParameterizationIntervalEndTime
+                    )
+            );
 
-            if (currentParameterizationIntervalEndTime < currentMaxEndTime || Utils.equalWithPrecision(currentParameterizationIntervalEndTime, currentMaxEndTime)) {
-                // the current interval goes until the end of the parameterization interval
-                intervals.add(
-                        new Interval(
-                                intervals.size(),
-                                currentParameterizationInterval,
-                                currentStartTime,
-                                currentParameterizationIntervalEndTime
-                        )
-                );
-
-                currentStartTime = currentParameterizationIntervalEndTime;
-                currentParameterizationInterval += 1;
-            } else {
-                // the current interval is shorter than the current parameterization interval
-                intervals.add(
-                        new Interval(
-                                intervals.size(),
-                                currentParameterizationInterval,
-                                currentStartTime,
-                                currentMaxEndTime
-                        )
-                );
-
-                currentStartTime = currentMaxEndTime;
-            }
+            currentStartTime = currentParameterizationIntervalEndTime;
+            currentParameterizationInterval += 1;
         }
 
         return intervals;
     }
+
 }

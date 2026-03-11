@@ -336,11 +336,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         // set up intervals
 
-        double maxIntervalSize = this.parameterization.getTotalProcessLength();
-        List<Interval> intervals = IntervalUtils.getIntervals(
-                this.parameterization,
-                maxIntervalSize
-        );
+        List<Interval> intervals = IntervalUtils.getIntervals(this.parameterization);
 
         // integrate over the extinction probabilities ODE and the flow ODE
 
@@ -405,48 +401,9 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         return logTreeLikelihood;
     }
 
-    private void periodicallyCompareToBDMMPrime(TreeInterface dummyTree, double bdmmFlowLikelihood) {
-        if (this.totalNumEvaluations < 1_000) return;
-        if (this.totalNumEvaluations % 2_000 != 0) return;
-
-        double bdmmPrimeLikelihood = this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
-        double deviation = Math.abs(Math.abs(bdmmFlowLikelihood - bdmmPrimeLikelihood) / bdmmPrimeLikelihood);
-
-        if (Double.isFinite(deviation)) {
-            this.sumDeviation += deviation;
-            this.numDeviations++;
-        }
-
-        if (deviation > 1e-2) {
-            Log.warning("Found relative deviation of " + 100*deviation + "% to BDMM-Prime. Consider using BDMM-Prime instead of BDMM-Flow.");
-        }
-
-        // we log the deviation every 20_000 steps
-        if (this.numDeviations % 10 == 0) {
-            double meanDeviation = this.sumDeviation / this.numDeviations;
-            Log.warning("Mean deviation was " + meanDeviation + " (sum " + this.sumDeviation + ", num " + this.numDeviations + ")");
-        }
-    }
-
-    private void warnAboutNumericalIssuesIfNecessary() {
-        if (this.totalNumEvaluations < 1_000) return;
-
-        // we only update the values every 10_000 iterations except in the very beginning
-        if (this.totalNumEvaluations % 1_000 != 0 || (10_000 < this.totalNumEvaluations && this.totalNumEvaluations % 10_000 != 0))
-            return;
-
-        double failureRate = 1.0 * this.numFailedEvaluationsSinceReset / this.numEvaluationsSinceReset;
-
-        if (failureRate > 0.05) {
-            Log.warning("Failure rate was " + failureRate + ". Consider using BDMM-Prime instead of BDMM-Flow.");
-        }
-
-        // reset counters
-
-        this.numFailedEvaluationsSinceReset = 0;
-        this.numEvaluationsSinceReset = 0;
-    }
-
+    /**
+     * Returns true if the input values are invalid or have a density of 0.
+     */
     private boolean inputValuesHaveZeroDensity() {
         // force update of parameterization if needed
         this.parameterization.getIntervalEndTimes();
@@ -470,6 +427,56 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
         // all good :)
 
         return false;
+    }
+
+    /**
+     * Periodically computes the BDMM-Prime likelihood and compares it to the one we get. Prints a warning in case
+     * we detect a big deviation.
+     */
+    private void periodicallyCompareToBDMMPrime(TreeInterface dummyTree, double bdmmFlowLikelihood) {
+        if (this.totalNumEvaluations < 1_000) return;
+        if (this.totalNumEvaluations % 2_000 != 0) return;
+
+        double bdmmPrimeLikelihood = this.bdmmPrime.calculateTreeLogLikelihood(dummyTree);
+        double deviation = Math.abs(Math.abs(bdmmFlowLikelihood - bdmmPrimeLikelihood) / bdmmPrimeLikelihood);
+
+        if (Double.isFinite(deviation)) {
+            this.sumDeviation += deviation;
+            this.numDeviations++;
+        }
+
+        if (deviation > 1e-2) {
+            Log.warning("Found relative deviation of " + 100*deviation + "% to BDMM-Prime. Consider using BDMM-Prime instead of BDMM-Flow.");
+        }
+
+        // we log the deviation every 20_000 steps
+        if (this.numDeviations % 10 == 0) {
+            double meanDeviation = this.sumDeviation / this.numDeviations;
+            Log.warning("Mean deviation was " + meanDeviation + " (sum " + this.sumDeviation + ", num " + this.numDeviations + ")");
+        }
+    }
+
+    /**
+     * Periodically computes the fraction of evaluations with numerical issues. If this failure rate exceeds a certain
+     * value, we print a warning.
+     */
+    private void warnAboutNumericalIssuesIfNecessary() {
+        if (this.totalNumEvaluations < 1_000) return;
+
+        // we only update the values every 10_000 iterations except in the very beginning
+        if (this.totalNumEvaluations % 1_000 != 0 || (10_000 < this.totalNumEvaluations && this.totalNumEvaluations % 10_000 != 0))
+            return;
+
+        double failureRate = 1.0 * this.numFailedEvaluationsSinceReset / this.numEvaluationsSinceReset;
+
+        if (failureRate > 0.05) {
+            Log.warning("Failure rate was " + failureRate + ". Consider using BDMM-Prime instead of BDMM-Flow.");
+        }
+
+        // reset counters
+
+        this.numFailedEvaluationsSinceReset = 0;
+        this.numEvaluationsSinceReset = 0;
     }
 
     /**
@@ -883,6 +890,8 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
 
         return parameterization.getTypeSet().getTypeIndex(nodeTypeName);
     }
+
+    /** Caching **/
 
     @Override
     public boolean requiresRecalculation() {

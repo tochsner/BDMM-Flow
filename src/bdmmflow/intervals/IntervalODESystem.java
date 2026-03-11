@@ -186,20 +186,32 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
         // do nothing
     }
 
+    /**
+     * This method is called on parameterization boundaries. Inherit this method for custom handling of these boundaries.
+     */
     protected void handleParameterizationIntervalBoundary(double boundaryTime, double[] state) {
         this.handleParameterizationIntervalBoundary(boundaryTime, this.getCurrentParameterizationInterval(boundaryTime), this.getCurrentParameterizationInterval(boundaryTime), state);
     }
 
-    protected void handleParameterizationIntervalBoundaryIfNecessary(double boundaryTime, double[] state) {
-        if (this.isParameterizationIntervalBoundary(boundaryTime)) {
-            this.handleParameterizationIntervalBoundary(boundaryTime, state);
+    /**
+     * Calls handleParameterizationIntervalBoundary if time lies on a parameterization interval boundary.
+     */
+    protected void handleParameterizationIntervalBoundaryIfNecessary(double time, double[] state) {
+        if (this.isParameterizationIntervalBoundary(time)) {
+            this.handleParameterizationIntervalBoundary(time, state);
         }
     }
 
+    /**
+     * Returns the parameterization interval for the given time.
+     */
     public int getCurrentParameterizationInterval(double time) {
         return this.parameterization.getIntervalIndex(time);
     }
 
+    /**
+     * Checks if the given time lies on a parameterization interval boundary.
+     */
     boolean isParameterizationIntervalBoundary(double time) {
         for (int i = 0; i < this.parameterization.getTotalIntervalCount() - 1; i++) {
             double endTime = this.parameterization.getIntervalEndTimes()[i];
@@ -208,7 +220,4 @@ public abstract class IntervalODESystem implements FirstOrderDifferentialEquatio
         return false;
     }
 
-    protected IntervalODESystem copy() {
-        return this;
-    }
 }

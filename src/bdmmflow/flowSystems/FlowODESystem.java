@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * This class represents the classical flow ODE.
+ * This class represents the classical backwards-in-time flow ODE.
  */
 public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     final ExtinctionProbabilities extinctionProbabilities;
@@ -167,6 +167,9 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
         }
     }
 
+    /**
+     * Computes the initial states (preconditioners) for the given strategy and intervals.
+     */
     List<InitialState> getInitialStates(String initialMatrixStrategy, List<Interval> intervals) {
         return switch (initialMatrixStrategy) {
             case "random" -> {
@@ -233,38 +236,6 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
 
                 return new InitialState(array, inverse);
             }).toList();
-            case "half_average_inverse" -> intervals.stream().parallel().map((interval) -> {
-                double h = interval.end() - interval.start();
-                RealMatrix startA = this.buildSystemMatrix(
-                        interval.start() + 4.0 * (interval.end() - interval.start()) / 8.0
-                );
-                RealMatrix midA = this.buildSystemMatrix(
-                        interval.start() + 6.0 * (interval.end() - interval.start()) / 8.0
-                );
-                RealMatrix threeQuarterA = this.buildSystemMatrix(
-                        interval.start() + 7.0 * (interval.end() - interval.start()) / 8.0
-                );
-                RealMatrix endA = this.buildSystemMatrix(
-                        interval.end() - bdmmprime.util.Utils.globalPrecisionThreshold
-                );
-
-                RealMatrix startInvX = Utils.expm(
-                        startA.add(midA.scalarMultiply(4)).add(endA).scalarMultiply(h / 2.0 / 6.0)
-                );
-                RealMatrix midInvX = Utils.expm(
-                        midA.add(threeQuarterA.scalarMultiply(4)).add(endA).scalarMultiply(h / 4.0 / 6.0)
-                );
-                RealMatrix endInvX = MatrixUtils.createRealIdentityMatrix(this.parameterization.getNTypes());
-
-                RealMatrix averageInvX = startInvX.add(midInvX.scalarMultiply(4)).add(endInvX).scalarMultiply(1.0 / 6.0);
-
-                double[] array = new double[this.parameterization.getNTypes() * this.parameterization.getNTypes()];
-                Utils.fillArray(averageInvX, array);
-
-                RealMatrix inverse = MatrixUtils.inverse(averageInvX);
-
-                return new InitialState(array, inverse);
-            }).toList();
             default -> throw new RuntimeException(
                     "Error: initial state strategy not known."
             );
@@ -302,7 +273,8 @@ public class FlowODESystem extends IntervalODESystem implements IFlowODESystem {
     }
 
     /**
-     * Splits up the stored intervals if numerical issues are expected.
+     * Splits up the stored intervals if numerical issues are expected. Depending on
+     * this.useLoucaPennellIntervals, we use their interval heuristic or our own.
      */
     protected void splitUpIntervals() {
         double logMaxConditionNumber = Math.log(this.maxConditionNumber);

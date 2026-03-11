@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 import static bdmmflow.utils.Utils.*;
 
 /**
- * This class represents the ODE that has the inverse flow as a solution.
+ * This class represents the ODE that has the forward-in-time inverse flow as a solution.
  */
 public class InverseFlowODESystem extends IntervalODESystem implements IFlowODESystem {
     final ExtinctionProbabilities extinctionProbabilities;
@@ -171,6 +171,9 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         }
     }
 
+    /**
+     * Computes the initial states (preconditioners) for the given strategy and intervals.
+     */
     List<InitialState> getInitialStates(String initialMatrixStrategy, List<Interval> intervals) {
         return switch (initialMatrixStrategy) {
             case "random" -> {
@@ -274,6 +277,7 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
             );
         };
     }
+
     /**
      * Calculates the flow integral using the given intervals.
      * @return the calculated flow.
@@ -302,6 +306,10 @@ public class InverseFlowODESystem extends IntervalODESystem implements IFlowODES
         );
     }
 
+    /**
+     * Splits up the stored intervals if numerical issues are expected. Depending on
+     * this.useLoucaPennellIntervals, we use their interval heuristic or our own.
+     */
     protected void splitUpIntervals() {
         double logMaxConditionNumber = Math.log(this.maxConditionNumber);
 

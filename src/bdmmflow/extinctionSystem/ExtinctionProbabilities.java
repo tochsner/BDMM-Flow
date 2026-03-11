@@ -16,6 +16,10 @@ public class ExtinctionProbabilities {
         this.n = n;
     }
 
+    /**
+     * Returns the extinction probability for the given output model at the given time.
+     * Note that this method is thread-safe.
+     */
     public double[] getProbability(ContinuousOutputModel output, double time) {
         double[] state = new double[this.n];
 
@@ -39,6 +43,10 @@ public class ExtinctionProbabilities {
         return state;
     }
 
+    /**
+     * Returns the extinction probability for the given output model at the given time.
+     * Note that this method is not thread-safe.
+     */
     public double[] unsafeGetProbability(ContinuousOutputModel output, double time) {
         output.setInterpolatedTime(time);
         double[] state = output.getInterpolatedState();
@@ -59,6 +67,7 @@ public class ExtinctionProbabilities {
 
     /**
      * Returns the extinction probability at the given time.
+     * Note that this method is thread-safe.
      * @param time the time.
      * @return the extinction probability at the given time.
      */
