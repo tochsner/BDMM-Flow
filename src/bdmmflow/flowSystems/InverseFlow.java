@@ -24,7 +24,7 @@ public class InverseFlow implements IFlow {
     int n;
 
     ConcurrentHashMap<Double, RealMatrix>[] flowCache;
-    ConcurrentHashMap<Double, DecompositionSolver> decompositionCache = new ConcurrentHashMap<>();
+    ConcurrentHashMap<Double, DecompositionSolver>[] decompositionCache;
 
     public InverseFlow(ContinuousOutputModel[] outputModels, int n, List<InitialState> initialStates, boolean useIntervals) {
         this.outputModels = outputModels;
@@ -34,8 +34,10 @@ public class InverseFlow implements IFlow {
         this.wasInitialStateResetAtEachInterval = useIntervals;
 
         this.flowCache = new ConcurrentHashMap[outputModels.length];
+        this.decompositionCache = new ConcurrentHashMap[outputModels.length];
         for (int i = 0; i < outputModels.length; i++) {
             this.flowCache[i] = new ConcurrentHashMap<>();
+            this.decompositionCache[i] = new ConcurrentHashMap<>();
         }
     }
 
@@ -43,7 +45,7 @@ public class InverseFlow implements IFlow {
     public IntegrationResult integrateUsingFlow(double timeStart, double timeEnd, double[] endState) {
         int interval = this.getLeftInterval(timeStart);
 
-        DecompositionSolver linearSolver = this.decompositionCache.computeIfAbsent(
+        DecompositionSolver linearSolver = this.decompositionCache[interval].computeIfAbsent(
                 timeStart,
                 k -> new QRDecomposition(
                         this.getFlow(interval, timeStart), 1e-10
@@ -65,7 +67,7 @@ public class InverseFlow implements IFlow {
             }
 
             linearSolver = svd.getSolver();
-            this.decompositionCache.put(timeStart, linearSolver);
+            this.decompositionCache[interval].put(timeStart, linearSolver);
             likelihoodVectorStart = linearSolver.solve(likelihoodVectorIntervalEnd.vector());
         }
 

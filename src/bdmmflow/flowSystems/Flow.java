@@ -68,8 +68,6 @@ public class Flow implements IFlow {
         return this.operateFlow(timeStart, intervalEnd, solution);
     }
 
-    static int a; static double b;
-
     /**
      * Operates the flow at a given time on the given vector.
      * This method supports when the flow integration was restarted using the same initial state
@@ -116,11 +114,6 @@ public class Flow implements IFlow {
             }
 
             this.flowCache[interval].put(time, flow);
-        }
-
-        synchronized (this) {
-            a++;
-            b += new SingularValueDecomposition(flow).getConditionNumber();
         }
 
         return flow;
