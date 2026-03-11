@@ -121,7 +121,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
     public Input<Double> maxConditioningNumberInput = new Input<>(
             "maxConditioningNumber",
             "The maximal conditioning number to reach until an interval is split.",
-            1e7
+            1e8
     );
 
     public Input<Boolean> useLoucaPennellIntervalsInput = new Input<>(
@@ -489,7 +489,7 @@ public class BirthDeathMigrationDistribution extends SpeciesTreeDistribution {
                 this.parameterization,
                 intervals,
                 this.absoluteTolerance,
-                this.relativeTolerance
+                this.relativeTolerance / 10.0
         );
 
         // create the initial states
