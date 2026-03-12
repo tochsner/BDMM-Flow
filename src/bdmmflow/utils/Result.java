@@ -5,6 +5,14 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * This is a wrapper class which holds the result of a computation or a potential error
+ * which was thrown during that computation.
+ * This is useful when running things in parallel, as it allows to throw potential errors
+ * on the main sequential thread once all threads have been completed. If the threads themselves
+ * were to throw the errors directly, the other threads would finish in the background leading
+ * to potential deadlocks.
+ */
 public class Result<T> {
     T result;
     RuntimeException error;
@@ -14,6 +22,10 @@ public class Result<T> {
         this.error = error;
     }
 
+    /**
+     * Executes the supplier and returns a Result error containing the result or error thrown.
+     * Any error is caught and stored in the returned object instead of thrown.
+     */
     public static <T> Result<T> of(Supplier<T> supplier) {
         try {
             return Result.success(supplier.get());
@@ -30,6 +42,7 @@ public class Result<T> {
         return new Result<>(null, error);
     }
 
+    /** Consumes the given stream of result objects and throws the first error encountered. */
     public static <T> void throwIfFailure(Stream<Result<T>> results) {
         List<Result<T>> resultList = results.toList();
         for (Result<T> result : resultList) {
@@ -37,6 +50,7 @@ public class Result<T> {
         }
     }
 
+    /** Unwraps the stored result or throws the stored error. */
     public T getOrThrow() {
         if (this.error != null) {
             throw this.error;
